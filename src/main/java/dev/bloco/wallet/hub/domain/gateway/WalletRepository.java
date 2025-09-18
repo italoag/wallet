@@ -1,7 +1,8 @@
-package dev.bloco.wallet.hub.domain.gateway;
+package dev.bloco.wallet.hub.domain.repository;
 
-import dev.bloco.wallet.hub.domain.Wallet;
+import dev.bloco.wallet.hub.domain.model.Wallet;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -15,7 +16,18 @@ import java.util.UUID;
  * wallet, and update an existing wallet's information.
  */
 public interface WalletRepository {
-    Optional<Wallet> findById(UUID id);
+
     Wallet save(Wallet wallet);
+
     void update(Wallet wallet);
+    
+    Optional<Wallet> findById(UUID id);
+    
+    List<Wallet> findAll();
+    
+    void delete(UUID id);
+    
+    List<Wallet> findByName(String name);
+    
+    boolean existsById(UUID id);
 }
