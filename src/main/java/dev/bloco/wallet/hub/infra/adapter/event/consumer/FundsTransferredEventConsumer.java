@@ -13,17 +13,52 @@ import reactor.core.publisher.Mono;
 
 import java.util.function.Consumer;
 
+/**
+ * The FundsTransferredEventConsumer class is responsible for handling events of type FundsTransferredEvent.
+ * It processes the transfer of funds between wallets in the system and interacts with a state machine
+ * to manage the saga state transitions related to this event.
+ *<p/>
+ * This class listens for FundsTransferredEvent messages, retrieves the event details, and updates the
+ * state machine by sending the appropriate saga event for funds being successfully transferred. The class
+ * also logs the details of the transaction, such as the amount transferred and the source and destination wallets.
+ *<p/>
+ * FundsTransferredEventConsumer is configured as a Spring component and provides a bean of type
+ * Consumer<Message<FundsTransferredEvent>>, which manages the processing of incoming event messages.
+ */
 @Component
 @Slf4j
 public class FundsTransferredEventConsumer {
 
     private final StateMachine<SagaStates, SagaEvents> stateMachine;
 
-    public FundsTransferredEventConsumer(StateMachine<SagaStates, SagaEvents> stateMachine) {
+  /**
+   * Constructs a FundsTransferredEventConsumer instance.
+   *<p/>
+   * This constructor initializes the {@code FundsTransferredEventConsumer} with a state machine,
+   * which is used to manage the state transitions of the saga process when funds are transferred
+   * between wallets within the system.
+   *
+   * @param stateMachine the state machine instance responsible for handling and transitioning
+   *                      between different states of the saga related to fund transfers
+   */
+  public FundsTransferredEventConsumer(StateMachine<SagaStates, SagaEvents> stateMachine) {
         this.stateMachine = stateMachine;
     }
 
-    @Bean
+  /**
+   * Creates a consumer function for handling FundsTransferredEvent messages.
+   *<p/>
+   * This method processes incoming messages of type FundsTransferredEvent, retrieves the event details,
+   * and transitions the state machine through the respective saga states. The state transition is achieved
+   * by sending the SagaEvents.FUNDS_TRANSFERRED event to the state machine. After processing the event,
+   * the function logs the transfer details, including the amount, source wallet ID, and destination wallet ID.
+   *<p/>
+   * The consumer supports distributed state management and ensures that the funds transfer operation
+   * is successfully integrated into the saga process.
+   *
+   * @return a Consumer function that processes messages containing FundsTransferredEvent data
+   */
+  @Bean
     public Consumer<Message<FundsTransferredEvent>> fundsTransferredEventConsumerFunction() {
         return message -> {
             var event = message.getPayload();

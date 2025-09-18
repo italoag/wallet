@@ -8,6 +8,23 @@ import java.math.BigDecimal;
 import java.util.Objects;
 import java.util.UUID;
 
+/**
+ * Represents a wallet entity in the database. This class maps to the "wallets" table
+ * and provides fields and methods to manage wallet information.
+ *<p/>
+ * Fields:
+ * - id: The unique identifier of the wallet, automatically generated as a UUID.
+ * - userId: The UUID of the user to whom the wallet belongs. This field is mandatory.
+ * - balance: The current balance of the wallet. This field is mandatory.
+ *<p/>
+ * Annotations from Jakarta Persistence API (@Entity, @Table) are used for database mapping,
+ * while Lombok annotations (@Getter, @Setter, @ToString, @RequiredArgsConstructor) provide
+ * automatic generation of boilerplate code such as getters, setters, and constructors.
+ *<p/>
+ * This class overrides the equals and hashCode methods to ensure proper equality checks
+ * and hashcode generation, taking into account the possibility of proxy objects using
+ * Hibernate.
+ */
 @Getter
 @Setter
 @ToString

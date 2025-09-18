@@ -6,6 +6,22 @@ import lombok.Setter;
 
 import java.util.UUID;
 
+/**
+ * Represents a User entity in the database. This class maps to the "users" table
+ * and is used to store and retrieve user-related data.
+ *<p/>
+ * The UserEntity class contains the following fields:
+ * - id: The unique identifier for the user, automatically generated as a UUID.
+ * - name: The name of the user. This field is mandatory and cannot be null.
+ * - email: The email of the user. This field is mandatory and cannot be null.
+ *<p/>
+ * Annotations such as @Entity and @Table are used for JPA persistence,
+ * and @Id and @GeneratedValue indicate that the id field is the primary key
+ * and will be automatically generated.
+ *<p/>
+ * Additionally, the @Setter and @Getter annotations from Lombok
+ * are used to automatically generate getter and setter methods for the fields.
+ */
 @Setter
 @Getter
 @Entity

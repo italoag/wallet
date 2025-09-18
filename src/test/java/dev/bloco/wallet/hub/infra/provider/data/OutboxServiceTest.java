@@ -2,14 +2,15 @@ package dev.bloco.wallet.hub.infra.provider.data;
 
 import dev.bloco.wallet.hub.infra.provider.data.repository.OutboxRepository;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@DisplayName("Outbox Service Tests")
 class OutboxServiceTest {
 
     private OutboxRepository outboxRepository;
@@ -22,6 +23,7 @@ class OutboxServiceTest {
     }
 
     @Test
+    @DisplayName("saveOutboxEvent persists event with provided fields")
     void saveOutboxEvent_persistsWithProvidedFields() {
         // when
         outboxService.saveOutboxEvent("type-A", "{payload}", "corr-xyz");
@@ -36,6 +38,7 @@ class OutboxServiceTest {
     }
 
     @Test
+    @DisplayName("markEventAsSent sets flag and saves")
     void markEventAsSent_setsFlagAndSaves() {
         OutboxEvent event = new OutboxEvent();
         event.setEventType("t");
@@ -49,6 +52,7 @@ class OutboxServiceTest {
     }
 
     @Test
+    @DisplayName("getUnsentEvents delegates to repository")
     void getUnsentEvents_delegatesToRepository() {
         when(outboxRepository.findBySentFalse()).thenReturn(List.of(new OutboxEvent()));
 
