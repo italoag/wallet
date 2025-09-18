@@ -1,7 +1,7 @@
 package dev.bloco.wallet.hub.infra.provider.data.repository;
 
-import dev.bloco.wallet.hub.domain.Transaction;
-import dev.bloco.wallet.hub.domain.Transaction.TransactionType;
+import dev.bloco.wallet.hub.domain.model.transaction.Transaction;
+import dev.bloco.wallet.hub.domain.model.transaction.TransactionHash;
 import dev.bloco.wallet.hub.infra.provider.data.entity.TransactionEntity;
 import dev.bloco.wallet.hub.infra.provider.mapper.TransactionMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -13,7 +13,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -38,28 +38,31 @@ class JpaTransactionRepositoryTest {
     }
 
     @Test
-    @DisplayName("Save should delegate to SpringDataUserRepository")
+    @DisplayName("save should map domain to entity and back to domain")
     void save_shouldMapDomainToEntity_andBackToDomain() {
-        UUID from = UUID.randomUUID();
-        UUID to = UUID.randomUUID();
-        Transaction domain = new Transaction(from, to, new BigDecimal("12.34"), TransactionType.TRANSFER);
+        UUID id = UUID.randomUUID();
+        UUID networkId = UUID.randomUUID();
+        Transaction domain = Transaction.create(id, networkId, new TransactionHash("0xhash"), "0xfrom", "0xto", new BigDecimal("12.34"), null);
 
         TransactionEntity entity = new TransactionEntity();
-        entity.setFromWalletId(from);
-        entity.setToWalletId(to);
-        entity.setAmount(new BigDecimal("12.34"));
-        entity.setTimestamp(LocalDateTime.now());
-        entity.setType(TransactionEntity.TransactionType.TRANSFER);
+        entity.setId(id);
+        entity.setNetworkId(networkId);
+        entity.setHash("0xhash");
+        entity.setFromAddress("0xfrom");
+        entity.setToAddress("0xto");
+        entity.setValue(new BigDecimal("12.34"));
+        entity.setTimestamp(Instant.now());
 
         TransactionEntity savedEntity = new TransactionEntity();
-        savedEntity.setId(UUID.randomUUID());
-        savedEntity.setFromWalletId(from);
-        savedEntity.setToWalletId(to);
-        savedEntity.setAmount(new BigDecimal("12.34"));
-        savedEntity.setTimestamp(LocalDateTime.now());
-        savedEntity.setType(TransactionEntity.TransactionType.TRANSFER);
+        savedEntity.setId(id);
+        savedEntity.setNetworkId(networkId);
+        savedEntity.setHash("0xhash");
+        savedEntity.setFromAddress("0xfrom");
+        savedEntity.setToAddress("0xto");
+        savedEntity.setValue(new BigDecimal("12.34"));
+        savedEntity.setTimestamp(Instant.now());
 
-        Transaction mappedBack = new Transaction(from, to, new BigDecimal("12.34"), TransactionType.TRANSFER);
+        Transaction mappedBack = Transaction.create(id, networkId, new TransactionHash("0xhash"), "0xfrom", "0xto", new BigDecimal("12.34"), null);
 
         when(transactionMapper.toEntity(domain)).thenReturn(entity);
         when(springDataTransactionRepository.save(entity)).thenReturn(savedEntity);
@@ -72,10 +75,11 @@ class JpaTransactionRepositoryTest {
         ArgumentCaptor<TransactionEntity> captor = ArgumentCaptor.forClass(TransactionEntity.class);
         verify(springDataTransactionRepository).save(captor.capture());
         TransactionEntity captured = captor.getValue();
-        assertThat(captured.getFromWalletId()).isEqualTo(from);
-        assertThat(captured.getToWalletId()).isEqualTo(to);
-        assertThat(captured.getAmount()).isEqualByComparingTo("12.34");
-        assertThat(captured.getType()).isEqualTo(TransactionEntity.TransactionType.TRANSFER);
+        assertThat(captured.getNetworkId()).isEqualTo(networkId);
+        assertThat(captured.getHash()).isEqualTo("0xhash");
+        assertThat(captured.getFromAddress()).isEqualTo("0xfrom");
+        assertThat(captured.getToAddress()).isEqualTo("0xto");
+        assertThat(captured.getValue()).isEqualByComparingTo("12.34");
 
         verify(transactionMapper).toEntity(domain);
         verify(transactionMapper).toDomain(savedEntity);
@@ -83,37 +87,39 @@ class JpaTransactionRepositoryTest {
     }
 
     @Test
-    @DisplayName("findByWalletId should delegate to SpringDataUserRepository")
-    void findByWalletId_shouldDelegateToSpringData_andMapAll() {
-        UUID walletId = UUID.randomUUID();
+    @DisplayName("findByNetworkId should delegate to SpringData repo and map all results")
+    void findByNetworkId_shouldDelegateToSpringData_andMapAll() {
+        UUID networkId = UUID.randomUUID();
 
         TransactionEntity e1 = new TransactionEntity();
         e1.setId(UUID.randomUUID());
-        e1.setFromWalletId(walletId);
-        e1.setToWalletId(UUID.randomUUID());
-        e1.setAmount(new BigDecimal("1.00"));
-        e1.setTimestamp(LocalDateTime.now());
-        e1.setType(TransactionEntity.TransactionType.DEPOSIT);
+        e1.setNetworkId(networkId);
+        e1.setHash("0x1");
+        e1.setFromAddress("0xA");
+        e1.setToAddress("0xB");
+        e1.setValue(new BigDecimal("1.00"));
+        e1.setTimestamp(Instant.now());
 
         TransactionEntity e2 = new TransactionEntity();
         e2.setId(UUID.randomUUID());
-        e2.setFromWalletId(UUID.randomUUID());
-        e2.setToWalletId(walletId);
-        e2.setAmount(new BigDecimal("2.00"));
-        e2.setTimestamp(LocalDateTime.now());
-        e2.setType(TransactionEntity.TransactionType.WITHDRAWAL);
+        e2.setNetworkId(networkId);
+        e2.setHash("0x2");
+        e2.setFromAddress("0xC");
+        e2.setToAddress("0xD");
+        e2.setValue(new BigDecimal("2.00"));
+        e2.setTimestamp(Instant.now());
 
-        Transaction d1 = new Transaction(e1.getFromWalletId(), e1.getToWalletId(), e1.getAmount(), TransactionType.DEPOSIT);
-        Transaction d2 = new Transaction(e2.getFromWalletId(), e2.getToWalletId(), e2.getAmount(), TransactionType.WITHDRAWAL);
+        Transaction d1 = Transaction.create(e1.getId(), networkId, new TransactionHash("0x1"), "0xA", "0xB", new BigDecimal("1.00"), null);
+        Transaction d2 = Transaction.create(e2.getId(), networkId, new TransactionHash("0x2"), "0xC", "0xD", new BigDecimal("2.00"), null);
 
-        when(springDataTransactionRepository.findByFromWalletIdOrToWalletId(walletId, walletId)).thenReturn(List.of(e1, e2));
+        when(springDataTransactionRepository.findByNetworkId(networkId)).thenReturn(List.of(e1, e2));
         when(transactionMapper.toDomain(e1)).thenReturn(d1);
         when(transactionMapper.toDomain(e2)).thenReturn(d2);
 
-        List<Transaction> result = repository.findByWalletId(walletId);
+        List<Transaction> result = repository.findByNetworkId(networkId);
 
         assertThat(result).containsExactly(d1, d2);
-        verify(springDataTransactionRepository).findByFromWalletIdOrToWalletId(walletId, walletId);
+        verify(springDataTransactionRepository).findByNetworkId(networkId);
         verify(transactionMapper).toDomain(e1);
         verify(transactionMapper).toDomain(e2);
         verifyNoMoreInteractions(transactionMapper, springDataTransactionRepository);

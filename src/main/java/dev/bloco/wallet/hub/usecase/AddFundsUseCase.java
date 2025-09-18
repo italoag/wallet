@@ -1,29 +1,27 @@
 package dev.bloco.wallet.hub.usecase;
 
-import dev.bloco.wallet.hub.domain.Transaction;
-import dev.bloco.wallet.hub.domain.Wallet;
-import dev.bloco.wallet.hub.domain.event.FundsAddedEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.FundsAddedEvent;
 import dev.bloco.wallet.hub.domain.gateway.TransactionRepository;
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
 import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
+import dev.bloco.wallet.hub.domain.model.Wallet;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
  * AddFundsUseCase enables the addition of funds to a specific wallet in the system.
- * It encapsulates the process of validating the wallet, updating the balance, saving
- * the associated transaction, and publishing a corresponding domain event.
+ * It encapsulates the process of validating the wallet, updating the balance and
+ * publishing a corresponding domain event.
  *<p/>
  * Responsibilities:
  * - Retrieve the wallet based on its unique identifier.
  * - Add the specified amount to the wallet's balance, ensuring the amount is valid.
- * - Persist the updated wallet and the associated deposit transaction.
+ * - Persist the updated wallet state.
  * - Publish a FundsAddedEvent for system-wide or external process handling.
  *<p/>
  * Uses:
  * - WalletRepository for retrieving and updating wallet entities.
- * - TransactionRepository for persisting transactions.
  * - DomainEventPublisher for publishing domain events after the operation.
  *<p/>
  * Exceptions:
@@ -31,7 +29,7 @@ import java.util.UUID;
  *   an invalid amount is provided.
  *
  * @param walletRepository Repository for wallet data access.
- * @param transactionRepository Repository for transaction data access.
+ * @param transactionRepository Repository for transaction data access (reserved for on-chain flows).
  * @param eventPublisher Publisher for domain events.
  */
 public record AddFundsUseCase(WalletRepository walletRepository, TransactionRepository transactionRepository,
@@ -42,7 +40,6 @@ public record AddFundsUseCase(WalletRepository walletRepository, TransactionRepo
    * - Validates the wallet by its unique identifier and throws an exception if the wallet is not found.
    * - Adds the specified amount to the wallet's balance.
    * - Updates the wallet in the repository with the new balance.
-   * - Saves a transaction record representing the deposit operation.
    * - Publishes a FundsAddedEvent to notify other components or systems.
    *
    * @param walletId the unique identifier of the wallet to which funds will be added.
@@ -55,7 +52,6 @@ public record AddFundsUseCase(WalletRepository walletRepository, TransactionRepo
         .orElseThrow(() -> new IllegalArgumentException("Wallet not found"));
     wallet.addFunds(amount);
     walletRepository.update(wallet);
-    transactionRepository.save(new Transaction(null, wallet.getId(), amount, Transaction.TransactionType.DEPOSIT));
     FundsAddedEvent event = new FundsAddedEvent(wallet.getId(), amount, correlationId);
     eventPublisher.publish(event);
   }

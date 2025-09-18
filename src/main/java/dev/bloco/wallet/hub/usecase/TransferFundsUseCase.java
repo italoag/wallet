@@ -1,11 +1,10 @@
 package dev.bloco.wallet.hub.usecase;
 
-import dev.bloco.wallet.hub.domain.Transaction;
-import dev.bloco.wallet.hub.domain.Wallet;
-import dev.bloco.wallet.hub.domain.event.FundsTransferredEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.FundsTransferredEvent;
 import dev.bloco.wallet.hub.domain.gateway.TransactionRepository;
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
 import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
+import dev.bloco.wallet.hub.domain.model.Wallet;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -13,19 +12,17 @@ import java.util.UUID;
 /**
  * The TransferFundsUseCase class is responsible for handling the business logic
  * to transfer funds between two wallets. It ensures that the required steps,
- * such as validation, updating the wallets, saving the transaction, and
- * publishing relevant events, are performed in the correct sequence.
+ * such as validation, updating the wallets, and publishing relevant events,
+ * are performed in the correct sequence.
  *<p/>
  * This use case interacts with the following:
  * - WalletRepository for retrieving and updating wallet entities.
- * - TransactionRepository for persisting the transaction details.
  * - DomainEventPublisher for publishing events after a successful transfer.
  *<p/>
  * The process includes:
  * - Validating that both source and destination wallets exist.
  * - Performing the withdrawal from the source wallet and a deposit to the destination wallet.
  * - Persisting the updated states of both wallets in the data store.
- * - Recording the transaction for audit and traceability purposes.
  * - Publishing a FundsTransferredEvent to signify a successful transfer operation within the domain.
  *<p/>
  * Exceptions:
@@ -34,7 +31,7 @@ import java.util.UUID;
  *   operation fails due to invalid amounts or insufficient balance.
  *
  * @param walletRepository the repository for managing wallet persistence and updates
- * @param transactionRepository the repository for managing transaction persistence
+ * @param transactionRepository reserved for on-chain transactions (not used in this flow)
  * @param eventPublisher the publisher for domain events
  */
 public record TransferFundsUseCase(WalletRepository walletRepository, TransactionRepository transactionRepository,
@@ -43,8 +40,7 @@ public record TransferFundsUseCase(WalletRepository walletRepository, Transactio
   /**
    * Transfers a specified monetary amount from one wallet to another. The process involves
    * withdrawing funds from the source wallet, adding the same amount to the destination wallet,
-   * updating the wallets in the repository, saving the transaction details, and publishing
-   * a FundsTransferredEvent to signal that the transfer was successful.
+   * updating the wallets in the repository, and publishing a FundsTransferredEvent.
    *
    * @param fromWalletId  the unique identifier of the wallet from which funds will be debited.
    * @param toWalletId    the unique identifier of the wallet to which funds will be credited.
@@ -62,7 +58,6 @@ public record TransferFundsUseCase(WalletRepository walletRepository, Transactio
     toWallet.addFunds(amount);
     walletRepository.update(fromWallet);
     walletRepository.update(toWallet);
-    transactionRepository.save(new Transaction(fromWallet.getId(), toWallet.getId(), amount, Transaction.TransactionType.TRANSFER));
     FundsTransferredEvent event = new FundsTransferredEvent(fromWallet.getId(), toWallet.getId(), amount, correlationId);
     eventPublisher.publish(event);
   }

@@ -1,4 +1,4 @@
-package dev.bloco.wallet.hub.domain;
+package dev.bloco.wallet.hub.domain.model.common;
 
 import java.util.Objects;
 import java.util.UUID;

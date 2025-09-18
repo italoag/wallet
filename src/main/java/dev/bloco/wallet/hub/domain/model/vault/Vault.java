@@ -1,8 +1,8 @@
-package dev.bloco.wallet.hub.domain.model;
+package dev.bloco.wallet.hub.domain.model.vault;
 
-import com.blocotech.common.domain.AggregateRoot;
-import com.blocotech.vault.domain.event.VaultCreatedEvent;
-import com.blocotech.vault.domain.event.VaultStatusChangedEvent;
+import dev.bloco.wallet.hub.domain.event.vault.VaultCreatedEvent;
+import dev.bloco.wallet.hub.domain.event.vault.VaultStatusChangedEvent;
+import dev.bloco.wallet.hub.domain.model.common.AggregateRoot;
 
 import java.util.UUID;
 
@@ -19,7 +19,7 @@ public class Vault extends AggregateRoot {
             VaultConfiguration configuration) {
         
         Vault vault = new Vault(id, name, type, configuration);
-        vault.registerEvent(new VaultCreatedEvent(id, type));
+        vault.registerEvent(new VaultCreatedEvent(id, type, null));
         return vault;
     }
 
@@ -59,7 +59,7 @@ public class Vault extends AggregateRoot {
         if (this.status != VaultStatus.ACTIVE) {
             VaultStatus oldStatus = this.status;
             this.status = VaultStatus.ACTIVE;
-            registerEvent(new VaultStatusChangedEvent(getId(), oldStatus, this.status));
+            registerEvent(new VaultStatusChangedEvent(getId(), oldStatus, this.status, null));
         }
     }
 
@@ -67,7 +67,7 @@ public class Vault extends AggregateRoot {
         if (this.status != VaultStatus.INACTIVE) {
             VaultStatus oldStatus = this.status;
             this.status = VaultStatus.INACTIVE;
-            registerEvent(new VaultStatusChangedEvent(getId(), oldStatus, this.status));
+            registerEvent(new VaultStatusChangedEvent(getId(), oldStatus, this.status, null));
         }
     }
 

@@ -1,6 +1,6 @@
 package dev.bloco.wallet.hub.infra.adapter.event.consumer;
 
-import dev.bloco.wallet.hub.domain.event.WalletCreatedEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.WalletCreatedEvent;
 import dev.bloco.wallet.hub.infra.provider.data.config.SagaEvents;
 import dev.bloco.wallet.hub.infra.provider.data.config.SagaStates;
 import org.junit.jupiter.api.BeforeEach;
@@ -37,12 +37,9 @@ class WalletCreatedEventConsumerTest {
     @DisplayName("Should send WalletCreated event to state machine")
     void walletCreatedEventConsumerFunction_withCorrelationId_sendsWalletCreated() {
         Consumer<Message<WalletCreatedEvent>> fn = consumerConfig.walletCreatedEventConsumerFunction();
-        var event = WalletCreatedEvent.builder()
-                .walletId(UUID.randomUUID())
-                .userId(UUID.randomUUID())
-                .correlationId("cid")
-                .build();
-        var message = MessageBuilder.withPayload(event).build();
+        UUID corrId = UUID.randomUUID();
+        var event = new WalletCreatedEvent(UUID.randomUUID(), corrId);
+        Message<WalletCreatedEvent> message = MessageBuilder.withPayload(event).build();
 
         fn.accept(message);
 
@@ -50,19 +47,15 @@ class WalletCreatedEventConsumerTest {
         verify(stateMachine).sendEvent(captor.capture());
         Message<SagaEvents> sent = captor.getValue().block();
         assertThat(sent.getPayload()).isEqualTo(SagaEvents.WALLET_CREATED);
-        assertThat(sent.getHeaders().get("correlationId")).isEqualTo("cid");
+        assertThat(sent.getHeaders().get("correlationId")).isEqualTo(corrId);
     }
 
     @Test
     @DisplayName("Should send SagaFailed event to state machine when correlationId is null")
     void walletCreatedEventConsumerFunction_withoutCorrelationId_sendsSagaFailed() {
         Consumer<Message<WalletCreatedEvent>> fn = consumerConfig.walletCreatedEventConsumerFunction();
-        var event = WalletCreatedEvent.builder()
-                .walletId(UUID.randomUUID())
-                .userId(UUID.randomUUID())
-                .correlationId(null)
-                .build();
-        var message = MessageBuilder.withPayload(event).build();
+        var event = new WalletCreatedEvent(UUID.randomUUID(), null);
+        Message<WalletCreatedEvent> message = MessageBuilder.withPayload(event).build();
 
         fn.accept(message);
 

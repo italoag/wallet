@@ -1,4 +1,4 @@
-package dev.bloco.wallet.hub.domain.model;
+package dev.bloco.wallet.hub.domain.model.vault;
 
 public enum VaultType {
     HSM,

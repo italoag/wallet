@@ -14,15 +14,19 @@ Event-driven wallet service built with Spring Boot and Spring Cloud Stream. The 
   - Spring Cloud Stream binders: kafka, kafka-streams; test binder on test classpath
   - Persistence: JPA (H2/Postgres), R2DBC (H2/Postgres), Reactive Redis, Reactive MongoDB
   - Saga/State Machine: spring-statemachine (+ JPA persistence)
+  - Integration: Apache Camel (camel-spring-boot)
   - Mapping: MapStruct
   - Observability: Micrometer (Prometheus/OTLP), Tracing (Brave)
   - CloudEvents integration (cloudevents-spring)
+  - AI: Spring AI starters present in dependencies (usage not documented) — TODO
+- Build tooling/plugins: Hibernate Enhance (LAZY/dirty-tracking/association), CycloneDX SBOM, Spring Boot Maven Plugin, GraalVM Native Build Tools
 - Optional: GraalVM native image (native-maven-plugin configured)
 
 ## Requirements
 - JDK: A JDK that supports release 24 (e.g., GraalVM CE 24 or a JDK 24 build)
   - For ad-hoc focused unit tests on older JDKs, you can temporarily override the compiler release (see Testing section).
 - Maven Wrapper: Use the provided ./mvnw
+- Optional toolchain: mise (mise.toml sets java = graalvm-community-24)
 - Optional local infrastructure: Docker (for MongoDB, Postgres, Redis via compose.yaml)
 - Kafka: Default binder points to localhost:9092. For tests, prefer the Spring Cloud Stream test binder (no Kafka needed).
 
@@ -44,8 +48,10 @@ Event-driven wallet service built with Spring Boot and Spring Cloud Stream. The 
 - Build (tests): ./mvnw test
 - Build JAR (skip tests): ./mvnw -DskipTests package
 - Run app: ./mvnw spring-boot:run
-- Build container image (native, via CNB): ./mvnw spring-boot:build-image -Pnative
-- Build native executable (requires GraalVM native-image): ./mvnw native:compile -Pnative
+- Build container image (JVM): ./mvnw spring-boot:build-image
+- Build container image (Native, if configured): ./mvnw spring-boot:build-image -Pnative  (TODO: verify native profile availability)
+- Build native executable (requires GraalVM native-image): ./mvnw native:compile
+- Generate SBOM (CycloneDX): ./mvnw cyclonedx:makeAggregateBom
 - Run tests in native image (if enabled): ./mvnw test -PnativeTest
 
 See HELP.md for official Spring references and more details on native builds.
@@ -60,6 +66,7 @@ Defaults (src/main/resources/application.yml):
   - spring.jpa.hibernate.ddl-auto=update
   - spring.jpa.show-sql=true
   - spring.h2.console.enabled=true
+  - H2 console URL: http://localhost:8080/h2-console
 - Spring Cloud Stream bindings → Kafka topics:
   - walletCreatedEventProducer-out-0 → wallet-created-topic
   - fundsAddedEventProducer-out-0 → funds-added-topic
@@ -140,6 +147,9 @@ src/
     java/dev/bloco/wallet/hub/
       infra/... (producers/consumers tests)
 ```
+
+## Changelog
+- See CHANGELOG.md for release notes.
 
 ## License
 - TODO: Add a LICENSE file and update this section (no explicit license declared in the current POM).

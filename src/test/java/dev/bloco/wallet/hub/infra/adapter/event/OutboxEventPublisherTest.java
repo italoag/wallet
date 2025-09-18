@@ -2,7 +2,7 @@ package dev.bloco.wallet.hub.infra.adapter.event;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.bloco.wallet.hub.domain.event.WalletCreatedEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.WalletCreatedEvent;
 import dev.bloco.wallet.hub.infra.provider.data.OutboxEvent;
 import dev.bloco.wallet.hub.infra.provider.data.repository.OutboxRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -35,11 +35,7 @@ class OutboxEventPublisherTest {
     @DisplayName("Should save event into outbox")
     void publish_serializesEventAndSavesOutbox() {
         // given
-        var event = WalletCreatedEvent.builder()
-                .walletId(UUID.randomUUID())
-                .userId(UUID.randomUUID())
-                .correlationId("corr-1")
-                .build();
+        var event = new WalletCreatedEvent(UUID.randomUUID(), UUID.randomUUID());
 
         // when
         publisher.publish(event);

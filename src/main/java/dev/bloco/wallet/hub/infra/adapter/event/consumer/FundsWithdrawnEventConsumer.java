@@ -1,6 +1,6 @@
 package dev.bloco.wallet.hub.infra.adapter.event.consumer;
 
-import dev.bloco.wallet.hub.domain.event.FundsWithdrawnEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.FundsWithdrawnEvent;
 import dev.bloco.wallet.hub.infra.provider.data.config.SagaEvents;
 import dev.bloco.wallet.hub.infra.provider.data.config.SagaStates;
 import lombok.extern.slf4j.Slf4j;

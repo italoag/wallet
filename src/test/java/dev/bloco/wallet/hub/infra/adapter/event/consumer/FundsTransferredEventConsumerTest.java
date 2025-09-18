@@ -1,6 +1,6 @@
 package dev.bloco.wallet.hub.infra.adapter.event.consumer;
 
-import dev.bloco.wallet.hub.domain.event.FundsTransferredEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.FundsTransferredEvent;
 import dev.bloco.wallet.hub.infra.provider.data.config.SagaEvents;
 import dev.bloco.wallet.hub.infra.provider.data.config.SagaStates;
 import org.junit.jupiter.api.BeforeEach;

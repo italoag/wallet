@@ -1,6 +1,6 @@
 package dev.bloco.wallet.hub.infra.provider.mapper;
 
-import dev.bloco.wallet.hub.domain.User;
+import dev.bloco.wallet.hub.domain.model.user.User;
 
 import dev.bloco.wallet.hub.infra.provider.data.entity.UserEntity;
 import org.mapstruct.Mapper;

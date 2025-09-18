@@ -1,4 +1,4 @@
-package dev.bloco.wallet.hub.domain.model;
+package dev.bloco.wallet.hub.domain.model.vault;
 
 import java.util.Collections;
 import java.util.HashMap;

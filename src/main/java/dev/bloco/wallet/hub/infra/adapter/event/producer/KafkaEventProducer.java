@@ -1,9 +1,9 @@
 package dev.bloco.wallet.hub.infra.adapter.event.producer;
 
-import dev.bloco.wallet.hub.domain.event.FundsAddedEvent;
-import dev.bloco.wallet.hub.domain.event.FundsTransferredEvent;
-import dev.bloco.wallet.hub.domain.event.FundsWithdrawnEvent;
-import dev.bloco.wallet.hub.domain.event.WalletCreatedEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.FundsAddedEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.FundsTransferredEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.FundsWithdrawnEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.WalletCreatedEvent;
 import dev.bloco.wallet.hub.infra.provider.data.OutboxService;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -50,6 +50,8 @@ public class KafkaEventProducer implements EventProducer {
     public KafkaEventProducer(OutboxService outboxService, StreamBridge streamBridge, ObjectMapper objectMapper) {
         this.outboxService = outboxService;
         this.streamBridge = streamBridge;
+        // Ensure Java Time (Instant, etc.) is supported during serialization in tests and non-Spring contexts
+        objectMapper.findAndRegisterModules();
         this.objectMapper = objectMapper;
     }
 

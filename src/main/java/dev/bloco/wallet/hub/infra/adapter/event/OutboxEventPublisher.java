@@ -44,6 +44,8 @@ public class OutboxEventPublisher implements DomainEventPublisher {
   @Autowired
     public OutboxEventPublisher(OutboxRepository outboxRepository, ObjectMapper objectMapper) {
         this.outboxRepository = outboxRepository;
+        // Ensure Java Time (Instant, etc.) is supported when serializing events without relying on Spring Boot auto-config
+        objectMapper.findAndRegisterModules();
         this.objectMapper = objectMapper;
     }
 

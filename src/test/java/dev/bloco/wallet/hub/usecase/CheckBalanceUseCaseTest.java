@@ -1,7 +1,7 @@
 package dev.bloco.wallet.hub.usecase;
 
-import dev.bloco.wallet.hub.domain.Wallet;
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
+import dev.bloco.wallet.hub.domain.model.Wallet;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -22,7 +22,7 @@ class CheckBalanceUseCaseTest {
         CheckBalanceUseCase useCase = new CheckBalanceUseCase(walletRepository);
 
         UUID walletId = UUID.randomUUID();
-        Wallet wallet = new Wallet(UUID.randomUUID());
+        Wallet wallet = new Wallet(UUID.randomUUID(), "Test", "");
         wallet.addFunds(new BigDecimal("123.45"));
         when(walletRepository.findById(walletId)).thenReturn(Optional.of(wallet));
 

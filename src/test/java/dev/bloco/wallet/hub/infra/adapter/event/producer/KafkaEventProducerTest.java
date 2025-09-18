@@ -1,10 +1,10 @@
 package dev.bloco.wallet.hub.infra.adapter.event.producer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.bloco.wallet.hub.domain.event.FundsAddedEvent;
-import dev.bloco.wallet.hub.domain.event.FundsTransferredEvent;
-import dev.bloco.wallet.hub.domain.event.FundsWithdrawnEvent;
-import dev.bloco.wallet.hub.domain.event.WalletCreatedEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.FundsAddedEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.FundsTransferredEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.FundsWithdrawnEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.WalletCreatedEvent;
 import dev.bloco.wallet.hub.infra.provider.data.OutboxEvent;
 import dev.bloco.wallet.hub.infra.provider.data.OutboxService;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,11 +40,7 @@ class KafkaEventProducerTest {
     @Test
     @DisplayName("Should produce wallet created event saved into outbox with correct type")
     void produceWalletCreatedEvent_savesIntoOutboxWithCorrectType() {
-        var event = WalletCreatedEvent.builder()
-                .walletId(UUID.randomUUID())
-                .userId(UUID.randomUUID())
-                .correlationId("c-1")
-                .build();
+        var event = new WalletCreatedEvent(UUID.randomUUID(), UUID.randomUUID());
 
         producer.produceWalletCreatedEvent(event);
 

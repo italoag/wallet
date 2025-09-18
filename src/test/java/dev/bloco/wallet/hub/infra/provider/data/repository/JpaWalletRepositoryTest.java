@@ -1,6 +1,6 @@
 package dev.bloco.wallet.hub.infra.provider.data.repository;
 
-import dev.bloco.wallet.hub.domain.Wallet;
+import dev.bloco.wallet.hub.domain.model.Wallet;
 import dev.bloco.wallet.hub.infra.provider.data.entity.WalletEntity;
 import dev.bloco.wallet.hub.infra.provider.mapper.WalletMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -41,11 +41,11 @@ class JpaWalletRepositoryTest {
         UUID id = UUID.randomUUID();
         WalletEntity entity = new WalletEntity();
         entity.setId(id);
-        entity.setUserId(UUID.randomUUID());
+        entity.setUserId(id);
         entity.setBalance(new BigDecimal("10.00"));
 
-        Wallet domain = new Wallet(entity.getUserId());
-        domain.addFunds(new BigDecimal("10.00"));
+        Wallet domain = new Wallet(entity.getId(), "Wallet", "");
+        domain.setBalance(new BigDecimal("10.00"));
 
         when(springDataWalletRepository.findById(id)).thenReturn(Optional.of(entity));
         when(walletMapper.toDomain(entity)).thenReturn(domain);
@@ -61,21 +61,22 @@ class JpaWalletRepositoryTest {
     @Test
     @DisplayName("Save should delegate to SpringDataUserRepository")
     void save_shouldMapDomainToEntity_andBackToDomain() {
-        UUID userId = UUID.randomUUID();
-        Wallet toSave = new Wallet(userId);
-        toSave.addFunds(new BigDecimal("5.00"));
+        UUID walletId = UUID.randomUUID();
+        Wallet toSave = new Wallet(walletId, "Wallet", "");
+        toSave.setBalance(new BigDecimal("5.00"));
 
         WalletEntity mappedEntity = new WalletEntity();
-        mappedEntity.setUserId(userId);
+        mappedEntity.setId(walletId);
+        mappedEntity.setUserId(walletId);
         mappedEntity.setBalance(new BigDecimal("5.00"));
 
         WalletEntity savedEntity = new WalletEntity();
-        savedEntity.setId(UUID.randomUUID());
-        savedEntity.setUserId(userId);
+        savedEntity.setId(walletId);
+        savedEntity.setUserId(walletId);
         savedEntity.setBalance(new BigDecimal("5.00"));
 
-        Wallet mappedBack = new Wallet(userId);
-        mappedBack.addFunds(new BigDecimal("5.00"));
+        Wallet mappedBack = new Wallet(walletId, "Wallet", "");
+        mappedBack.setBalance(new BigDecimal("5.00"));
 
         when(walletMapper.toEntity(toSave)).thenReturn(mappedEntity);
         when(springDataWalletRepository.save(mappedEntity)).thenReturn(savedEntity);
@@ -88,7 +89,7 @@ class JpaWalletRepositoryTest {
         ArgumentCaptor<WalletEntity> captor = ArgumentCaptor.forClass(WalletEntity.class);
         verify(springDataWalletRepository).save(captor.capture());
         WalletEntity captured = captor.getValue();
-        assertThat(captured.getUserId()).isEqualTo(userId);
+        assertThat(captured.getUserId()).isEqualTo(walletId);
         assertThat(captured.getBalance()).isEqualByComparingTo("5.00");
 
         verify(walletMapper).toEntity(toSave);
@@ -99,12 +100,13 @@ class JpaWalletRepositoryTest {
     @Test
     @DisplayName("Update should delegate to SpringDataUserRepository")
     void update_shouldMapDomainToEntity_andDelegateToSave() {
-        UUID userId = UUID.randomUUID();
-        Wallet wallet = new Wallet(userId);
-        wallet.addFunds(new BigDecimal("7.50"));
+        UUID walletId = UUID.randomUUID();
+        Wallet wallet = new Wallet(walletId, "Wallet", "");
+        wallet.setBalance(new BigDecimal("7.50"));
 
         WalletEntity entity = new WalletEntity();
-        entity.setUserId(userId);
+        entity.setId(walletId);
+        entity.setUserId(walletId);
         entity.setBalance(new BigDecimal("7.50"));
 
         when(walletMapper.toEntity(wallet)).thenReturn(entity);

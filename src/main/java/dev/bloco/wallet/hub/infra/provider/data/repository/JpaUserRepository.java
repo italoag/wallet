@@ -1,6 +1,6 @@
 package dev.bloco.wallet.hub.infra.provider.data.repository;
 
-import dev.bloco.wallet.hub.domain.User;
+import dev.bloco.wallet.hub.domain.model.user.User;
 import dev.bloco.wallet.hub.domain.gateway.UserRepository;
 import dev.bloco.wallet.hub.infra.provider.data.entity.UserEntity;
 import dev.bloco.wallet.hub.infra.provider.mapper.UserMapper;

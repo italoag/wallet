@@ -1,7 +1,7 @@
 package dev.bloco.wallet.hub.usecase;
 
-import dev.bloco.wallet.hub.domain.Wallet;
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
+import dev.bloco.wallet.hub.domain.model.Wallet;
 
 import java.math.BigDecimal;
 import java.util.UUID;

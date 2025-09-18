@@ -1,11 +1,13 @@
 package dev.bloco.wallet.hub.domain;
 
-import dev.bloco.wallet.hub.domain.Transaction.TransactionType;
+import dev.bloco.wallet.hub.domain.model.transaction.Transaction;
+import dev.bloco.wallet.hub.domain.model.transaction.TransactionHash;
+import dev.bloco.wallet.hub.domain.model.transaction.TransactionStatus;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -14,39 +16,53 @@ import static org.assertj.core.api.Assertions.assertThat;
 class TransactionTest {
 
     @Test
-    @DisplayName("Constructor should set fields and generate non-null id and timestamp in range")
-    void constructor_setsFields_andGeneratesIdAndTimestamp() {
-        UUID from = UUID.randomUUID();
-        UUID to = UUID.randomUUID();
-        BigDecimal amount = new BigDecimal("123.45");
-        LocalDateTime before = LocalDateTime.now();
+    @DisplayName("create should set fields and generate non-null id and timestamp in range with PENDING status")
+    void create_setsFields_andGeneratesIdAndTimestamp() {
+        UUID id = UUID.randomUUID();
+        UUID networkId = UUID.randomUUID();
+        TransactionHash hash = new TransactionHash("0xabc");
+        String from = "0xfrom";
+        String to = "0xto";
+        BigDecimal value = new BigDecimal("123.45");
+        String data = "0xdata";
 
-        Transaction tx = new Transaction(from, to, amount, TransactionType.TRANSFER);
+        Instant before = Instant.now();
+        Transaction tx = Transaction.create(id, networkId, hash, from, to, value, data);
+        Instant after = Instant.now();
 
-        LocalDateTime after = LocalDateTime.now();
-
-        assertThat(tx.getId()).isNotNull();
-        assertThat(tx.getFromWalletId()).isEqualTo(from);
-        assertThat(tx.getToWalletId()).isEqualTo(to);
-        assertThat(tx.getAmount()).isEqualByComparingTo("123.45");
-        assertThat(tx.getType()).isEqualTo(TransactionType.TRANSFER);
+        assertThat(tx.getId()).isEqualTo(id);
+        assertThat(tx.getNetworkId()).isEqualTo(networkId);
+        assertThat(tx.getHash()).isEqualTo("0xabc");
+        assertThat(tx.getFromAddress()).isEqualTo(from);
+        assertThat(tx.getToAddress()).isEqualTo(to);
+        assertThat(tx.getValue()).isEqualByComparingTo("123.45");
+        assertThat(tx.getData()).isEqualTo(data);
         assertThat(tx.getTimestamp()).isNotNull();
         assertThat(!tx.getTimestamp().isBefore(before) && !tx.getTimestamp().isAfter(after))
                 .as("timestamp should be between before and after")
                 .isTrue();
+        assertThat(tx.getStatus()).isEqualTo(TransactionStatus.PENDING);
     }
 
     @Test
-    @DisplayName("Enum values should include DEPOSIT, WITHDRAWAL and TRANSFER and support valueOf")
-    void enum_values_and_valueOf() {
-        assertThat(TransactionType.values()).containsExactlyInAnyOrder(
-                TransactionType.DEPOSIT,
-                TransactionType.WITHDRAWAL,
-                TransactionType.TRANSFER
+    @DisplayName("confirm and fail should update status accordingly")
+    void confirm_and_fail_updateStatus() {
+        Transaction tx = Transaction.create(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                new TransactionHash("0xabc"),
+                "0xfrom",
+                "0xto",
+                new BigDecimal("1.00"),
+                null
         );
 
-        assertThat(TransactionType.valueOf("DEPOSIT")).isEqualTo(TransactionType.DEPOSIT);
-        assertThat(TransactionType.valueOf("WITHDRAWAL")).isEqualTo(TransactionType.WITHDRAWAL);
-        assertThat(TransactionType.valueOf("TRANSFER")).isEqualTo(TransactionType.TRANSFER);
+        tx.confirm(100L, "0xblock", new BigDecimal("0.21"));
+        assertThat(tx.isConfirmed()).isTrue();
+        assertThat(tx.getStatus()).isEqualTo(TransactionStatus.CONFIRMED);
+
+        tx.fail("oops");
+        assertThat(tx.isFailed()).isTrue();
+        assertThat(tx.getStatus()).isEqualTo(TransactionStatus.FAILED);
     }
 }

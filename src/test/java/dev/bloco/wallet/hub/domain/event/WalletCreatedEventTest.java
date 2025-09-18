@@ -1,5 +1,6 @@
 package dev.bloco.wallet.hub.domain.event;
 
+import dev.bloco.wallet.hub.domain.event.wallet.WalletCreatedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -11,20 +12,14 @@ import static org.assertj.core.api.Assertions.*;
 class WalletCreatedEventTest {
 
     @Test
-    @DisplayName("WalletCreatedEvent builder sets all fields")
+    @DisplayName("WalletCreatedEvent sets fields via constructor")
     void builderSetsFields() {
         UUID walletId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
-        String correlationId = "corr-123";
+        UUID correlationId = UUID.randomUUID();
 
-        WalletCreatedEvent event = WalletCreatedEvent.builder()
-                .walletId(walletId)
-                .userId(userId)
-                .correlationId(correlationId)
-                .build();
+        WalletCreatedEvent event = new WalletCreatedEvent(walletId, correlationId);
 
-        assertThat(event.walletId()).isEqualTo(walletId);
-        assertThat(event.userId()).isEqualTo(userId);
-        assertThat(event.correlationId()).isEqualTo(correlationId);
+        assertThat(event.getWalletId()).isEqualTo(walletId);
+        assertThat(event.getCorrelationId()).isEqualTo(correlationId);
     }
 }

@@ -1,5 +1,6 @@
 package dev.bloco.wallet.hub.domain;
 
+import dev.bloco.wallet.hub.domain.model.Wallet;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -14,18 +15,16 @@ class WalletTest {
     @Test
     @DisplayName("New wallet starts with zero balance and has generated id")
     void newWalletDefaults() {
-        UUID userId = UUID.randomUUID();
-        Wallet wallet = new Wallet(userId);
+        Wallet wallet = new Wallet(UUID.randomUUID(), "Test", "");
 
         assertThat(wallet.getId()).isNotNull();
-        assertThat(wallet.getUserId()).isEqualTo(userId);
         assertThat(wallet.getBalance()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     @Test
     @DisplayName("addFunds increases the balance for positive amounts")
     void addFundsSuccess() {
-        Wallet wallet = new Wallet(UUID.randomUUID());
+        Wallet wallet = new Wallet(UUID.randomUUID(), "Test", "");
 
         wallet.addFunds(new BigDecimal("10.50"));
         wallet.addFunds(new BigDecimal("0.50"));
@@ -36,7 +35,7 @@ class WalletTest {
     @Test
     @DisplayName("addFunds rejects zero or negative values")
     void addFundsInvalid() {
-        Wallet wallet = new Wallet(UUID.randomUUID());
+        Wallet wallet = new Wallet(UUID.randomUUID(), "Test", "");
 
         assertThatThrownBy(() -> wallet.addFunds(BigDecimal.ZERO))
                 .isInstanceOf(IllegalArgumentException.class)
@@ -49,7 +48,7 @@ class WalletTest {
     @Test
     @DisplayName("withdrawFunds decreases balance when sufficient and positive")
     void withdrawFundsSuccess() {
-        Wallet wallet = new Wallet(UUID.randomUUID());
+        Wallet wallet = new Wallet(UUID.randomUUID(), "Test", "");
         wallet.addFunds(new BigDecimal("100.00"));
 
         wallet.withdrawFunds(new BigDecimal("30.00"));
@@ -60,7 +59,7 @@ class WalletTest {
     @Test
     @DisplayName("withdrawFunds rejects invalid or insufficient balance")
     void withdrawFundsInvalid() {
-        Wallet wallet = new Wallet(UUID.randomUUID());
+        Wallet wallet = new Wallet(UUID.randomUUID(), "Test", "");
         wallet.addFunds(new BigDecimal("10.00"));
 
         assertThatThrownBy(() -> wallet.withdrawFunds(BigDecimal.ZERO))

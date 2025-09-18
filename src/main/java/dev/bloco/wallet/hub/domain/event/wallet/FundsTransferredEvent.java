@@ -1,4 +1,4 @@
-package dev.bloco.wallet.hub.domain.event;
+package dev.bloco.wallet.hub.domain.event.wallet;
 
 import lombok.Builder;
 

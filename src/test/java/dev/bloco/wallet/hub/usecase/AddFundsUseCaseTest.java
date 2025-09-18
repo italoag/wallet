@@ -1,11 +1,10 @@
 package dev.bloco.wallet.hub.usecase;
 
-import dev.bloco.wallet.hub.domain.Wallet;
-import dev.bloco.wallet.hub.domain.event.FundsAddedEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.FundsAddedEvent;
 import dev.bloco.wallet.hub.domain.gateway.TransactionRepository;
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
 import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
-import dev.bloco.wallet.hub.domain.Transaction;
+import dev.bloco.wallet.hub.domain.model.Wallet;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -22,7 +21,7 @@ import static org.mockito.Mockito.*;
 class AddFundsUseCaseTest {
 
     @Test
-    @DisplayName("addFunds updates wallet, saves transaction, and publishes event")
+    @DisplayName("addFunds updates wallet and publishes event")
     void addFunds_success() {
         WalletRepository walletRepository = mock(WalletRepository.class);
         TransactionRepository transactionRepository = mock(TransactionRepository.class);
@@ -30,7 +29,7 @@ class AddFundsUseCaseTest {
         AddFundsUseCase useCase = new AddFundsUseCase(walletRepository, transactionRepository, eventPublisher);
 
         UUID walletId = UUID.randomUUID();
-        Wallet wallet = new Wallet(UUID.randomUUID());
+        Wallet wallet = new Wallet(UUID.randomUUID(), "Test", "");
         // Preload some balance to ensure arithmetic
         wallet.addFunds(new BigDecimal("10.00"));
 
@@ -44,17 +43,9 @@ class AddFundsUseCaseTest {
         // Wallet balance should be updated in-memory
         assertThat(wallet.getBalance()).isEqualByComparingTo(new BigDecimal("15.50"));
 
-        // Verify lookup, persistence and transaction
+        // Verify lookup and persistence
         verify(walletRepository).findById(walletId);
         verify(walletRepository).update(wallet);
-
-        ArgumentCaptor<Transaction> txCaptor = ArgumentCaptor.forClass(Transaction.class);
-        verify(transactionRepository).save(txCaptor.capture());
-        Transaction tx = txCaptor.getValue();
-        assertThat(tx.getType()).isEqualTo(Transaction.TransactionType.DEPOSIT);
-        assertThat(tx.getFromWalletId()).isNull();
-        assertThat(tx.getToWalletId()).isEqualTo(wallet.getId());
-        assertThat(tx.getAmount()).isEqualByComparingTo(amount);
 
         // Verify event published
         ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
@@ -97,7 +88,7 @@ class AddFundsUseCaseTest {
         AddFundsUseCase useCase = new AddFundsUseCase(walletRepository, transactionRepository, eventPublisher);
 
         UUID walletId = UUID.randomUUID();
-        Wallet wallet = new Wallet(UUID.randomUUID());
+        Wallet wallet = new Wallet(UUID.randomUUID(), "Test", "");
         when(walletRepository.findById(walletId)).thenReturn(Optional.of(wallet));
 
         assertThatThrownBy(() -> useCase.addFunds(walletId, new BigDecimal("-1"), "c"))

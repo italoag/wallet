@@ -1,9 +1,9 @@
-package dev.bloco.wallet.hub.domain.model;
+package dev.bloco.wallet.hub.domain.model.store;
 
-import com.blocotech.common.domain.AggregateRoot;
-import com.blocotech.store.domain.event.StoreCreatedEvent;
-import com.blocotech.store.domain.event.AddressAddedToStoreEvent;
-import com.blocotech.store.domain.event.StoreStatusChangedEvent;
+import dev.bloco.wallet.hub.domain.event.store.AddressAddedToStoreEvent;
+import dev.bloco.wallet.hub.domain.event.store.StoreCreatedEvent;
+import dev.bloco.wallet.hub.domain.event.store.StoreStatusChangedEvent;
+import dev.bloco.wallet.hub.domain.model.common.AggregateRoot;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -24,7 +24,7 @@ public class Store extends AggregateRoot {
             String description) {
         
         Store store = new Store(id, name, vaultId, description);
-        store.registerEvent(new StoreCreatedEvent(id, vaultId));
+        store.registerEvent(new StoreCreatedEvent(id, vaultId, name, null));
         return store;
     }
 
@@ -69,7 +69,7 @@ public class Store extends AggregateRoot {
         if (this.status != StoreStatus.ACTIVE) {
             StoreStatus oldStatus = this.status;
             this.status = StoreStatus.ACTIVE;
-            registerEvent(new StoreStatusChangedEvent(getId(), oldStatus, this.status));
+            registerEvent(new StoreStatusChangedEvent(getId(), oldStatus, this.status, null));
         }
     }
 
@@ -77,13 +77,13 @@ public class Store extends AggregateRoot {
         if (this.status != StoreStatus.INACTIVE) {
             StoreStatus oldStatus = this.status;
             this.status = StoreStatus.INACTIVE;
-            registerEvent(new StoreStatusChangedEvent(getId(), oldStatus, this.status));
+            registerEvent(new StoreStatusChangedEvent(getId(), oldStatus, this.status, null));
         }
     }
 
     public void addAddress(UUID addressId) {
         if (addressIds.add(addressId)) {
-            registerEvent(new AddressAddedToStoreEvent(getId(), addressId));
+            registerEvent(new AddressAddedToStoreEvent(getId(), addressId, null));
         }
     }
 

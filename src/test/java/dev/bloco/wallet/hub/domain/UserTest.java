@@ -1,5 +1,6 @@
 package dev.bloco.wallet.hub.domain;
 
+import dev.bloco.wallet.hub.domain.model.user.User;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

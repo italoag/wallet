@@ -1,6 +1,6 @@
 package dev.bloco.wallet.hub.domain.gateway;
 
-import dev.bloco.wallet.hub.domain.User;
+import dev.bloco.wallet.hub.domain.model.user.User;
 
 import java.util.Optional;
 import java.util.UUID;

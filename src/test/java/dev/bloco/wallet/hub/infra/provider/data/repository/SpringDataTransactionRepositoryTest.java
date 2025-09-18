@@ -24,23 +24,27 @@ class SpringDataTransactionRepositoryTest {
     private SpringDataTransactionRepository repository;
 
     @Test
-    @DisplayName("Save and find by id should round trip")
+    @DisplayName("Save and find by id should round trip with blockchain schema fields")
     void saveAndFindById_roundTrip() {
         TransactionEntity tx = new TransactionEntity();
-        tx.setFromWalletId(UUID.randomUUID());
-        tx.setToWalletId(UUID.randomUUID());
-        tx.setAmount(new BigDecimal("42.00"));
-        tx.setTimestamp(LocalDateTime.now());
-        tx.setType(TransactionEntity.TransactionType.TRANSFER);
+        tx.setNetworkId(UUID.randomUUID());
+        tx.setHash("0xabc");
+        tx.setFromAddress("0xfrom");
+        tx.setToAddress("0xto");
+        tx.setValue(new BigDecimal("42.00"));
+        tx.setTimestamp(java.time.Instant.now());
+        tx.setStatus(dev.bloco.wallet.hub.domain.model.transaction.TransactionStatus.PENDING);
 
         TransactionEntity persisted = repository.save(tx);
         assertThat(persisted.getId()).isNotNull();
 
         Optional<TransactionEntity> reloaded = repository.findById(persisted.getId());
         assertThat(reloaded).isPresent();
-        assertThat(reloaded.get().getFromWalletId()).isEqualTo(tx.getFromWalletId());
-        assertThat(reloaded.get().getToWalletId()).isEqualTo(tx.getToWalletId());
-        assertThat(reloaded.get().getAmount()).isEqualByComparingTo("42.00");
-        assertThat(reloaded.get().getType()).isEqualTo(TransactionEntity.TransactionType.TRANSFER);
+        assertThat(reloaded.get().getNetworkId()).isEqualTo(tx.getNetworkId());
+        assertThat(reloaded.get().getHash()).isEqualTo("0xabc");
+        assertThat(reloaded.get().getFromAddress()).isEqualTo("0xfrom");
+        assertThat(reloaded.get().getToAddress()).isEqualTo("0xto");
+        assertThat(reloaded.get().getValue()).isEqualByComparingTo("42.00");
+        assertThat(reloaded.get().getStatus()).isEqualTo(dev.bloco.wallet.hub.domain.model.transaction.TransactionStatus.PENDING);
     }
 }

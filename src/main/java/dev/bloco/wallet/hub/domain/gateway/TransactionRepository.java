@@ -1,4 +1,4 @@
-package dev.bloco.wallet.hub.domain.repository;
+package dev.bloco.wallet.hub.domain.gateway;
 
 import dev.bloco.wallet.hub.domain.model.transaction.Transaction;
 import dev.bloco.wallet.hub.domain.model.transaction.TransactionStatus;

@@ -1,4 +1,6 @@
-package dev.bloco.wallet.hub.domain;
+package dev.bloco.wallet.hub.domain.model.common;
+
+import dev.bloco.wallet.hub.domain.event.common.DomainEvent;
 
 import java.util.ArrayList;
 import java.util.Collections;

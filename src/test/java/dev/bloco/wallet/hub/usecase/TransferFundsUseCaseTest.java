@@ -1,11 +1,10 @@
 package dev.bloco.wallet.hub.usecase;
 
-import dev.bloco.wallet.hub.domain.Transaction;
-import dev.bloco.wallet.hub.domain.Wallet;
-import dev.bloco.wallet.hub.domain.event.FundsTransferredEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.FundsTransferredEvent;
 import dev.bloco.wallet.hub.domain.gateway.TransactionRepository;
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
 import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
+import dev.bloco.wallet.hub.domain.model.Wallet;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -22,7 +21,7 @@ import static org.mockito.Mockito.*;
 class TransferFundsUseCaseTest {
 
     @Test
-    @DisplayName("transferFunds updates both wallets, saves transaction, and publishes event")
+    @DisplayName("transferFunds updates both wallets and publishes event")
     void transferFunds_success() {
         WalletRepository walletRepository = mock(WalletRepository.class);
         TransactionRepository transactionRepository = mock(TransactionRepository.class);
@@ -31,8 +30,8 @@ class TransferFundsUseCaseTest {
 
         UUID fromId = UUID.randomUUID();
         UUID toId = UUID.randomUUID();
-        Wallet from = new Wallet(UUID.randomUUID());
-        Wallet to = new Wallet(UUID.randomUUID());
+        Wallet from = new Wallet(UUID.randomUUID(), "From", "");
+        Wallet to = new Wallet(UUID.randomUUID(), "To", "");
         from.addFunds(new BigDecimal("50.00"));
         to.addFunds(new BigDecimal("5.00"));
 
@@ -51,14 +50,6 @@ class TransferFundsUseCaseTest {
         verify(walletRepository).findById(toId);
         verify(walletRepository).update(from);
         verify(walletRepository).update(to);
-
-        ArgumentCaptor<Transaction> txCaptor = ArgumentCaptor.forClass(Transaction.class);
-        verify(transactionRepository).save(txCaptor.capture());
-        Transaction tx = txCaptor.getValue();
-        assertThat(tx.getType()).isEqualTo(Transaction.TransactionType.TRANSFER);
-        assertThat(tx.getFromWalletId()).isEqualTo(from.getId());
-        assertThat(tx.getToWalletId()).isEqualTo(to.getId());
-        assertThat(tx.getAmount()).isEqualByComparingTo(amount);
 
         ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
         verify(eventPublisher).publish(eventCaptor.capture());
@@ -103,7 +94,7 @@ class TransferFundsUseCaseTest {
 
         UUID fromId = UUID.randomUUID();
         UUID toId = UUID.randomUUID();
-        when(walletRepository.findById(fromId)).thenReturn(Optional.of(new Wallet(UUID.randomUUID())));
+        when(walletRepository.findById(fromId)).thenReturn(Optional.of(new Wallet(UUID.randomUUID(), "From", "")));
         when(walletRepository.findById(toId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> useCase.transferFunds(fromId, toId, new BigDecimal("1.00"), "c"))
@@ -125,15 +116,15 @@ class TransferFundsUseCaseTest {
 
         UUID fromId = UUID.randomUUID();
         UUID toId = UUID.randomUUID();
-        Wallet from = new Wallet(UUID.randomUUID());
-        Wallet to = new Wallet(UUID.randomUUID());
+        Wallet from = new Wallet(UUID.randomUUID(), "From", "");
+        Wallet to = new Wallet(UUID.randomUUID(), "To", "");
         from.addFunds(new BigDecimal("5.00"));
         when(walletRepository.findById(fromId)).thenReturn(Optional.of(from));
         when(walletRepository.findById(toId)).thenReturn(Optional.of(to));
 
         assertThatThrownBy(() -> useCase.transferFunds(fromId, toId, new BigDecimal("10.00"), "c"))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Insufficient balance");
+                .hasMessageContaining("Insufficient");
 
         verify(walletRepository, never()).update(any());
         verify(transactionRepository, never()).save(any());

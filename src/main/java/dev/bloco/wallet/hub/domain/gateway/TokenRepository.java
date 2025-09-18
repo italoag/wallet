@@ -1,4 +1,4 @@
-package dev.bloco.wallet.hub.domain.repository;
+package dev.bloco.wallet.hub.domain.gateway;
 
 import dev.bloco.wallet.hub.domain.model.token.Token;
 import dev.bloco.wallet.hub.domain.model.token.TokenType;

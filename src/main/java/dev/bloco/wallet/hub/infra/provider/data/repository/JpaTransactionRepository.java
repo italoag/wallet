@@ -1,13 +1,16 @@
 package dev.bloco.wallet.hub.infra.provider.data.repository;
 
-import dev.bloco.wallet.hub.domain.Transaction;
 import dev.bloco.wallet.hub.domain.gateway.TransactionRepository;
+import dev.bloco.wallet.hub.domain.model.transaction.Transaction;
+import dev.bloco.wallet.hub.domain.model.transaction.TransactionStatus;
 import dev.bloco.wallet.hub.infra.provider.data.entity.TransactionEntity;
 import dev.bloco.wallet.hub.infra.provider.mapper.TransactionMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -77,8 +80,73 @@ public class JpaTransactionRepository implements TransactionRepository {
    */
   @Override
     public List<Transaction> findByWalletId(UUID walletId) {
-        return springDataTransactionRepository.findByFromWalletIdOrToWalletId(walletId, walletId).stream()
+        throw new UnsupportedOperationException("findByWalletId is not supported by the current JPA schema");
+    }
+
+    @Override
+    public Optional<Transaction> findById(UUID id) {
+        return springDataTransactionRepository.findById(id).map(transactionMapper::toDomain);
+    }
+
+    @Override
+    public List<Transaction> findAll() {
+        return springDataTransactionRepository.findAll().stream()
                 .map(transactionMapper::toDomain)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public void delete(UUID id) {
+        springDataTransactionRepository.deleteById(id);
+    }
+
+    @Override
+    public Optional<Transaction> findByHash(String hash) {
+        return springDataTransactionRepository.findByHash(hash).map(transactionMapper::toDomain);
+    }
+
+    @Override
+    public List<Transaction> findByNetworkId(UUID networkId) {
+        return springDataTransactionRepository.findByNetworkId(networkId).stream()
+                .map(transactionMapper::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Transaction> findByFromAddress(String fromAddress) {
+        return springDataTransactionRepository.findByFromAddress(fromAddress).stream()
+                .map(transactionMapper::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Transaction> findByToAddress(String toAddress) {
+        return springDataTransactionRepository.findByToAddress(toAddress).stream()
+                .map(transactionMapper::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Transaction> findByStatus(TransactionStatus status) {
+        return springDataTransactionRepository.findByStatus(status).stream()
+                .map(transactionMapper::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Transaction> findByTimestampBetween(Instant start, Instant end) {
+        return springDataTransactionRepository.findByTimestampBetween(start, end).stream()
+                .map(transactionMapper::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean existsById(UUID id) {
+        return springDataTransactionRepository.existsById(id);
+    }
+
+    @Override
+    public boolean existsByHash(String hash) {
+        return springDataTransactionRepository.existsByHash(hash);
     }
 }

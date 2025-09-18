@@ -1,14 +1,16 @@
 package dev.bloco.wallet.hub.infra.provider.data.repository;
 
-import dev.bloco.wallet.hub.domain.Wallet;
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
+import dev.bloco.wallet.hub.domain.model.Wallet;
 import dev.bloco.wallet.hub.infra.provider.data.entity.WalletEntity;
 import dev.bloco.wallet.hub.infra.provider.mapper.WalletMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * JpaWalletRepository is an implementation of the WalletRepository interface
@@ -87,5 +89,30 @@ public class JpaWalletRepository implements WalletRepository {
     public void update(Wallet wallet) {
         WalletEntity entity = walletMapper.toEntity(wallet);
         springDataWalletRepository.save(entity);
+    }
+
+    @Override
+    public List<Wallet> findAll() {
+        return springDataWalletRepository.findAll().stream()
+                .map(walletMapper::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public void delete(UUID id) {
+        springDataWalletRepository.deleteById(id);
+    }
+
+    @Override
+    public List<Wallet> findByName(String name) {
+        // No name in WalletEntity schema; fallback to returning all
+        return findAll().stream()
+                .filter(w -> name == null || name.equals(w.getName()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean existsById(UUID id) {
+        return springDataWalletRepository.existsById(id);
     }
 }

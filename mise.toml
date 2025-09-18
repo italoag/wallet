@@ -1,2 +1,2 @@
 [tools]
-java = "graalvm-community-24"
+java = "graalvm-community-25"

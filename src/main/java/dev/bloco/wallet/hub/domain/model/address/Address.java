@@ -1,8 +1,8 @@
-package dev.bloco.wallet.hub.domain.model;
+package dev.bloco.wallet.hub.domain.model.address;
 
-import com.blocotech.address.domain.event.AddressCreatedEvent;
-import com.blocotech.address.domain.event.AddressStatusChangedEvent;
-import com.blocotech.common.domain.AggregateRoot;
+import dev.bloco.wallet.hub.domain.event.address.AddressCreatedEvent;
+import dev.bloco.wallet.hub.domain.event.address.AddressStatusChangedEvent;
+import dev.bloco.wallet.hub.domain.model.common.AggregateRoot;
 
 import java.util.UUID;
 import java.util.Collections;
@@ -33,7 +33,7 @@ public class Address extends AggregateRoot {
         Address address = new Address(
             id, walletId, networkId, publicKey, accountAddress, type, derivationPath
         );
-        address.registerEvent(new AddressCreatedEvent(id, walletId, networkId));
+        address.registerEvent(new AddressCreatedEvent(id, walletId, networkId, accountAddress.getValue(), null));
         return address;
     }
 
@@ -99,7 +99,7 @@ public class Address extends AggregateRoot {
         if (this.status != AddressStatus.ARCHIVED) {
             AddressStatus oldStatus = this.status;
             this.status = AddressStatus.ARCHIVED;
-            registerEvent(new AddressStatusChangedEvent(getId(), oldStatus, this.status));
+            registerEvent(new AddressStatusChangedEvent(getId(), oldStatus, this.status, null));
         }
     }
 
@@ -107,7 +107,7 @@ public class Address extends AggregateRoot {
         if (this.status != AddressStatus.ACTIVE) {
             AddressStatus oldStatus = this.status;
             this.status = AddressStatus.ACTIVE;
-            registerEvent(new AddressStatusChangedEvent(getId(), oldStatus, this.status));
+            registerEvent(new AddressStatusChangedEvent(getId(), oldStatus, this.status, null));
         }
     }
 

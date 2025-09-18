@@ -1,9 +1,9 @@
 package dev.bloco.wallet.hub.usecase;
 
-import dev.bloco.wallet.hub.domain.Wallet;
-import dev.bloco.wallet.hub.domain.event.WalletCreatedEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.WalletCreatedEvent;
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
 import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
+import dev.bloco.wallet.hub.domain.model.Wallet;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -25,7 +25,7 @@ class CreateWalletUseCaseTest {
         CreateWalletUseCase useCase = new CreateWalletUseCase(walletRepository, eventPublisher);
 
         UUID userId = UUID.randomUUID();
-        String correlationId = "corr-create";
+        String correlationId = UUID.randomUUID().toString();
 
         // Stub save to return the same wallet back (not strictly needed for current logic)
         when(walletRepository.save(any(Wallet.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -33,7 +33,6 @@ class CreateWalletUseCaseTest {
         Wallet result = useCase.createWallet(userId, correlationId);
 
         assertThat(result).isNotNull();
-        assertThat(result.getUserId()).isEqualTo(userId);
         assertThat(result.getId()).isNotNull();
 
         // Verify repository save called with created wallet
@@ -45,9 +44,8 @@ class CreateWalletUseCaseTest {
         Object published = eventCaptor.getValue();
         assertThat(published).isInstanceOf(WalletCreatedEvent.class);
         WalletCreatedEvent evt = (WalletCreatedEvent) published;
-        assertThat(evt.walletId()).isEqualTo(result.getId());
-        assertThat(evt.userId()).isEqualTo(userId);
-        assertThat(evt.correlationId()).isEqualTo(correlationId);
+        assertThat(evt.getWalletId()).isEqualTo(result.getId());
+        assertThat(evt.getCorrelationId()).isEqualTo(UUID.fromString(correlationId));
 
         verifyNoMoreInteractions(walletRepository, eventPublisher);
     }

@@ -1,5 +1,6 @@
 package dev.bloco.wallet.hub.domain.event;
 
+import dev.bloco.wallet.hub.domain.event.wallet.FundsAddedEvent;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 

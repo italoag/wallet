@@ -2,7 +2,7 @@ package dev.bloco.wallet.hub.infra.adapter.event.consumer;
 
 import dev.bloco.wallet.hub.infra.provider.data.config.SagaEvents;
 import dev.bloco.wallet.hub.infra.provider.data.config.SagaStates;
-import dev.bloco.wallet.hub.domain.event.FundsAddedEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.FundsAddedEvent;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
