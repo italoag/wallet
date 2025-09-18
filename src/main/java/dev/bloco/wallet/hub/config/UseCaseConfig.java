@@ -112,4 +112,31 @@ public class UseCaseConfig {
     public CheckBalanceUseCase checkBalanceUseCase(WalletRepository walletRepository) {
         return new CheckBalanceUseCase(walletRepository);
     }
+
+    /**
+     * Defines a Spring Bean for the CreateTransactionUseCase.
+     */
+    @Bean
+    public CreateTransactionUseCase createTransactionUseCase(TransactionRepository transactionRepository,
+                                                             DomainEventPublisher eventPublisher) {
+        return new CreateTransactionUseCase(transactionRepository, eventPublisher);
+    }
+
+    /**
+     * Defines a Spring Bean for the ConfirmTransactionUseCase.
+     */
+    @Bean
+    public ConfirmTransactionUseCase confirmTransactionUseCase(TransactionRepository transactionRepository,
+                                                               DomainEventPublisher eventPublisher) {
+        return new ConfirmTransactionUseCase(transactionRepository, eventPublisher);
+    }
+
+    /**
+     * Defines a Spring Bean for the FailTransactionUseCase.
+     */
+    @Bean
+    public FailTransactionUseCase failTransactionUseCase(TransactionRepository transactionRepository,
+                                                         DomainEventPublisher eventPublisher) {
+        return new FailTransactionUseCase(transactionRepository, eventPublisher);
+    }
 }
