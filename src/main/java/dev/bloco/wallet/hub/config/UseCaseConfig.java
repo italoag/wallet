@@ -2,6 +2,14 @@ package dev.bloco.wallet.hub.config;
 
 import dev.bloco.wallet.hub.domain.gateway.TransactionRepository;
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
+import dev.bloco.wallet.hub.domain.gateway.AddressRepository;
+import dev.bloco.wallet.hub.domain.gateway.TokenRepository;
+import dev.bloco.wallet.hub.domain.gateway.TokenBalanceRepository;
+import dev.bloco.wallet.hub.domain.gateway.NetworkRepository;
+import dev.bloco.wallet.hub.domain.gateway.WalletTokenRepository;
+import dev.bloco.wallet.hub.domain.gateway.UserRepository;
+import dev.bloco.wallet.hub.domain.gateway.UserSessionRepository;
+import dev.bloco.wallet.hub.domain.gateway.TransactionFeeRepository;
 import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
 import dev.bloco.wallet.hub.usecase.*;
 import org.springframework.context.annotation.Bean;
@@ -138,5 +146,158 @@ public class UseCaseConfig {
     public FailTransactionUseCase failTransactionUseCase(TransactionRepository transactionRepository,
                                                          DomainEventPublisher eventPublisher) {
         return new FailTransactionUseCase(transactionRepository, eventPublisher);
+    }
+
+    // ========== NEW WALLET MANAGEMENT USE CASES ==========
+    
+    @Bean
+    public UpdateWalletUseCase updateWalletUseCase(WalletRepository walletRepository, DomainEventPublisher eventPublisher) {
+        return new UpdateWalletUseCase(walletRepository, eventPublisher);
+    }
+    
+    @Bean
+    public ActivateWalletUseCase activateWalletUseCase(WalletRepository walletRepository, DomainEventPublisher eventPublisher) {
+        return new ActivateWalletUseCase(walletRepository, eventPublisher);
+    }
+    
+    @Bean
+    public DeactivateWalletUseCase deactivateWalletUseCase(WalletRepository walletRepository, DomainEventPublisher eventPublisher) {
+        return new DeactivateWalletUseCase(walletRepository, eventPublisher);
+    }
+    
+    @Bean
+    public DeleteWalletUseCase deleteWalletUseCase(WalletRepository walletRepository, DomainEventPublisher eventPublisher) {
+        return new DeleteWalletUseCase(walletRepository, eventPublisher);
+    }
+    
+    @Bean
+    public ListWalletsUseCase listWalletsUseCase(WalletRepository walletRepository) {
+        return new ListWalletsUseCase(walletRepository);
+    }
+    
+    @Bean
+    public GetWalletDetailsUseCase getWalletDetailsUseCase(WalletRepository walletRepository, AddressRepository addressRepository) {
+        return new GetWalletDetailsUseCase(walletRepository, addressRepository);
+    }
+    
+    @Bean
+    public RecoverWalletUseCase recoverWalletUseCase(WalletRepository walletRepository, DomainEventPublisher eventPublisher) {
+        return new RecoverWalletUseCase(walletRepository, eventPublisher);
+    }
+    
+    // ========== ADDRESS MANAGEMENT USE CASES ==========
+    
+    @Bean
+    public CreateAddressUseCase createAddressUseCase(AddressRepository addressRepository, WalletRepository walletRepository, 
+                                                     NetworkRepository networkRepository, DomainEventPublisher eventPublisher) {
+        return new CreateAddressUseCase(addressRepository, walletRepository, networkRepository, eventPublisher);
+    }
+    
+    @Bean
+    public ValidateAddressUseCase validateAddressUseCase(NetworkRepository networkRepository) {
+        return new ValidateAddressUseCase(networkRepository);
+    }
+    
+    @Bean
+    public GetAddressBalanceUseCase getAddressBalanceUseCase(AddressRepository addressRepository, TokenBalanceRepository tokenBalanceRepository) {
+        return new GetAddressBalanceUseCase(addressRepository, tokenBalanceRepository);
+    }
+    
+    @Bean
+    public ListAddressesByWalletUseCase listAddressesByWalletUseCase(AddressRepository addressRepository, WalletRepository walletRepository) {
+        return new ListAddressesByWalletUseCase(addressRepository, walletRepository);
+    }
+    
+    @Bean
+    public UpdateAddressStatusUseCase updateAddressStatusUseCase(AddressRepository addressRepository, DomainEventPublisher eventPublisher) {
+        return new UpdateAddressStatusUseCase(addressRepository, eventPublisher);
+    }
+    
+    @Bean
+    public ImportAddressUseCase importAddressUseCase(AddressRepository addressRepository, WalletRepository walletRepository, 
+                                                    NetworkRepository networkRepository, DomainEventPublisher eventPublisher, 
+                                                    ValidateAddressUseCase validateAddressUseCase) {
+        return new ImportAddressUseCase(addressRepository, walletRepository, networkRepository, eventPublisher, validateAddressUseCase);
+    }
+    
+    // ========== TOKEN MANAGEMENT USE CASES ==========
+    
+    @Bean
+    public AddTokenToWalletUseCase addTokenToWalletUseCase(WalletRepository walletRepository, TokenRepository tokenRepository, 
+                                                          WalletTokenRepository walletTokenRepository, DomainEventPublisher eventPublisher) {
+        return new AddTokenToWalletUseCase(walletRepository, tokenRepository, walletTokenRepository, eventPublisher);
+    }
+    
+    @Bean
+    public RemoveTokenFromWalletUseCase removeTokenFromWalletUseCase(WalletRepository walletRepository, WalletTokenRepository walletTokenRepository, 
+                                                                    DomainEventPublisher eventPublisher) {
+        return new RemoveTokenFromWalletUseCase(walletRepository, walletTokenRepository, eventPublisher);
+    }
+    
+    @Bean
+    public GetTokenBalanceUseCase getTokenBalanceUseCase(WalletRepository walletRepository, TokenRepository tokenRepository, 
+                                                        TokenBalanceRepository tokenBalanceRepository) {
+        return new GetTokenBalanceUseCase(walletRepository, tokenRepository, tokenBalanceRepository);
+    }
+    
+    @Bean
+    public ListSupportedTokensUseCase listSupportedTokensUseCase(TokenRepository tokenRepository, NetworkRepository networkRepository) {
+        return new ListSupportedTokensUseCase(tokenRepository, networkRepository);
+    }
+    
+    // ========== NETWORK MANAGEMENT USE CASES ==========
+    
+    @Bean
+    public AddNetworkUseCase addNetworkUseCase(NetworkRepository networkRepository, DomainEventPublisher eventPublisher) {
+        return new AddNetworkUseCase(networkRepository, eventPublisher);
+    }
+    
+    // ========== USER MANAGEMENT USE CASES ==========
+    
+    @Bean
+    public CreateUserUseCase createUserUseCase(UserRepository userRepository, DomainEventPublisher eventPublisher) {
+        return new CreateUserUseCase(userRepository, eventPublisher);
+    }
+    
+    @Bean
+    public AuthenticateUserUseCase authenticateUserUseCase(UserRepository userRepository, UserSessionRepository sessionRepository, 
+                                                          DomainEventPublisher eventPublisher) {
+        return new AuthenticateUserUseCase(userRepository, sessionRepository, eventPublisher);
+    }
+    
+    @Bean
+    public UpdateUserProfileUseCase updateUserProfileUseCase(UserRepository userRepository, DomainEventPublisher eventPublisher) {
+        return new UpdateUserProfileUseCase(userRepository, eventPublisher);
+    }
+    
+    @Bean
+    public ChangePasswordUseCase changePasswordUseCase(UserRepository userRepository, UserSessionRepository sessionRepository, 
+                                                      DomainEventPublisher eventPublisher) {
+        return new ChangePasswordUseCase(userRepository, sessionRepository, eventPublisher);
+    }
+    
+    @Bean
+    public DeactivateUserUseCase deactivateUserUseCase(UserRepository userRepository, UserSessionRepository sessionRepository, 
+                                                      DomainEventPublisher eventPublisher) {
+        return new DeactivateUserUseCase(userRepository, sessionRepository, eventPublisher);
+    }
+    
+    // ========== ANALYTICS AND PORTFOLIO USE CASES ==========
+    
+    @Bean
+    public EstimateTransactionFeeUseCase estimateTransactionFeeUseCase(NetworkRepository networkRepository, 
+                                                                      TransactionFeeRepository feeRepository) {
+        return new EstimateTransactionFeeUseCase(networkRepository, feeRepository);
+    }
+    
+    @Bean
+    public GetPortfolioSummaryUseCase getPortfolioSummaryUseCase(WalletRepository walletRepository, AddressRepository addressRepository, 
+                                                                TokenBalanceRepository tokenBalanceRepository, TokenRepository tokenRepository) {
+        return new GetPortfolioSummaryUseCase(walletRepository, addressRepository, tokenBalanceRepository, tokenRepository);
+    }
+    
+    @Bean
+    public ListNetworksUseCase listNetworksUseCase(NetworkRepository networkRepository) {
+        return new ListNetworksUseCase(networkRepository);
     }
 }

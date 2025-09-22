@@ -2,7 +2,11 @@ package dev.bloco.wallet.hub.domain.model;
 
 import dev.bloco.wallet.hub.domain.event.wallet.WalletCreatedEvent;
 import dev.bloco.wallet.hub.domain.event.wallet.WalletUpdatedEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.WalletStatusChangedEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.WalletDeletedEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.WalletRecoveryInitiatedEvent;
 import dev.bloco.wallet.hub.domain.model.common.AggregateRoot;
+import dev.bloco.wallet.hub.domain.model.wallet.WalletStatus;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -32,6 +36,8 @@ public class Wallet extends AggregateRoot {
     private Instant updatedAt;
     private BigDecimal balance;
     private UUID correlationId;
+    private WalletStatus status;
+    private UUID userId;
 
   /**
    * Creates a new Wallet instance with the specified attributes and registers a WalletCreatedEvent
@@ -55,6 +61,18 @@ public class Wallet extends AggregateRoot {
         this.createdAt = Instant.now();
         this.updatedAt = Instant.now();
         this.balance = BigDecimal.ZERO;
+        this.status = WalletStatus.ACTIVE;
+    }
+
+    public Wallet(UUID id, String name, String description, UUID userId) {
+        super(id);
+        this.name = name;
+        this.description = description;
+        this.createdAt = Instant.now();
+        this.updatedAt = Instant.now();
+        this.balance = BigDecimal.ZERO;
+        this.status = WalletStatus.ACTIVE;
+        this.userId = userId;
     }
 
   public Set<UUID> getAddressIds() {
@@ -117,6 +135,109 @@ public class Wallet extends AggregateRoot {
       this.balance = this.balance.subtract(amount);
     } else {
       throw new IllegalArgumentException("Insufficient balance or invalid amount");
+    }
+  }
+
+  /**
+   * Activates the wallet, allowing all operations to be performed.
+   * If the wallet is already active, no change occurs.
+   */
+  public void activate() {
+    if (this.status != WalletStatus.ACTIVE) {
+      WalletStatus oldStatus = this.status;
+      this.status = WalletStatus.ACTIVE;
+      this.updatedAt = Instant.now();
+      registerEvent(new WalletStatusChangedEvent(getId(), oldStatus, this.status, "Wallet activated", this.correlationId));
+    }
+  }
+
+  /**
+   * Deactivates the wallet, restricting operations.
+   * The wallet can be reactivated later.
+   */
+  public void deactivate() {
+    if (this.status != WalletStatus.INACTIVE) {
+      WalletStatus oldStatus = this.status;
+      this.status = WalletStatus.INACTIVE;
+      this.updatedAt = Instant.now();
+      registerEvent(new WalletStatusChangedEvent(getId(), oldStatus, this.status, "Wallet deactivated", this.correlationId));
+    }
+  }
+
+  /**
+   * Soft deletes the wallet. The wallet data is retained for audit purposes
+   * but is hidden from normal operations.
+   * 
+   * @param reason the reason for deletion
+   */
+  public void delete(String reason) {
+    if (this.status != WalletStatus.DELETED) {
+      WalletStatus oldStatus = this.status;
+      this.status = WalletStatus.DELETED;
+      this.updatedAt = Instant.now();
+      registerEvent(new WalletStatusChangedEvent(getId(), oldStatus, this.status, reason, this.correlationId));
+      registerEvent(new WalletDeletedEvent(getId(), reason, this.correlationId));
+    }
+  }
+
+  /**
+   * Locks the wallet due to security concerns.
+   * No operations are allowed until the wallet is unlocked.
+   * 
+   * @param reason the reason for locking
+   */
+  public void lock(String reason) {
+    if (this.status != WalletStatus.LOCKED) {
+      WalletStatus oldStatus = this.status;
+      this.status = WalletStatus.LOCKED;
+      this.updatedAt = Instant.now();
+      registerEvent(new WalletStatusChangedEvent(getId(), oldStatus, this.status, reason, this.correlationId));
+    }
+  }
+
+  /**
+   * Initiates wallet recovery process.
+   * The wallet enters recovery state while being restored.
+   * 
+   * @param recoveryMethod the method used for recovery (e.g., "seed_phrase", "backup")
+   */
+  public void initiateRecovery(String recoveryMethod) {
+    if (this.status != WalletStatus.RECOVERING) {
+      WalletStatus oldStatus = this.status;
+      this.status = WalletStatus.RECOVERING;
+      this.updatedAt = Instant.now();
+      registerEvent(new WalletStatusChangedEvent(getId(), oldStatus, this.status, "Recovery initiated", this.correlationId));
+      registerEvent(new WalletRecoveryInitiatedEvent(getId(), this.userId, recoveryMethod, this.correlationId));
+    }
+  }
+
+  /**
+   * Checks if the wallet is active and can perform operations.
+   * 
+   * @return true if the wallet is active, false otherwise
+   */
+  public boolean isActive() {
+    return this.status == WalletStatus.ACTIVE;
+  }
+
+  /**
+   * Checks if the wallet is deleted.
+   * 
+   * @return true if the wallet is deleted, false otherwise
+   */
+  public boolean isDeleted() {
+    return this.status == WalletStatus.DELETED;
+  }
+
+  /**
+   * Validates if operations can be performed on this wallet.
+   * Operations are allowed only for active wallets.
+   * 
+   * @throws IllegalStateException if the wallet is not in a state that allows operations
+   */
+  public void validateOperationAllowed() {
+    if (!isActive()) {
+      throw new IllegalStateException("Operation not allowed. Wallet status: " + this.status);
     }
   }
 }

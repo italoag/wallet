@@ -1,7 +1,9 @@
 package dev.bloco.wallet.hub.domain.gateway;
 
 import dev.bloco.wallet.hub.domain.model.user.User;
+import dev.bloco.wallet.hub.domain.model.user.UserStatus;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,5 +16,24 @@ import java.util.UUID;
  */
 public interface UserRepository {
     Optional<User> findById(UUID id);
+    
     User save(User user);
+    
+    void update(User user);
+    
+    void delete(UUID id);
+    
+    List<User> findAll();
+    
+    Optional<User> findByEmail(String email);
+    
+    List<User> findByStatus(UserStatus status);
+    
+    boolean existsById(UUID id);
+    
+    boolean existsByEmail(String email);
+    
+    List<User> findActiveUsers();
+    
+    Optional<User> findByEmailVerificationToken(String token);
 }

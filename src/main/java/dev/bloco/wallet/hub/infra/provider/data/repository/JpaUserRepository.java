@@ -1,14 +1,17 @@
 package dev.bloco.wallet.hub.infra.provider.data.repository;
 
 import dev.bloco.wallet.hub.domain.model.user.User;
+import dev.bloco.wallet.hub.domain.model.user.UserStatus;
 import dev.bloco.wallet.hub.domain.gateway.UserRepository;
 import dev.bloco.wallet.hub.infra.provider.data.entity.UserEntity;
 import dev.bloco.wallet.hub.infra.provider.mapper.UserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Implementation of the {@link UserRepository} interface using JPA for persistence
@@ -68,5 +71,62 @@ public class JpaUserRepository implements UserRepository {
     public User save(User user) {
         UserEntity entity = userMapper.toEntity(user);
         return userMapper.toDomain(springDataUserRepository.save(entity));
+    }
+
+    @Override
+    public void update(User user) {
+        UserEntity entity = userMapper.toEntity(user);
+        springDataUserRepository.save(entity);
+    }
+
+    @Override
+    public void delete(UUID id) {
+        springDataUserRepository.deleteById(id);
+    }
+
+    @Override
+    public List<User> findAll() {
+        return springDataUserRepository.findAll().stream()
+                .map(userMapper::toDomain)
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public Optional<User> findByEmail(String email) {
+        // Fallback implementation - filter all users by email
+        return findAll().stream()
+                .filter(user -> email != null && email.equals(user.getEmail()))
+                .findFirst();
+    }
+
+    @Override
+    public List<User> findByStatus(UserStatus status) {
+        // Fallback implementation - filter all users by status
+        return findAll().stream()
+                .filter(user -> status != null && status.equals(user.getStatus()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public boolean existsById(UUID id) {
+        return springDataUserRepository.existsById(id);
+    }
+
+    @Override
+    public boolean existsByEmail(String email) {
+        return findByEmail(email).isPresent();
+    }
+
+    @Override
+    public List<User> findActiveUsers() {
+        return findByStatus(UserStatus.ACTIVE);
+    }
+
+    @Override
+    public Optional<User> findByEmailVerificationToken(String token) {
+        // Fallback implementation - filter all users by verification token
+        return findAll().stream()
+                .filter(user -> token != null && token.equals(user.getEmailVerificationToken()))
+                .findFirst();
     }
 }

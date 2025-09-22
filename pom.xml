@@ -27,13 +27,13 @@
         <url/>
     </scm>
     <properties>
-        <java.version>24</java.version>
+        <java.version>25</java.version>
         <spring-cloud.version>2025.0.0</spring-cloud.version>
         <spring-cloud-vault.version>4.3.0</spring-cloud-vault.version>
         <spring-vault.version>3.2.0</spring-vault.version>
         <spring-ai.version>1.0.2</spring-ai.version>
         <spring-statemachine.version>4.0.1</spring-statemachine.version>
-        <spring-boot.version>3.5.5</spring-boot.version>
+        <spring-boot.version>3.5.6</spring-boot.version>
         <mapstruct.version>1.6.3</mapstruct.version>
         <hibernate.version>6.6.29.Final</hibernate.version>
     </properties>
@@ -319,6 +319,24 @@
             <groupId>io.micrometer</groupId>
             <artifactId>micrometer-registry-otlp</artifactId>
             <scope>runtime</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-contract-stub-runner</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-anthropic</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.ai</groupId>
+            <artifactId>spring-ai-starter-model-openai</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.cloud</groupId>
+            <artifactId>spring-cloud-starter-contract-verifier</artifactId>
+            <scope>test</scope>
         </dependency>
     </dependencies>
     <dependencyManagement>

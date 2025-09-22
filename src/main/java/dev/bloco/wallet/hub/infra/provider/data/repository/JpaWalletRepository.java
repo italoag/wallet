@@ -2,6 +2,7 @@ package dev.bloco.wallet.hub.infra.provider.data.repository;
 
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
 import dev.bloco.wallet.hub.domain.model.Wallet;
+import dev.bloco.wallet.hub.domain.model.wallet.WalletStatus;
 import dev.bloco.wallet.hub.infra.provider.data.entity.WalletEntity;
 import dev.bloco.wallet.hub.infra.provider.mapper.WalletMapper;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -114,5 +115,27 @@ public class JpaWalletRepository implements WalletRepository {
     @Override
     public boolean existsById(UUID id) {
         return springDataWalletRepository.existsById(id);
+    }
+
+    @Override
+    public List<Wallet> findByUserId(UUID userId) {
+        // Fallback implementation - filter all wallets by userId
+        return findAll().stream()
+                .filter(wallet -> userId != null && userId.equals(wallet.getUserId()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Wallet> findByUserIdAndStatus(UUID userId, WalletStatus status) {
+        // Fallback implementation - filter by userId and status
+        return findAll().stream()
+                .filter(wallet -> userId != null && userId.equals(wallet.getUserId())
+                    && status != null && status.equals(wallet.getStatus()))
+                .collect(Collectors.toList());
+    }
+
+    @Override
+    public List<Wallet> findActiveByUserId(UUID userId) {
+        return findByUserIdAndStatus(userId, WalletStatus.ACTIVE);
     }
 }

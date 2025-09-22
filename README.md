@@ -5,7 +5,7 @@ Event-driven wallet service built with Spring Boot and Spring Cloud Stream. The 
 > Note: This README reflects the current repository snapshot as of 2025-09-17. Where details are unclear in the codebase, TODOs are noted rather than invented.
 
 ## Stack at a glance
-- Language: Java (toolchain release 24)
+- Language: Java (toolchain release 25)
 - Build/Package: Maven (Maven Wrapper included)
 - Frameworks/Libraries:
   - Spring Boot 3.5.5 (WebFlux, Security, OAuth2 Client, WebSocket, Actuator, DevTools)
@@ -23,7 +23,7 @@ Event-driven wallet service built with Spring Boot and Spring Cloud Stream. The 
 - Optional: GraalVM native image (native-maven-plugin configured)
 
 ## Requirements
-- JDK: A JDK that supports release 24 (e.g., GraalVM CE 24 or a JDK 24 build)
+- JDK: A JDK that supports release 25 (e.g., GraalVM CE 25 or a JDK 25 build)
   - For ad-hoc focused unit tests on older JDKs, you can temporarily override the compiler release (see Testing section).
 - Maven Wrapper: Use the provided ./mvnw
 - Optional toolchain: mise (mise.toml sets java = graalvm-community-24)

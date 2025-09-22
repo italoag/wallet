@@ -1,6 +1,7 @@
 package dev.bloco.wallet.hub.domain.gateway;
 
 import dev.bloco.wallet.hub.domain.model.Wallet;
+import dev.bloco.wallet.hub.domain.model.wallet.WalletStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -30,4 +31,10 @@ public interface WalletRepository {
     List<Wallet> findByName(String name);
     
     boolean existsById(UUID id);
+    
+    List<Wallet> findByUserId(UUID userId);
+    
+    List<Wallet> findByUserIdAndStatus(UUID userId, WalletStatus status);
+    
+    List<Wallet> findActiveByUserId(UUID userId);
 }

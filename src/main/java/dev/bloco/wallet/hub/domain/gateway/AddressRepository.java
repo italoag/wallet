@@ -1,6 +1,7 @@
 package dev.bloco.wallet.hub.domain.gateway;
 
 import dev.bloco.wallet.hub.domain.model.address.Address;
+import dev.bloco.wallet.hub.domain.model.address.AddressStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -22,4 +23,10 @@ public interface AddressRepository {
     Optional<Address> findByAccountAddress(String accountAddress);
     
     boolean existsById(UUID id);
+    
+    void update(Address address);
+    
+    List<Address> findByWalletIdAndStatus(UUID walletId, AddressStatus status);
+    
+    Optional<Address> findByNetworkIdAndAccountAddress(UUID networkId, String accountAddress);
 }
