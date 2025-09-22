@@ -12,11 +12,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 class UserTest {
 
     @Test
-    @DisplayName("Constructor should set name/email and generate non-null id")
-    void constructor_setsFields_andGeneratesId() {
-        User user = new User("Alice", "alice@example.com");
+    @DisplayName("Create method should set name/email and generate non-null id")
+    void create_setsFields_andGeneratesId() {
+        UUID id = UUID.randomUUID();
+        User user = User.create(id, "Alice", "alice@example.com", "password");
 
         assertThat(user.getId()).isNotNull();
+        assertThat(user.getId()).isEqualTo(id);
         assertThat(user.getName()).isEqualTo("Alice");
         assertThat(user.getEmail()).isEqualTo("alice@example.com");
     }
@@ -24,9 +26,11 @@ class UserTest {
     @Test
     @DisplayName("Id should remain constant across multiple getter calls")
     void id_isStable() {
-        User user = new User("Bob", "bob@example.com");
+        UUID id = UUID.randomUUID();
+        User user = User.create(id, "Bob", "bob@example.com", "password");
         UUID id1 = user.getId();
         UUID id2 = user.getId();
         assertThat(id1).isEqualTo(id2);
+        assertThat(id1).isEqualTo(id);
     }
 }

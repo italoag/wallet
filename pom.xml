@@ -27,7 +27,7 @@
         <url/>
     </scm>
     <properties>
-        <java.version>25</java.version>
+        <java.version>24</java.version>
         <spring-cloud.version>2025.0.0</spring-cloud.version>
         <spring-cloud-vault.version>4.3.0</spring-cloud-vault.version>
         <spring-vault.version>3.2.0</spring-vault.version>
@@ -354,6 +354,16 @@
                 <version>${spring-ai.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy</artifactId>
+                <version>1.17.7</version>
+            </dependency>
+            <dependency>
+                <groupId>net.bytebuddy</groupId>
+                <artifactId>byte-buddy-agent</artifactId>
+                <version>1.17.7</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

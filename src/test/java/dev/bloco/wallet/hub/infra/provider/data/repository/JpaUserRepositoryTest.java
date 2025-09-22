@@ -45,7 +45,7 @@ class JpaUserRepositoryTest {
         entity.setName("Alice");
         entity.setEmail("alice@example.com");
 
-        User domain = new User("Alice", "alice@example.com");
+        User domain = User.create(id, "Alice", "alice@example.com", "password");
 
         when(springDataUserRepository.findById(id)).thenReturn(Optional.of(entity));
         when(userMapper.toDomain(entity)).thenReturn(domain);
@@ -64,7 +64,8 @@ class JpaUserRepositoryTest {
     @DisplayName("save should delegate to SpringDataUserRepository")
     void save_shouldMapDomainToEntity_andBackToDomain() {
         // given
-        User toSave = new User("Bob", "bob@example.com");
+        UUID userId = UUID.randomUUID();
+        User toSave = User.create(userId, "Bob", "bob@example.com", "password");
         UserEntity mappedEntity = new UserEntity();
         mappedEntity.setName("Bob");
         mappedEntity.setEmail("bob@example.com");
@@ -74,7 +75,7 @@ class JpaUserRepositoryTest {
         savedEntity.setName("Bob");
         savedEntity.setEmail("bob@example.com");
 
-        User mappedBack = new User("Bob", "bob@example.com");
+        User mappedBack = User.create(savedEntity.getId(), "Bob", "bob@example.com", "password");
 
         when(userMapper.toEntity(toSave)).thenReturn(mappedEntity);
         when(springDataUserRepository.save(mappedEntity)).thenReturn(savedEntity);
