@@ -54,12 +54,15 @@ public class ChainlistNetworkRepository implements NetworkRepository {
     public ChainlistNetworkRepository(
             WebClient.Builder webClientBuilder,
             ObjectMapper objectMapper,
-            @Value("${wallet.networks.chainlist-url:https://chainlist.org/rpcs.json}") String chainlistUrl,
+            @Value("${wallet.networks.chainlist-url:") String chainlistUrl,
             @Value("${wallet.networks.cache-ttl:PT5M}") Duration cacheTtl) {
-        this.webClient = webClientBuilder.build();
+        this.webClient = webClientBuilder
+                .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 1024)) // 1MB limit
+                .build();
         this.objectMapper = objectMapper;
         this.chainlistUrl = chainlistUrl;
         this.cacheTtl = cacheTtl.isNegative() ? Duration.ZERO : cacheTtl;
+    }
     }
 
     @Override
