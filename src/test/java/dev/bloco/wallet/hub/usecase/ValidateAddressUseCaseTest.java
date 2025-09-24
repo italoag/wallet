@@ -27,23 +27,25 @@ class ValidateAddressUseCaseTest {
     private ValidateAddressUseCase validateAddressUseCase;
     private UUID networkId;
     private Network testNetwork;
+    private String correlationId;
 
     @BeforeEach
     void setUp() {
         validateAddressUseCase = new ValidateAddressUseCase(networkRepository);
         networkId = UUID.randomUUID();
         testNetwork = Network.create(networkId, "Ethereum", "1", "https://eth.llamarpc.com", "https://etherscan.io");
+        correlationId = UUID.randomUUID().toString();
     }
 
     @Test
     void validateAddress_shouldReturnValid_forEthereumAddress() {
         // Arrange
         String ethereumAddress = "0x742dB5C8A5d8c837e95C5fc73D3DCFFF84C8b742";
-        when(networkRepository.findById(networkId)).thenReturn(Optional.of(testNetwork));
+        when(networkRepository.findById(eq(networkId), anyString())).thenReturn(Optional.of(testNetwork));
 
         // Act
-        ValidateAddressUseCase.AddressValidationResult result = 
-            validateAddressUseCase.validateAddress(ethereumAddress, networkId);
+        ValidateAddressUseCase.AddressValidationResult result =
+            validateAddressUseCase.validateAddress(ethereumAddress, networkId, correlationId);
 
         // Assert
         assertTrue(result.isValid());
@@ -58,11 +60,11 @@ class ValidateAddressUseCaseTest {
         // Arrange
         String bitcoinAddress = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
         Network bitcoinNetwork = Network.create(UUID.randomUUID(), "Bitcoin", "bitcoin", "https://bitcoin.llamarpc.com", "https://blockstream.info");
-        when(networkRepository.findById(networkId)).thenReturn(Optional.of(bitcoinNetwork));
+        when(networkRepository.findById(eq(networkId), anyString())).thenReturn(Optional.of(bitcoinNetwork));
 
         // Act
-        ValidateAddressUseCase.AddressValidationResult result = 
-            validateAddressUseCase.validateAddress(bitcoinAddress, networkId);
+        ValidateAddressUseCase.AddressValidationResult result =
+            validateAddressUseCase.validateAddress(bitcoinAddress, networkId, correlationId);
 
         // Assert
         assertTrue(result.isValid());
@@ -76,7 +78,7 @@ class ValidateAddressUseCaseTest {
         // Act & Assert
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
-            () -> validateAddressUseCase.validateAddress("", networkId)
+            () -> validateAddressUseCase.validateAddress("", networkId, correlationId)
         );
 
         assertEquals("Address value must be provided", exception.getMessage());
@@ -87,7 +89,7 @@ class ValidateAddressUseCaseTest {
         // Act & Assert
         IllegalArgumentException exception = assertThrows(
             IllegalArgumentException.class,
-            () -> validateAddressUseCase.validateAddress(null, networkId)
+            () -> validateAddressUseCase.validateAddress(null, networkId, correlationId)
         );
 
         assertEquals("Address value must be provided", exception.getMessage());
@@ -99,26 +101,26 @@ class ValidateAddressUseCaseTest {
         String ethereumAddress = "0x742dB5C8A5d8c837e95C5fc73D3DCFFF84C8b742";
 
         // Act
-        ValidateAddressUseCase.AddressValidationResult result = 
-            validateAddressUseCase.validateAddress(ethereumAddress, null);
+        ValidateAddressUseCase.AddressValidationResult result =
+            validateAddressUseCase.validateAddress(ethereumAddress, null, null);
 
         // Assert
         assertTrue(result.isValid());
         assertEquals("Ethereum", result.getFormat());
         assertEquals("Unknown", result.getNetwork());
         assertTrue(result.isNetworkCompatible()); // True when no network specified
-        verify(networkRepository, never()).findById(any());
+        verify(networkRepository, never()).findById(any(), any());
     }
 
     @Test
     void validateAddress_shouldReturnIncompatible_whenAddressNotCompatibleWithNetwork() {
         // Arrange
         String bitcoinAddress = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"; // Bitcoin address
-        when(networkRepository.findById(networkId)).thenReturn(Optional.of(testNetwork)); // Ethereum network
+        when(networkRepository.findById(eq(networkId), anyString())).thenReturn(Optional.of(testNetwork)); // Ethereum network
 
         // Act
-        ValidateAddressUseCase.AddressValidationResult result = 
-            validateAddressUseCase.validateAddress(bitcoinAddress, networkId);
+        ValidateAddressUseCase.AddressValidationResult result =
+            validateAddressUseCase.validateAddress(bitcoinAddress, networkId, correlationId);
 
         // Assert
         assertTrue(result.isValid()); // Address format is valid
@@ -135,11 +137,11 @@ class ValidateAddressUseCaseTest {
             "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
             "invalid-address"
         };
-        when(networkRepository.findById(networkId)).thenReturn(Optional.of(testNetwork));
+        when(networkRepository.findById(eq(networkId), anyString())).thenReturn(Optional.of(testNetwork));
 
         // Act
-        ValidateAddressUseCase.AddressValidationResult[] results = 
-            validateAddressUseCase.validateAddresses(addresses, networkId);
+        ValidateAddressUseCase.AddressValidationResult[] results =
+            validateAddressUseCase.validateAddresses(addresses, networkId, correlationId);
 
         // Assert
         assertEquals(3, results.length);
@@ -163,8 +165,8 @@ class ValidateAddressUseCaseTest {
     @Test
     void validateAddresses_shouldReturnEmpty_forNullInput() {
         // Act
-        ValidateAddressUseCase.AddressValidationResult[] results = 
-            validateAddressUseCase.validateAddresses(null, networkId);
+        ValidateAddressUseCase.AddressValidationResult[] results =
+            validateAddressUseCase.validateAddresses(null, networkId, correlationId);
 
         // Assert
         assertEquals(0, results.length);

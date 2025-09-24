@@ -13,6 +13,8 @@ import dev.bloco.wallet.hub.domain.model.network.Network;
 
 import java.util.UUID;
 
+import org.springframework.util.StringUtils;
+
 /**
  * ImportAddressUseCase is responsible for importing existing addresses into wallets.
  * This allows users to add pre-existing addresses to their wallet management system.
@@ -33,6 +35,18 @@ public record ImportAddressUseCase(
     NetworkRepository networkRepository,
     DomainEventPublisher eventPublisher,
     ValidateAddressUseCase validateAddressUseCase) {
+
+    private static final String ERROR_WALLET_ID_REQUIRED = "Wallet ID must be provided";
+    private static final String ERROR_NETWORK_ID_REQUIRED = "Network ID must be provided";
+    private static final String ERROR_ACCOUNT_ADDRESS_REQUIRED = "Account address must be provided";
+    private static final String ERROR_WALLET_NOT_FOUND_TEMPLATE = "Wallet not found with id: %s";
+    private static final String ERROR_NETWORK_NOT_FOUND_TEMPLATE = "Network not found with id: %s";
+    private static final String ERROR_NETWORK_UNAVAILABLE_TEMPLATE = "Network is not available: %s";
+    private static final String ERROR_INVALID_ADDRESS_TEMPLATE = "Invalid address format for network: %s";
+    private static final String ERROR_ADDRESS_ALREADY_EXISTS_TEMPLATE = "Address already exists in the system: %s";
+    private static final String ERROR_PUBLIC_KEY_REQUIRED = "Public key must be provided for non-watch-only addresses";
+    private static final String ERROR_CORRELATION_REQUIRED = "Correlation ID must be provided";
+    private static final String ERROR_CORRELATION_INVALID = "Correlation ID must be a valid UUID";
 
     /**
      * Imports an existing address into a wallet.
@@ -57,38 +71,38 @@ public record ImportAddressUseCase(
             boolean isWatchOnly,
             String correlationId) {
 
-        // Validate inputs
+        String normalizedCorrelation = normalizeCorrelationId(correlationId);
         validateInputs(walletId, networkId, accountAddressValue);
 
         // Validate wallet exists and is active
         Wallet wallet = walletRepository.findById(walletId)
-                .orElseThrow(() -> new IllegalArgumentException("Wallet not found with id: " + walletId));
+                .orElseThrow(() -> new IllegalArgumentException(ERROR_WALLET_NOT_FOUND_TEMPLATE.formatted(walletId)));
         wallet.validateOperationAllowed();
 
         // Validate network exists and is active
-        Network network = networkRepository.findById(networkId)
-                .orElseThrow(() -> new IllegalArgumentException("Network not found with id: " + networkId));
+        Network network = networkRepository.findById(networkId, normalizedCorrelation)
+                .orElseThrow(() -> new IllegalArgumentException(ERROR_NETWORK_NOT_FOUND_TEMPLATE.formatted(networkId)));
         if (!network.isAvailable()) {
-            throw new IllegalStateException("Network is not available: " + network.getName());
+            throw new IllegalStateException(ERROR_NETWORK_UNAVAILABLE_TEMPLATE.formatted(network.getName()));
         }
 
         // Validate address format for the network
-        ValidateAddressUseCase.AddressValidationResult validationResult = 
-            validateAddressUseCase.validateAddress(accountAddressValue, networkId);
+        ValidateAddressUseCase.AddressValidationResult validationResult =
+            validateAddressUseCase.validateAddress(accountAddressValue, networkId, normalizedCorrelation);
         if (!validationResult.isValid() || !validationResult.isNetworkCompatible()) {
-            throw new IllegalArgumentException("Invalid address format for network: " + validationResult.getError());
+            throw new IllegalArgumentException(ERROR_INVALID_ADDRESS_TEMPLATE.formatted(validationResult.getError()));
         }
 
         // Check if address already exists
         if (addressRepository.findByNetworkIdAndAccountAddress(networkId, accountAddressValue).isPresent()) {
-            throw new IllegalArgumentException("Address already exists in the system: " + accountAddressValue);
+            throw new IllegalArgumentException(ERROR_ADDRESS_ALREADY_EXISTS_TEMPLATE.formatted(accountAddressValue));
         }
 
         // For watch-only addresses, we don't require a public key
         PublicKey publicKey = null;
         if (!isWatchOnly) {
-            if (publicKeyValue == null || publicKeyValue.trim().isEmpty()) {
-                throw new IllegalArgumentException("Public key must be provided for non-watch-only addresses");
+            if (!StringUtils.hasText(publicKeyValue)) {
+                throw new IllegalArgumentException(ERROR_PUBLIC_KEY_REQUIRED);
             }
             publicKey = new PublicKey(publicKeyValue);
         } else {
@@ -174,13 +188,26 @@ public record ImportAddressUseCase(
 
     private void validateInputs(UUID walletId, UUID networkId, String accountAddressValue) {
         if (walletId == null) {
-            throw new IllegalArgumentException("Wallet ID must be provided");
+            throw new IllegalArgumentException(ERROR_WALLET_ID_REQUIRED);
         }
         if (networkId == null) {
-            throw new IllegalArgumentException("Network ID must be provided");
+            throw new IllegalArgumentException(ERROR_NETWORK_ID_REQUIRED);
         }
-        if (accountAddressValue == null || accountAddressValue.trim().isEmpty()) {
-            throw new IllegalArgumentException("Account address must be provided");
+        if (!StringUtils.hasText(accountAddressValue)) {
+            throw new IllegalArgumentException(ERROR_ACCOUNT_ADDRESS_REQUIRED);
+        }
+    }
+
+    private String normalizeCorrelationId(String correlationId) {
+        if (!StringUtils.hasText(correlationId)) {
+            throw new IllegalArgumentException(ERROR_CORRELATION_REQUIRED);
+        }
+
+        try {
+            UUID parsed = UUID.fromString(correlationId.trim());
+            return parsed.toString();
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(ERROR_CORRELATION_INVALID, ex);
         }
     }
 

@@ -32,3 +32,8 @@ spring:
       kafka:
         binder:
           brokers: localhost:9092
+
+wallet:
+  networks:
+    chainlist-url: https://chainlist.org/rpcs.json
+    cache-ttl: PT5M
