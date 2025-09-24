@@ -9,6 +9,8 @@ import dev.bloco.wallet.hub.domain.model.network.Network;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.util.StringUtils;
+
 /**
  * ListSupportedTokensUseCase is responsible for retrieving available tokens.
  * It provides filtering capabilities to find tokens by various criteria.
@@ -23,6 +25,13 @@ import java.util.UUID;
 public record ListSupportedTokensUseCase(
     TokenRepository tokenRepository,
     NetworkRepository networkRepository) {
+
+    private static final String ERROR_NETWORK_ID_REQUIRED = "Network ID must be provided";
+    private static final String ERROR_TOKEN_TYPE_REQUIRED = "Token type must be provided";
+    private static final String ERROR_SYMBOL_REQUIRED = "Symbol must be provided";
+    private static final String ERROR_NETWORK_NOT_FOUND_TEMPLATE = "Network not found with id: %s";
+    private static final String ERROR_CORRELATION_REQUIRED = "Correlation ID must be provided";
+    private static final String ERROR_CORRELATION_INVALID = "Correlation ID must be a valid UUID";
 
     /**
      * Retrieves all supported tokens.
@@ -40,14 +49,15 @@ public record ListSupportedTokensUseCase(
      * @return list of tokens available on the network
      * @throws IllegalArgumentException if network not found
      */
-    public List<Token> listTokensByNetwork(UUID networkId) {
+    public List<Token> listTokensByNetwork(UUID networkId, String correlationId) {
         if (networkId == null) {
-            throw new IllegalArgumentException("Network ID must be provided");
+            throw new IllegalArgumentException(ERROR_NETWORK_ID_REQUIRED);
         }
 
-        // Validate network exists
-        networkRepository.findById(networkId)
-                .orElseThrow(() -> new IllegalArgumentException("Network not found with id: " + networkId));
+        String normalizedCorrelation = normalizeCorrelationId(correlationId);
+
+        networkRepository.findById(networkId, normalizedCorrelation)
+                .orElseThrow(() -> new IllegalArgumentException(ERROR_NETWORK_NOT_FOUND_TEMPLATE.formatted(networkId)));
 
         return tokenRepository.findByNetworkId(networkId);
     }
@@ -61,7 +71,7 @@ public record ListSupportedTokensUseCase(
      */
     public List<Token> listTokensByType(TokenType tokenType) {
         if (tokenType == null) {
-            throw new IllegalArgumentException("Token type must be provided");
+            throw new IllegalArgumentException(ERROR_TOKEN_TYPE_REQUIRED);
         }
 
         return tokenRepository.findByType(tokenType);
@@ -108,8 +118,8 @@ public record ListSupportedTokensUseCase(
      * @throws IllegalArgumentException if symbol is null or empty
      */
     public List<Token> searchTokensBySymbol(String symbol) {
-        if (symbol == null || symbol.trim().isEmpty()) {
-            throw new IllegalArgumentException("Symbol must be provided");
+        if (!StringUtils.hasText(symbol)) {
+            throw new IllegalArgumentException(ERROR_SYMBOL_REQUIRED);
         }
 
         return tokenRepository.findBySymbol(symbol.trim().toUpperCase());
@@ -120,8 +130,8 @@ public record ListSupportedTokensUseCase(
      *
      * @return list of tokens on active networks
      */
-    public List<Token> listTokensOnActiveNetworks() {
-        List<Network> activeNetworks = networkRepository.findAll().stream()
+    public List<Token> listTokensOnActiveNetworks(String correlationId) {
+        List<Network> activeNetworks = networkRepository.findAll(normalizeCorrelationId(correlationId)).stream()
                 .filter(Network::isAvailable)
                 .toList();
 
@@ -138,8 +148,9 @@ public record ListSupportedTokensUseCase(
      * @param tokenType optional token type filter
      * @return structured token listing information
      */
-    public TokenListingResult getTokenListing(UUID networkId, TokenType tokenType) {
+    public TokenListingResult getTokenListing(UUID networkId, TokenType tokenType, String correlationId) {
         List<Token> tokens;
+        String normalizedCorrelation = correlationId != null ? normalizeCorrelationId(correlationId) : null;
 
         if (networkId != null && tokenType != null) {
             // Filter by both network and type
@@ -148,7 +159,7 @@ public record ListSupportedTokensUseCase(
                     .toList();
         } else if (networkId != null) {
             // Filter by network only
-            tokens = listTokensByNetwork(networkId);
+            tokens = listTokensByNetwork(networkId, normalizedCorrelation);
         } else if (tokenType != null) {
             // Filter by type only
             tokens = listTokensByType(tokenType);
@@ -184,4 +195,17 @@ public record ListSupportedTokensUseCase(
         long nftTokens,
         long customTokens
     ) {}
+
+    private String normalizeCorrelationId(String correlationId) {
+        if (!StringUtils.hasText(correlationId)) {
+            throw new IllegalArgumentException(ERROR_CORRELATION_REQUIRED);
+        }
+
+        try {
+            UUID parsed = UUID.fromString(correlationId.trim());
+            return parsed.toString();
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(ERROR_CORRELATION_INVALID, ex);
+        }
+    }
 }

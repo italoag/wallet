@@ -7,6 +7,8 @@ import dev.bloco.wallet.hub.domain.model.network.Network;
 import java.util.UUID;
 import java.util.regex.Pattern;
 
+import org.springframework.util.StringUtils;
+
 /**
  * ValidateAddressUseCase is responsible for validating address formats and network compatibility.
  * It provides comprehensive address validation for different blockchain networks.
@@ -20,6 +22,10 @@ import java.util.regex.Pattern;
  */
 public record ValidateAddressUseCase(NetworkRepository networkRepository) {
 
+    private static final String ERROR_ADDRESS_REQUIRED = "Address value must be provided";
+    private static final String ERROR_CORRELATION_REQUIRED = "Correlation ID must be provided";
+    private static final String ERROR_CORRELATION_INVALID = "Correlation ID must be a valid UUID";
+
     /**
      * Validates an address format for a specific network.
      *
@@ -28,15 +34,15 @@ public record ValidateAddressUseCase(NetworkRepository networkRepository) {
      * @return validation result with details
      * @throws IllegalArgumentException if address is null or empty
      */
-    public AddressValidationResult validateAddress(String addressValue, UUID networkId) {
-        if (addressValue == null || addressValue.trim().isEmpty()) {
-            throw new IllegalArgumentException("Address value must be provided");
+    public AddressValidationResult validateAddress(String addressValue, UUID networkId, String correlationId) {
+        if (!StringUtils.hasText(addressValue)) {
+            throw new IllegalArgumentException(ERROR_ADDRESS_REQUIRED);
         }
 
         try {
             // Basic format validation
             AccountAddress accountAddress = new AccountAddress(addressValue);
-            
+
             String format = determineAddressFormat(addressValue);
             boolean isFormatValid = !"Unknown".equals(format);
             String networkName = "Unknown";
@@ -44,7 +50,8 @@ public record ValidateAddressUseCase(NetworkRepository networkRepository) {
 
             // If network ID is provided, validate compatibility
             if (networkId != null) {
-                Network network = networkRepository.findById(networkId).orElse(null);
+                String normalizedCorrelation = normalizeCorrelationId(correlationId);
+                Network network = networkRepository.findById(networkId, normalizedCorrelation).orElse(null);
                 if (network != null) {
                     networkName = network.getName();
                     // Only check compatibility if format is valid
@@ -84,13 +91,13 @@ public record ValidateAddressUseCase(NetworkRepository networkRepository) {
      * @param networkId the network to validate against (optional)
      * @return array of validation results
      */
-    public AddressValidationResult[] validateAddresses(String[] addresses, UUID networkId) {
+    public AddressValidationResult[] validateAddresses(String[] addresses, UUID networkId, String correlationId) {
         if (addresses == null) {
             return new AddressValidationResult[0];
         }
 
         return java.util.Arrays.stream(addresses)
-                .map(address -> validateAddress(address, networkId))
+                .map(address -> validateAddress(address, networkId, correlationId))
                 .toArray(AddressValidationResult[]::new);
     }
 
@@ -181,6 +188,19 @@ public record ValidateAddressUseCase(NetworkRepository networkRepository) {
             public AddressValidationResult build() {
                 return new AddressValidationResult(this);
             }
+        }
+    }
+
+    private String normalizeCorrelationId(String correlationId) {
+        if (!StringUtils.hasText(correlationId)) {
+            throw new IllegalArgumentException(ERROR_CORRELATION_REQUIRED);
+        }
+
+        try {
+            UUID parsed = UUID.fromString(correlationId.trim());
+            return parsed.toString();
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(ERROR_CORRELATION_INVALID, ex);
         }
     }
 }

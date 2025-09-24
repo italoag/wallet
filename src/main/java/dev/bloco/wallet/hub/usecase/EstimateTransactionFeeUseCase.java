@@ -5,10 +5,10 @@ import dev.bloco.wallet.hub.domain.gateway.TransactionFeeRepository;
 import dev.bloco.wallet.hub.domain.model.network.Network;
 import dev.bloco.wallet.hub.domain.model.transaction.TransactionFee;
 import dev.bloco.wallet.hub.domain.model.transaction.FeeLevel;
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.util.StringUtils;
 
 /**
  * EstimateTransactionFeeUseCase is responsible for calculating transaction fees.
@@ -26,28 +26,39 @@ public record EstimateTransactionFeeUseCase(
     NetworkRepository networkRepository,
     TransactionFeeRepository feeRepository) {
 
+    private static final String ERROR_NETWORK_ID_REQUIRED = "Network ID must be provided";
+    private static final String ERROR_GAS_LIMIT_REQUIRED = "Gas limit must be positive";
+    private static final String ERROR_NETWORK_NOT_FOUND_TEMPLATE = "Network not found with id: %s";
+    private static final String ERROR_NETWORK_UNAVAILABLE_TEMPLATE = "Network is not available: %s";
+    private static final String ERROR_TRANSACTION_TYPE_REQUIRED = "Transaction type must be provided";
+    private static final String ERROR_CORRELATION_REQUIRED = "Correlation ID must be provided";
+    private static final String ERROR_CORRELATION_INVALID = "Correlation ID must be a valid UUID";
+
     /**
      * Estimates transaction fees for all fee levels on a network.
      *
      * @param networkId the unique identifier of the network
      * @param gasLimit the estimated gas limit for the transaction
+     * @param correlationId the correlation identifier for tracking downstream requests
      * @return fee estimates for all levels
      * @throws IllegalArgumentException if network not found or invalid gas limit
      */
-    public FeeEstimateResult estimateTransactionFee(UUID networkId, BigDecimal gasLimit) {
+    public FeeEstimateResult estimateTransactionFee(UUID networkId, BigDecimal gasLimit, String correlationId) {
         if (networkId == null) {
-            throw new IllegalArgumentException("Network ID must be provided");
+            throw new IllegalArgumentException(ERROR_NETWORK_ID_REQUIRED);
         }
         if (gasLimit == null || gasLimit.compareTo(BigDecimal.ZERO) <= 0) {
-            throw new IllegalArgumentException("Gas limit must be positive");
+            throw new IllegalArgumentException(ERROR_GAS_LIMIT_REQUIRED);
         }
 
+        String normalizedCorrelation = normalizeCorrelationId(correlationId);
+
         // Validate network exists and is active
-        Network network = networkRepository.findById(networkId)
-                .orElseThrow(() -> new IllegalArgumentException("Network not found with id: " + networkId));
-        
+        Network network = networkRepository.findById(networkId, normalizedCorrelation)
+                .orElseThrow(() -> new IllegalArgumentException(ERROR_NETWORK_NOT_FOUND_TEMPLATE.formatted(networkId)));
+
         if (!network.isAvailable()) {
-            throw new IllegalStateException("Network is not available: " + network.getName());
+            throw new IllegalStateException(ERROR_NETWORK_UNAVAILABLE_TEMPLATE.formatted(network.getName()));
         }
 
         // Get fee estimates for all levels
@@ -68,19 +79,20 @@ public record EstimateTransactionFeeUseCase(
      *
      * @param networkId the unique identifier of the network
      * @param transactionType the type of transaction
+     * @param correlationId correlation identifier for repository lookups
      * @return estimated gas limit
      */
-    public BigDecimal estimateGasLimit(UUID networkId, TransactionType transactionType) {
+    public BigDecimal estimateGasLimit(UUID networkId, TransactionType transactionType, String correlationId) {
         if (networkId == null) {
-            throw new IllegalArgumentException("Network ID must be provided");
+            throw new IllegalArgumentException(ERROR_NETWORK_ID_REQUIRED);
         }
         if (transactionType == null) {
-            throw new IllegalArgumentException("Transaction type must be provided");
+            throw new IllegalArgumentException(ERROR_TRANSACTION_TYPE_REQUIRED);
         }
 
         // Validate network
-        Network network = networkRepository.findById(networkId)
-                .orElseThrow(() -> new IllegalArgumentException("Network not found with id: " + networkId));
+        Network network = networkRepository.findById(networkId, normalizeCorrelationId(correlationId))
+                .orElseThrow(() -> new IllegalArgumentException(ERROR_NETWORK_NOT_FOUND_TEMPLATE.formatted(networkId)));
 
         // Return estimated gas limits based on transaction type
         return switch (transactionType) {
@@ -108,7 +120,7 @@ public record EstimateTransactionFeeUseCase(
     private FeeEstimate estimateForLevel(UUID networkId, FeeLevel level, BigDecimal gasLimit) {
         TransactionFee fee = getLatestFee(networkId, level);
         BigDecimal totalCost = fee.calculateTotalCost(gasLimit);
-        
+
         return new FeeEstimate(
             level,
             fee.getGasPrice(),
@@ -147,6 +159,19 @@ public record EstimateTransactionFeeUseCase(
             case FAST -> "1-2 minutes";
             case URGENT -> "< 1 minute";
         };
+    }
+
+    private String normalizeCorrelationId(String correlationId) {
+        if (!StringUtils.hasText(correlationId)) {
+            throw new IllegalArgumentException(ERROR_CORRELATION_REQUIRED);
+        }
+
+        try {
+            UUID parsed = UUID.fromString(correlationId.trim());
+            return parsed.toString();
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(ERROR_CORRELATION_INVALID, ex);
+        }
     }
 
     /**

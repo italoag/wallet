@@ -13,6 +13,8 @@ import dev.bloco.wallet.hub.domain.model.network.Network;
 
 import java.util.UUID;
 
+import org.springframework.util.StringUtils;
+
 /**
  * CreateAddressUseCase is responsible for generating new addresses for wallets.
  * It handles the creation of addresses on specific networks with proper validation.
@@ -31,6 +33,18 @@ public record CreateAddressUseCase(
     WalletRepository walletRepository,
     NetworkRepository networkRepository,
     DomainEventPublisher eventPublisher) {
+
+    private static final String ERROR_WALLET_ID_REQUIRED = "Wallet ID must be provided";
+    private static final String ERROR_NETWORK_ID_REQUIRED = "Network ID must be provided";
+    private static final String ERROR_PUBLIC_KEY_REQUIRED = "Public key must be provided";
+    private static final String ERROR_ACCOUNT_ADDRESS_REQUIRED = "Account address must be provided";
+    private static final String ERROR_ADDRESS_TYPE_REQUIRED = "Address type must be provided";
+    private static final String ERROR_WALLET_NOT_FOUND_TEMPLATE = "Wallet not found with id: %s";
+    private static final String ERROR_NETWORK_NOT_FOUND_TEMPLATE = "Network not found with id: %s";
+    private static final String ERROR_NETWORK_UNAVAILABLE_TEMPLATE = "Network is not available: %s";
+    private static final String ERROR_ADDRESS_ALREADY_EXISTS_TEMPLATE = "Address already exists on network: %s";
+    private static final String ERROR_CORRELATION_ID_REQUIRED = "Correlation ID must be provided";
+    private static final String ERROR_CORRELATION_ID_INVALID = "Correlation ID must be a valid UUID";
 
     /**
      * Creates a new address for a wallet on a specific network.
@@ -55,24 +69,24 @@ public record CreateAddressUseCase(
             String derivationPath,
             String correlationId) {
 
-        // Validate inputs
+        String normalizedCorrelation = normalizeCorrelationId(correlationId);
         validateInputs(walletId, networkId, publicKeyValue, accountAddressValue, addressType);
 
         // Validate wallet exists and is active
         Wallet wallet = walletRepository.findById(walletId)
-                .orElseThrow(() -> new IllegalArgumentException("Wallet not found with id: " + walletId));
+                .orElseThrow(() -> new IllegalArgumentException(ERROR_WALLET_NOT_FOUND_TEMPLATE.formatted(walletId)));
         wallet.validateOperationAllowed();
 
         // Validate network exists and is active
-        Network network = networkRepository.findById(networkId)
-                .orElseThrow(() -> new IllegalArgumentException("Network not found with id: " + networkId));
+        Network network = networkRepository.findById(networkId, normalizedCorrelation)
+                .orElseThrow(() -> new IllegalArgumentException(ERROR_NETWORK_NOT_FOUND_TEMPLATE.formatted(networkId)));
         if (!network.isAvailable()) {
-            throw new IllegalStateException("Network is not available: " + network.getName());
+            throw new IllegalStateException(ERROR_NETWORK_UNAVAILABLE_TEMPLATE.formatted(network.getName()));
         }
 
         // Check if address already exists on this network
         if (addressRepository.findByNetworkIdAndAccountAddress(networkId, accountAddressValue).isPresent()) {
-            throw new IllegalArgumentException("Address already exists on network: " + accountAddressValue);
+            throw new IllegalArgumentException(ERROR_ADDRESS_ALREADY_EXISTS_TEMPLATE.formatted(accountAddressValue));
         }
 
         // Create value objects
@@ -102,22 +116,35 @@ public record CreateAddressUseCase(
         return address;
     }
 
-    private void validateInputs(UUID walletId, UUID networkId, String publicKeyValue, 
+    private void validateInputs(UUID walletId, UUID networkId, String publicKeyValue,
                               String accountAddressValue, AddressType addressType) {
         if (walletId == null) {
-            throw new IllegalArgumentException("Wallet ID must be provided");
+            throw new IllegalArgumentException(ERROR_WALLET_ID_REQUIRED);
         }
         if (networkId == null) {
-            throw new IllegalArgumentException("Network ID must be provided");
+            throw new IllegalArgumentException(ERROR_NETWORK_ID_REQUIRED);
         }
-        if (publicKeyValue == null || publicKeyValue.trim().isEmpty()) {
-            throw new IllegalArgumentException("Public key must be provided");
+        if (!StringUtils.hasText(publicKeyValue)) {
+            throw new IllegalArgumentException(ERROR_PUBLIC_KEY_REQUIRED);
         }
-        if (accountAddressValue == null || accountAddressValue.trim().isEmpty()) {
-            throw new IllegalArgumentException("Account address must be provided");
+        if (!StringUtils.hasText(accountAddressValue)) {
+            throw new IllegalArgumentException(ERROR_ACCOUNT_ADDRESS_REQUIRED);
         }
         if (addressType == null) {
-            throw new IllegalArgumentException("Address type must be provided");
+            throw new IllegalArgumentException(ERROR_ADDRESS_TYPE_REQUIRED);
+        }
+    }
+
+    private String normalizeCorrelationId(String correlationId) {
+        if (!StringUtils.hasText(correlationId)) {
+            throw new IllegalArgumentException(ERROR_CORRELATION_ID_REQUIRED);
+        }
+
+        try {
+            UUID parsed = UUID.fromString(correlationId.trim());
+            return parsed.toString();
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(ERROR_CORRELATION_ID_INVALID, ex);
         }
     }
 }
