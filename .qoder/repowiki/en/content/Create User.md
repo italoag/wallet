@@ -2,13 +2,21 @@
 
 <cite>
 **Referenced Files in This Document**   
-- [CreateUserUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/CreateUserUseCase.java)
-- [User.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/User.java)
+- [CreateUserUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/CreateUserUseCase.java) - *Updated in recent commit*
+- [User.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/User.java) - *Updated in recent commit*
 - [UserRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/UserRepository.java)
 - [DomainEventPublisher.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/DomainEventPublisher.java)
 - [UserCreatedEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/user/UserCreatedEvent.java)
 - [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java)
 </cite>
+
+## Update Summary
+**Changes Made**   
+- Updated documentation to reflect current implementation details of user creation and verification
+- Enhanced security implementation section with accurate password hashing and token generation details
+- Added clarification on user status lifecycle and email verification process
+- Verified all code examples and diagrams against current source code
+- Updated source references with proper annotations for modified files
 
 ## Table of Contents
 1. [Introduction](#introduction)

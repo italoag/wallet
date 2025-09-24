@@ -1,4 +1,3 @@
-<docs>
 # Domain Model & Data Structures
 
 <cite>
@@ -18,6 +17,9 @@
 - [VaultStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/vault/VaultStatus.java)
 - [AddressStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/AddressStatus.java)
 - [UserStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/UserStatus.java)
+- [Network.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/Network.java)
+- [Store.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/store/Store.java)
+- [Contract.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/contract/Contract.java)
 </cite>
 
 ## Table of Contents
@@ -226,6 +228,111 @@ class Vault {
 **Section sources**
 - [Vault.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/vault/Vault.java#L8-L96)
 
+### Network
+The Network entity represents a blockchain network (e.g., Ethereum, Polygon) with attributes like `name`, `chainId`, `rpcUrl`, and `explorerUrl`. It has a status that can be ACTIVE, INACTIVE, or MAINTENANCE. The Network provides utility methods to generate URLs for transaction and address exploration. Status changes trigger NetworkStatusChangedEvent domain events.
+
+```mermaid
+classDiagram
+class Network {
++String name
++String chainId
++String rpcUrl
++String explorerUrl
++NetworkStatus status
++static Network create(UUID, String, String, String, String)
++String getName()
++String getChainId()
++String getRpcUrl()
++String getExplorerUrl()
++NetworkStatus getStatus()
++void updateName(String)
++void updateRpcUrl(String)
++void updateExplorerUrl(String)
++void activate()
++void deactivate()
++void setMaintenance()
++boolean isAvailable()
++String getTransactionExplorerUrl(String)
++String getAddressExplorerUrl(String)
+}
+```
+
+**Diagram sources**
+- [Network.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/Network.java#L7-L114)
+
+**Section sources**
+- [Network.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/Network.java#L7-L114)
+
+### Store
+The Store entity represents a logical grouping of addresses within a vault. It has a `name`, `description`, and references a `vaultId`. Stores can be activated or deactivated and contain a set of address IDs. The Store allows adding and removing addresses, with corresponding domain events emitted.
+
+```mermaid
+classDiagram
+class Store {
++String name
++UUID vaultId
++String description
++StoreStatus status
++Set<UUID> addressIds
++static Store create(UUID, String, UUID, String)
++String getName()
++UUID getVaultId()
++String getDescription()
++StoreStatus getStatus()
++Set<UUID> getAddressIds()
++void updateInfo(String, String)
++void activate()
++void deactivate()
++void addAddress(UUID)
++void removeAddress(UUID)
++boolean containsAddress(UUID)
++boolean isActive()
+}
+```
+
+**Diagram sources**
+- [Store.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/store/Store.java#L12-L100)
+
+**Section sources**
+- [Store.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/store/Store.java#L12-L100)
+
+### Contract
+The Contract entity represents a smart contract deployed on a blockchain network. It contains metadata like `address`, `name`, `abi`, `bytecode`, and deployment information. Contracts have owners represented by address IDs, and support adding/removing owners with corresponding domain events. The Contract provides methods to retrieve function and event signatures from its ABI.
+
+```mermaid
+classDiagram
+class Contract {
++UUID networkId
++String address
++String name
++ContractABI abi
++String bytecode
++String deploymentTxHash
++Instant deploymentTimestamp
++Set<UUID> ownerAddressIds
++static Contract create(UUID, UUID, String, String, ContractABI, String, String)
++UUID getNetworkId()
++String getAddress()
++String getName()
++ContractABI getAbi()
++String getBytecode()
++String getDeploymentTxHash()
++Instant getDeploymentTimestamp()
++Set<UUID> getOwnerAddressIds()
++void addOwner(UUID)
++void removeOwner(UUID)
++boolean isOwnedBy(UUID)
++String getFunctionSignature(String)
++String getEventSignature(String)
+}
+```
+
+**Diagram sources**
+- [Contract.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/contract/Contract.java#L13-L113)
+
+**Section sources**
+- [Contract.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/contract/Contract.java#L13-L113)
+
 ## Base Classes and Inheritance
 
 ### Entity
@@ -312,6 +419,27 @@ class PublicKey {
 
 **Section sources**
 - [PublicKey.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/PublicKey.java#L4-L41)
+
+### AccountAddress
+The AccountAddress class is a final value object representing a blockchain account address. It validates the address in the constructor and provides a `getValue()` method. The class ensures data integrity by preventing null or blank values and supports equality based on the address value.
+
+```mermaid
+classDiagram
+class AccountAddress {
+-String value
++AccountAddress(String)
++String getValue()
++boolean equals(Object)
++int hashCode()
++String toString()
+}
+```
+
+**Diagram sources**
+- [AccountAddress.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/AccountAddress.java#L4-L41)
+
+**Section sources**
+- [AccountAddress.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/AccountAddress.java#L4-L41)
 
 ## Status Enums and Lifecycle Management
 
@@ -407,6 +535,59 @@ class AddressStatus {
 **Section sources**
 - [AddressStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/AddressStatus.java#L2-L5)
 
+### NetworkStatus
+The NetworkStatus enum defines the operational states of a blockchain network: ACTIVE, INACTIVE, and MAINTENANCE. Networks can be activated, deactivated, or placed in maintenance mode. The Network class provides corresponding methods and checks availability.
+
+```mermaid
+classDiagram
+class NetworkStatus {
++ACTIVE
++INACTIVE
++MAINTENANCE
+}
+```
+
+**Diagram sources**
+- [NetworkStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/NetworkStatus.java#L2-L6)
+
+**Section sources**
+- [NetworkStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/NetworkStatus.java#L2-L6)
+
+### StoreStatus
+The StoreStatus enum defines the operational states of a store: ACTIVE and INACTIVE. The Store class provides activation and deactivation methods with corresponding domain events.
+
+```mermaid
+classDiagram
+class StoreStatus {
++ACTIVE
++INACTIVE
+}
+```
+
+**Diagram sources**
+- [StoreStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/store/StoreStatus.java#L2-L5)
+
+**Section sources**
+- [StoreStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/store/StoreStatus.java#L2-L5)
+
+### SessionStatus
+The SessionStatus enum defines the states of a user session: ACTIVE, INVALIDATED, and EXPIRED. Sessions are validated for activity and expiration.
+
+```mermaid
+classDiagram
+class SessionStatus {
++ACTIVE
++INVALIDATED
++EXPIRED
+}
+```
+
+**Diagram sources**
+- [SessionStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/SessionStatus.java#L5-L20)
+
+**Section sources**
+- [SessionStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/SessionStatus.java#L5-L20)
+
 ## Entity Relationships and Aggregations
 
 The domain model uses aggregations and associations to define relationships between entities. The Wallet is an aggregate root that owns a set of Address entities, referenced by their UUIDs. Similarly, the Vault owns a set of addresses and potentially other entities. The Transaction is associated with a network (via networkId) and involves addresses (fromAddress, toAddress). The Token is linked to a network and has a contract address. These relationships are managed through UUID references rather than direct object references, promoting loose coupling.
@@ -423,6 +604,8 @@ TokenBalance }|--|| Address : "held by"
 User ||--o{ Wallet : "owns"
 User ||--o{ Session : "has"
 Vault ||--o{ Key : "stores"
+Store ||--o{ Address : "contains"
+Contract ||--o{ Address : "owned by"
 ```
 
 **Diagram sources**
@@ -432,8 +615,17 @@ Vault ||--o{ Key : "stores"
 - [Transaction.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/Transaction.java#L20-L210)
 - [Token.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/token/Token.java#L9-L105)
 - [User.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/User.java#L18-L235)
+- [Network.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/Network.java#L7-L114)
+- [Store.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/store/Store.java#L12-L100)
+- [Contract.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/contract/Contract.java#L13-L113)
 
 **Section sources**
 - [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java#L27-L242)
 - [Address.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/Address.java#L11-L132)
-- [Vault.java
+- [Vault.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/vault/Vault.java#L8-L96)
+- [Transaction.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/Transaction.java#L20-L210)
+- [Token.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/token/Token.java#L9-L105)
+- [User.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/User.java#L18-L235)
+- [Network.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/Network.java#L7-L114)
+- [Store.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/store/Store.java#L12-L100)
+- [Contract.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/contract/Contract.java#L13-L113)

@@ -2,17 +2,26 @@
 
 <cite>
 **Referenced Files in This Document**   
-- [Address.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/Address.java)
+- [Address.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/Address.java) - *Updated in recent commit*
 - [AddressRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/AddressRepository.java)
 - [AddressStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/AddressStatus.java)
 - [AddressType.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/AddressType.java)
-- [CreateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/CreateAddressUseCase.java)
+- [CreateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/CreateAddressUseCase.java) - *Updated validation logic in commit b5803708*
 - [ImportAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ImportAddressUseCase.java)
 - [GetAddressBalanceUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/GetAddressBalanceUseCase.java)
 - [ListAddressesByWalletUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ListAddressesByWalletUseCase.java)
 - [UpdateAddressStatusUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/UpdateAddressStatusUseCase.java)
-- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java)
+- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java) - *Enhanced with correlation ID handling in commit ef080849*
 </cite>
+
+## Update Summary
+**Changes Made**   
+- Updated **Address Creation** section to reflect enhanced validation logic in CreateAddressUseCase
+- Enhanced **Address Validation** section with new correlation ID handling and error messaging
+- Added detailed correlation ID normalization process in relevant sections
+- Updated code examples to include correlation ID parameter usage
+- Improved error handling descriptions across all use cases
+- Maintained and updated source tracking annotations for modified files
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -101,6 +110,7 @@ The CreateAddressUseCase handles the creation of new blockchain addresses within
 - Supports different address types (EXTERNAL, INTERNAL, CONTRACT)
 - Generates BIP44-compliant derivation paths
 - Publishes AddressCreatedEvent upon successful creation
+- Implements strict correlation ID validation and normalization
 
 ### Usage Example
 ```java
@@ -121,6 +131,7 @@ Address address = createAddressUseCase.createAddress(
 - Address must be unique within the network
 - Public key must be provided and valid
 - All input parameters must be non-null
+- Correlation ID must be a valid UUID format
 
 ```mermaid
 sequenceDiagram
@@ -132,6 +143,7 @@ participant NetworkRepo as NetworkRepository
 participant EventPublisher as DomainEventPublisher
 Client->>UseCase : createAddress()
 UseCase->>UseCase : validateInputs()
+UseCase->>UseCase : normalizeCorrelationId()
 UseCase->>WalletRepo : findById()
 WalletRepo-->>UseCase : Wallet
 UseCase->>Wallet : validateOperationAllowed()
@@ -152,7 +164,7 @@ UseCase-->>Client : Address
 - [Address.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/Address.java#L14-L37)
 
 **Section sources**
-- [CreateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/CreateAddressUseCase.java#L1-L122)
+- [CreateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/CreateAddressUseCase.java#L1-L122) - *Updated validation logic and correlation ID handling*
 
 ## Address Import
 
@@ -164,6 +176,7 @@ The ImportAddressUseCase enables users to import existing blockchain addresses i
 - Allows batch import of multiple addresses
 - Creates placeholder public keys for watch-only addresses
 - Publishes AddressCreatedEvent upon successful import
+- Uses ValidateAddressUseCase for network compatibility checking
 
 ### Usage Example
 ```java
@@ -196,6 +209,7 @@ BatchImportResult result = importAddressUseCase.importAddresses(
 - Address must not already exist in the system
 - Address format must be valid for the target network
 - Public key is optional for watch-only addresses
+- Correlation ID must be a valid UUID format
 
 ```mermaid
 flowchart TD
@@ -204,7 +218,7 @@ ValidateInputs --> FindWallet["Find Wallet by ID"]
 FindWallet --> ValidateWallet["Validate Wallet Active"]
 ValidateWallet --> FindNetwork["Find Network by ID"]
 FindNetwork --> ValidateNetwork["Validate Network Available"]
-ValidateNetwork --> ValidateAddressFormat["Validate Address Format"]
+ValidateNetwork --> ValidateAddressFormat["Validate Address Format via ValidateAddressUseCase"]
 ValidateAddressFormat --> CheckExistence["Check Address Exists"]
 CheckExistence --> CreateAddress["Create Address Entity"]
 CreateAddress --> SaveAddress["Save Address"]
@@ -409,6 +423,7 @@ The ValidateAddressUseCase provides comprehensive validation of blockchain addre
 - Checks network compatibility
 - Supports batch validation
 - Determines address format automatically
+- Implements correlation ID validation and normalization
 - No domain events are published (validation operation)
 
 ### Usage Example
@@ -416,13 +431,15 @@ The ValidateAddressUseCase provides comprehensive validation of blockchain addre
 // Validate single address
 AddressValidationResult result = validateAddressUseCase.validateAddress(
     "0x742d35Cc6634C0532925a3b8D4C701E7B6D6D36E", 
-    networkId
+    networkId,
+    "correlation-123"
 );
 
 // Batch validate
 AddressValidationResult[] results = validateAddressUseCase.validateAddresses(
     new String[]{"0x742d...D36E", "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"}, 
-    networkId
+    networkId,
+    "correlation-123"
 );
 ```
 
@@ -456,7 +473,7 @@ style End fill:#f9f,stroke:#333
 - [Address.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/Address.java#L58-L65)
 
 **Section sources**
-- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java#L1-L178)
+- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java#L1-L178) - *Enhanced with correlation ID handling*
 
 ## Integration Patterns
 
@@ -482,15 +499,17 @@ Use cases are implemented as Java records, providing:
 ### Validation Pipeline
 A consistent validation pipeline is applied to all operations:
 1. Input parameter validation
-2. Business rule validation
-3. State validation
-4. External dependency validation
+2. Correlation ID normalization and validation
+3. Business rule validation
+4. State validation
+5. External dependency validation
 
 ### Error Handling
 Standardized error handling with:
 - IllegalArgumentException for invalid inputs
 - IllegalStateException for invalid state transitions
 - Descriptive error messages for troubleshooting
+- Consistent correlation ID handling across all operations
 
 ## Troubleshooting Guide
 
@@ -516,14 +535,20 @@ Standardized error handling with:
 **Cause**: Attempting to change to current status
 **Solution**: Check current status with `ListAddressesByWalletUseCase` before updating
 
+#### Correlation ID Validation Errors
+**Symptom**: `IllegalArgumentException` with "Correlation ID must be a valid UUID"
+**Cause**: Invalid UUID format provided for correlation ID
+**Solution**: Ensure correlation ID is a properly formatted UUID string without extra characters
+
 ### Debugging Tips
 1. Check correlation IDs in logs for end-to-end operation tracing
 2. Verify wallet and network status before address operations
 3. Use `ValidateAddressUseCase` to verify address format before other operations
 4. Monitor domain events to confirm state changes were published
 5. Check repository methods for data consistency issues
+6. Validate correlation ID format compliance before calling use cases
 
 **Section sources**
-- [CreateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/CreateAddressUseCase.java#L1-L122)
+- [CreateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/CreateAddressUseCase.java#L1-L122) - *Updated validation logic*
 - [ImportAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ImportAddressUseCase.java#L1-L204)
-- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java#L1-L178)
+- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java#L1-L178) - *Enhanced with correlation ID handling*

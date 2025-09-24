@@ -10,14 +10,14 @@
 - [UserEntity.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/entity/UserEntity.java)
 - [WalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/WalletRepository.java)
 - [TransactionRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/TransactionRepository.java)
-- [UserRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/UserRepository.java) - *Added in recent commit*
+- [UserRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/UserRepository.java)
 - [JpaWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaWalletRepository.java)
 - [SpringDataWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataWalletRepository.java)
-- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java) - *Added in recent commit*
-- [SpringDataUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataUserRepository.java) - *Added in recent commit*
+- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java)
+- [SpringDataUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataUserRepository.java)
 - [WalletMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/WalletMapper.java)
 - [TransactionMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/TransactionMapper.java)
-- [UserMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/UserMapper.java) - *Added in recent commit*
+- [UserMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/UserMapper.java)
 - [application.yml](file://src/main/resources/application.yml)
 </cite>
 
@@ -72,12 +72,12 @@ WalletMapper --> WalletEntity : "creates"
 ```
 
 **Diagram sources**
-- [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java#L23-L121)
+- [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java#L27-L242)
 - [WalletEntity.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/entity/WalletEntity.java#L27-L62)
 - [WalletMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/WalletMapper.java#L31-L50)
 
 **Section sources**
-- [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java#L23-L121)
+- [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java#L27-L242)
 - [WalletEntity.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/entity/WalletEntity.java#L27-L62)
 - [WalletMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/WalletMapper.java#L31-L50)
 
@@ -167,12 +167,12 @@ UserMapper --> UserEntity : "creates"
 ```
 
 **Diagram sources**
-- [User.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/User.java#L13-L31)
+- [User.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/User.java#L18-L235)
 - [UserEntity.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/entity/UserEntity.java#L24-L40)
 - [UserMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/UserMapper.java#L32-L48)
 
 **Section sources**
-- [User.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/User.java#L13-L31)
+- [User.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/User.java#L18-L235)
 - [UserEntity.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/entity/UserEntity.java#L24-L40)
 - [UserMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/UserMapper.java#L32-L48)
 
@@ -193,6 +193,9 @@ class WalletRepository {
 +delete(id)
 +findByName(name)
 +existsById(id)
++findByUserId(userId)
++findByUserIdAndStatus(userId, status)
++findActiveByUserId(userId)
 }
 class TransactionRepository {
 +save(transaction)
@@ -207,6 +210,7 @@ class TransactionRepository {
 +findByTimestampBetween(start, end)
 +existsById(id)
 +existsByHash(hash)
++findByWalletId(walletId)
 }
 class UserRepository {
 +save(user)
@@ -229,6 +233,9 @@ class JpaWalletRepository {
 +delete(id)
 +findByName(name)
 +existsById(id)
++findByUserId(userId)
++findByUserIdAndStatus(userId, status)
++findActiveByUserId(userId)
 }
 class JpaTransactionRepository {
 +save(transaction)
@@ -251,7 +258,7 @@ class JpaUserRepository {
 +delete(id)
 +findAll()
 +findByEmail(email)
-+findByStatus(status)
++findByStatus(UserStatus)
 +existsById(id)
 +existsByEmail(email)
 +findActiveUsers()
@@ -296,22 +303,22 @@ SpringDataUserRepository <|-- JpaRepository
 ```
 
 **Diagram sources**
-- [WalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/WalletRepository.java#L17-L32)
-- [TransactionRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/TransactionRepository.java#L20-L54)
-- [UserRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/UserRepository.java#L16-L38) - *Added in recent commit*
-- [JpaWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaWalletRepository.java#L35-L117)
-- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java#L35-L131) - *Added in recent commit*
+- [WalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/WalletRepository.java#L18-L39)
+- [TransactionRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/TransactionRepository.java#L28-L54)
+- [UserRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/UserRepository.java#L16-L38)
+- [JpaWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaWalletRepository.java#L36-L140)
+- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java#L35-L131)
 - [SpringDataWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataWalletRepository.java#L25-L26)
-- [SpringDataUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataUserRepository.java#L33-L34) - *Added in recent commit*
+- [SpringDataUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataUserRepository.java#L33-L34)
 
 **Section sources**
-- [WalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/WalletRepository.java#L17-L32)
-- [TransactionRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/TransactionRepository.java#L20-L54)
-- [UserRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/UserRepository.java#L16-L38) - *Added in recent commit*
-- [JpaWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaWalletRepository.java#L35-L117)
-- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java#L35-L131) - *Added in recent commit*
+- [WalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/WalletRepository.java#L18-L39)
+- [TransactionRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/TransactionRepository.java#L28-L54)
+- [UserRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/UserRepository.java#L16-L38)
+- [JpaWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaWalletRepository.java#L36-L140)
+- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java#L35-L131)
 - [SpringDataWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataWalletRepository.java#L25-L26)
-- [SpringDataUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataUserRepository.java#L33-L34) - *Added in recent commit*
+- [SpringDataUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataUserRepository.java#L33-L34)
 
 ### Data Access Flow
 The repository implementation follows a layered approach where domain repositories delegate to Spring Data JPA repositories through a service layer that handles mapping.
@@ -336,15 +343,15 @@ DomainRepo-->>UseCase : Saved wallet
 ```
 
 **Diagram sources**
-- [JpaWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaWalletRepository.java#L35-L117)
+- [JpaWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaWalletRepository.java#L36-L140)
 - [WalletMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/WalletMapper.java#L31-L50)
 
 **Section sources**
-- [JpaWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaWalletRepository.java#L35-L117)
+- [JpaWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaWalletRepository.java#L36-L140)
 - [WalletMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/WalletMapper.java#L31-L50)
 
 ### User Repository Implementation
-The `JpaUserRepository` class implements the `UserRepository` interface and provides concrete methods for user data access operations. It delegates persistence operations to `SpringDataUserRepository` while handling domain-to-entity mapping via `UserMapper`.
+The `JpaUserRepository` class implements the `UserRepository` interface and provides concrete methods for user data access operations. It delegates persistence operations to `SpringDataUserRepository` while handling domain-to-entity mapping via `UserMapper`. The implementation includes optimized methods for direct database queries and fallback filtering approaches when specific query methods are not available in the Spring Data repository.
 
 ```mermaid
 sequenceDiagram
@@ -355,19 +362,21 @@ participant SpringData as "SpringDataUserRepository"
 participant DB as "Database"
 UseCase->>DomainRepo : findByEmail(email)
 DomainRepo->>JpaRepo : findByEmail(email)
-JpaRepo->>JpaRepo : findAll()
-JpaRepo->>JpaRepo : filter users by email
+JpaRepo->>SpringData : findAll()
+SpringData-->>JpaRepo : List<UserEntity>
+JpaRepo->>JpaRepo : map to domain objects
+JpaRepo->>JpaRepo : filter by email
 JpaRepo-->>DomainRepo : Optional<User>
 DomainRepo-->>UseCase : Optional<User>
 ```
 
 **Diagram sources**
-- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java#L35-L131) - *Added in recent commit*
-- [UserMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/UserMapper.java#L32-L48) - *Added in recent commit*
+- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java#L35-L131)
+- [UserMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/UserMapper.java#L32-L48)
 
 **Section sources**
-- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java#L35-L131) - *Added in recent commit*
-- [UserMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/UserMapper.java#L32-L48) - *Added in recent commit*
+- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java#L35-L131)
+- [UserMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/UserMapper.java#L32-L48)
 
 ## Database Configuration and Multi-Database Strategy
 
@@ -393,7 +402,7 @@ spring:
 ```
 
 **Section sources**
-- [application.yml](file://src/main/resources/application.yml#L1-L34)
+- [application.yml](file://src/main/resources/application.yml#L1-L39)
 
 ### Supported Database Systems
 While the current configuration uses H2 for development, the architecture supports multiple database systems:
@@ -424,10 +433,10 @@ K --> A
 ```
 
 **Diagram sources**
-- [application.yml](file://src/main/resources/application.yml#L1-L34)
+- [application.yml](file://src/main/resources/application.yml#L1-L39)
 
 **Section sources**
-- [application.yml](file://src/main/resources/application.yml#L1-L34)
+- [application.yml](file://src/main/resources/application.yml#L1-L39)
 
 ## Schema Design and Constraints
 
@@ -594,4 +603,4 @@ flowchart TD
 
 **Section sources**
 - [SpringDataTransactionRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataTransactionRepository.java#L15-L23)
-- [SpringDataUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataUserRepository.java#L33-L34) - *Added in recent commit*
+- [SpringDataUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataUserRepository.java#L33-L34)

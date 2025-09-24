@@ -1,9 +1,8 @@
-<docs>
 # Wallet Management
 
 <cite>
 **Referenced Files in This Document**   
-- [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java)
+- [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java) - *Updated in recent commit*
 - [CreateWalletUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/CreateWalletUseCase.java)
 - [UpdateWalletUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/UpdateWalletUseCase.java)
 - [ActivateWalletUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ActivateWalletUseCase.java)
@@ -20,6 +19,10 @@
 - [WalletStatusChangedEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/wallet/WalletStatusChangedEvent.java)
 - [WalletDeletedEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/wallet/WalletDeletedEvent.java)
 - [WalletRecoveryInitiatedEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/wallet/WalletRecoveryInitiatedEvent.java)
+- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java) - *Added in recent commit*
+- [AccountAddress.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/AccountAddress.java) - *Added in recent commit*
+- [NetworkRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/NetworkRepository.java) - *Added in recent commit*
+- [Network.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/Network.java) - *Added in recent commit*
 </cite>
 
 ## Table of Contents
@@ -207,6 +210,69 @@ WalletRecoveryInitiatedEvent --> DomainEvent : "extends"
 - [WalletDeletedEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/wallet/WalletDeletedEvent.java#L12-L23)
 - [WalletRecoveryInitiatedEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/wallet/WalletRecoveryInitiatedEvent.java#L12-L25)
 
+### Validate Address Use Case
+The `ValidateAddressUseCase` is responsible for validating blockchain address formats and network compatibility.
+
+**Invocation Flow:**
+1. Client calls `validateAddress(addressValue, networkId)`
+2. Input validation checks for null or empty address
+3. Address format is determined using regex patterns
+4. If networkId provided, network is retrieved from `NetworkRepository`
+5. Compatibility between address format and network is evaluated
+6. `AddressValidationResult` is constructed with validation details
+7. Result is returned to caller
+
+**Input Parameters:**
+- `addressValue`: String representation of the blockchain address
+- `networkId`: Optional UUID of the target network for compatibility checking
+
+**Business Rules:**
+- Address value must be provided (not null or empty)
+- Format validation uses predefined regex patterns for different address types
+- Network compatibility is checked when networkId is provided
+- Validation does not publish domain events (pure query operation)
+
+**Domain Interactions:**
+- Uses `NetworkRepository.findById()` when network-specific validation is requested
+- Creates `AccountAddress` value object for basic validation
+- Returns `AddressValidationResult` DTO with detailed validation information
+
+```mermaid
+sequenceDiagram
+participant Client
+participant UseCase as ValidateAddressUseCase
+participant Repository as NetworkRepository
+participant Address as AccountAddress
+participant Network as Network
+Client->>UseCase : validateAddress("0x...", networkId)
+UseCase->>UseCase : Check address not null/empty
+UseCase->>UseCase : Determine format via regex
+alt networkId provided
+UseCase->>Repository : findById(networkId)
+alt Network found
+Repository-->>UseCase : Network
+UseCase->>UseCase : Check format-network compatibility
+else Network not found
+Repository-->>UseCase : Optional.empty()
+UseCase->>UseCase : Set networkCompatible=false
+end
+else No networkId
+UseCase->>UseCase : Set networkCompatible=validFormat
+end
+UseCase->>UseCase : Build AddressValidationResult
+UseCase-->>Client : result
+```
+
+**Diagram sources**
+- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java#L45-L85)
+- [AccountAddress.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/AccountAddress.java#L7-L10)
+- [Network.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/Network.java#L24-L36)
+- [NetworkRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/NetworkRepository.java#L12-L14)
+
+**Section sources**
+- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java#L1-L185)
+- [ValidateAddressUseCaseTest.java](file://src/test/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCaseTest.java#L20-L171)
+
 ## API Interfaces
 
 The wallet management system provides a set of use case classes that define the API interfaces for wallet operations.
@@ -387,6 +453,30 @@ Q --> R[Return Activated Wallet]
 **Section sources**
 - [RecoverWalletUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/RecoverWalletUseCase.java#L1-L89)
 
+### ValidateAddressUseCase
+Handles address validation operations for blockchain addresses.
+
+```mermaid
+flowchart TD
+A[validateAddress] --> B{Validate Address Value}
+B --> |Empty| C[Throw IllegalArgumentException]
+B --> |Valid| D{Network ID Provided?}
+D --> |Yes| E[Find Network by ID]
+E --> F{Network Found?}
+F --> |Yes| G[Check Format-Network Compatibility]
+F --> |No| H[Set networkCompatible=false]
+G --> I[Build Result]
+H --> I
+D --> |No| J[Set networkCompatible=validFormat]
+J --> I
+I --> K[Return AddressValidationResult]
+```
+
+**Section sources**
+- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java#L1-L185)
+- [AccountAddress.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/AccountAddress.java#L7-L10)
+- [NetworkRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/NetworkRepository.java#L12-L14)
+
 ## Integration Patterns
 
 The wallet management system follows several key integration patterns to ensure reliability and maintainability.
@@ -527,6 +617,11 @@ class RecoverWalletUseCase {
 +recoverWallet(UUID, String, String, String) Wallet
 +completeRecovery(UUID, String) Wallet
 }
+class ValidateAddressUseCase {
++NetworkRepository networkRepository
++validateAddress(String, UUID, String) AddressValidationResult
++validateAddresses(String[], UUID, String) AddressValidationResult[]
+}
 CreateWalletUseCase --> UseCase : "implements"
 UpdateWalletUseCase --> UseCase : "implements"
 ActivateWalletUseCase --> UseCase : "implements"
@@ -535,6 +630,7 @@ DeleteWalletUseCase --> UseCase : "implements"
 ListWalletsUseCase --> UseCase : "implements"
 GetWalletDetailsUseCase --> UseCase : "implements"
 RecoverWalletUseCase --> UseCase : "implements"
+ValidateAddressUseCase --> UseCase : "implements"
 ```
 
 **Diagram sources**
@@ -546,6 +642,7 @@ RecoverWalletUseCase --> UseCase : "implements"
 - [ListWalletsUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ListWalletsUseCase.java#L1-L90)
 - [GetWalletDetailsUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/GetWalletDetailsUseCase.java#L1-L77)
 - [RecoverWalletUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/RecoverWalletUseCase.java#L1-L89)
+- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java#L1-L185)
 
 ## Practical Examples
 
@@ -688,4 +785,82 @@ try {
     // Later, complete the recovery process
     Wallet completedWallet = recoverWalletUseCase.completeRecovery(recoveryWallet.getId(), UUID.randomUUID().toString());
     System.out.println("Wallet recovery completed: " + completedWallet.getId());
-    System.out.println("
+    System.out.println("Status: " + completedWallet.getStatus()); // ACTIVE
+} catch (IllegalArgumentException e) {
+    System.err.println("Invalid parameters: " + e.getMessage());
+}
+```
+
+### Validating Blockchain Addresses
+```java
+// Create an instance of ValidateAddressUseCase
+ValidateAddressUseCase validateAddressUseCase = new ValidateAddressUseCase(networkRepository);
+
+// Validate a single Ethereum address
+String ethereumAddress = "0x742dB5C8A5d8c837e95C5fc73D3DCFFF84C8b742";
+UUID networkId = UUID.fromString("ethereum-network-id");
+String correlationId = UUID.randomUUID().toString();
+
+AddressValidationResult result = validateAddressUseCase.validateAddress(
+    ethereumAddress, networkId, correlationId);
+
+System.out.println("Address valid: " + result.isValid());
+System.out.println("Format: " + result.getFormat());
+System.out.println("Network compatible: " + result.isNetworkCompatible());
+
+// Validate multiple addresses at once
+String[] addresses = {
+    "0x742dB5C8A5d8c837e95C5fc73D3DCFFF84C8b742",
+    "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",
+    "invalid-address-format"
+};
+
+AddressValidationResult[] results = validateAddressUseCase.validateAddresses(
+    addresses, networkId, correlationId);
+
+for (AddressValidationResult r : results) {
+    System.out.println(r.getAddress() + " -> " + 
+        (r.isValid() ? "Valid" : "Invalid") + 
+        " (" + r.getFormat() + ")");
+}
+```
+
+## Troubleshooting Guide
+
+### Common Issues and Solutions
+
+#### Wallet Not Found During Update
+**Symptom**: `IllegalArgumentException` with message "Wallet not found"
+**Cause**: The specified wallet ID does not exist in the repository
+**Solution**: Verify the wallet ID is correct and the wallet was properly created
+
+#### Cannot Activate Deleted Wallet
+**Symptom**: `IllegalStateException` when calling activateWallet
+**Cause**: Attempting to activate a wallet that has been soft-deleted
+**Solution**: Deleted wallets cannot be reactivated; consider creating a new wallet instead
+
+#### Insufficient Balance Error
+**Symptom**: `IllegalArgumentException` with message "Insufficient balance or invalid amount"
+**Cause**: Withdrawal or transfer amount exceeds available balance
+**Solution**: Check current balance before initiating transaction
+
+#### Invalid Address Format
+**Symptom**: Address validation returns invalid format
+**Cause**: Address string doesn't match any known blockchain address patterns
+**Solution**: Verify address format against supported networks:
+- Ethereum: 0x followed by 40 hex characters
+- Bitcoin Legacy: Starts with 1 or 3, 25-34 alphanumeric characters
+- Bitcoin Bech32: Starts with bc1, 39-59 lowercase alphanumeric characters
+
+#### Network Compatibility Issues
+**Symptom**: Address is valid but not compatible with specified network
+**Cause**: Address format doesn't match network requirements (e.g., Bitcoin address on Ethereum network)
+**Solution**: Ensure address format matches the target network's expected format
+
+## Conclusion
+
+The Wallet Management system provides a robust foundation for handling digital wallet operations throughout their lifecycle. By following domain-driven design principles and implementing clear separation of concerns, the system ensures maintainable and scalable wallet functionality.
+
+Key features include comprehensive lifecycle management, domain event publishing for integration, and consistent error handling patterns. The addition of the ValidateAddressUseCase enhances the system's capabilities by providing reliable address validation across different blockchain networks.
+
+The documented use cases, practical examples, and troubleshooting guidance provide developers with the necessary tools to effectively integrate and utilize the wallet management functionality in their applications.

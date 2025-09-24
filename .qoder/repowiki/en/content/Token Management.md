@@ -114,7 +114,7 @@ TokenBalance --> Wallet : "aggregates"
 - [AddTokenToWalletUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/AddTokenToWalletUseCase.java#L1-L125)
 - [RemoveTokenFromWalletUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/RemoveTokenFromWalletUseCase.java#L1-L141)
 - [GetTokenBalanceUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/GetTokenBalanceUseCase.java#L1-L189)
-- [ListSupportedTokensUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ListSupportedTokensUseCase.java#L1-L186)
+- [ListSupportedTokensUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ListSupportedTokensUseCase.java#L1-L210)
 - [Token.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/token/Token.java#L1-L105)
 - [WalletToken.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/wallet/WalletToken.java#L1-L81)
 - [TokenBalance.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/token/TokenBalance.java#L1-L76)
@@ -123,7 +123,7 @@ TokenBalance --> Wallet : "aggregates"
 - [AddTokenToWalletUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/AddTokenToWalletUseCase.java#L1-L125)
 - [RemoveTokenFromWalletUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/RemoveTokenFromWalletUseCase.java#L1-L141)
 - [GetTokenBalanceUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/GetTokenBalanceUseCase.java#L1-L189)
-- [ListSupportedTokensUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ListSupportedTokensUseCase.java#L1-L186)
+- [ListSupportedTokensUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ListSupportedTokensUseCase.java#L1-L210)
 
 ## Token Addition
 
@@ -286,11 +286,11 @@ ListSupportedTokensUseCase --> TokenType : "uses"
 ```
 
 **Diagram sources**
-- [ListSupportedTokensUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ListSupportedTokensUseCase.java#L1-L186)
+- [ListSupportedTokensUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ListSupportedTokensUseCase.java#L1-L210)
 - [TokenType.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/token/TokenType.java#L1-L8)
 
 **Section sources**
-- [ListSupportedTokensUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ListSupportedTokensUseCase.java#L1-L186)
+- [ListSupportedTokensUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ListSupportedTokensUseCase.java#L1-L210)
 - [TokenRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/TokenRepository.java#L1-L27)
 
 ## Integration Patterns

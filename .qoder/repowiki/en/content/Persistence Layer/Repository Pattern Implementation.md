@@ -8,18 +8,19 @@
 - [WalletMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/WalletMapper.java)
 - [WalletEntity.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/entity/WalletEntity.java)
 - [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java)
-- [UserRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/UserRepository.java) - *Newly added domain gateway*
-- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java) - *Newly added infrastructure implementation*
+- [ChainlistNetworkRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/ChainlistNetworkRepository.java) - *Added with remote data source integration and caching*
+- [NetworkRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/NetworkRepository.java) - *Interface for network repository operations*
+- [Network.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/Network.java) - *Domain model for blockchain networks*
 </cite>
 
 ## Update Summary
 **Changes Made**   
-- Added documentation for new repository methods: findByUserId, findByUserIdAndStatus, and findActiveByUserId
-- Updated architecture overview to reflect complete repository implementation pattern
-- Enhanced query methods section with detailed analysis of user-based filtering logic
-- Added cross-reference to UserRepository implementation as a parallel example
-- Updated performance implications section to address inefficiencies in current filtering approach
-- Expanded guidance on extending repository functionality with user-specific queries
+- Added documentation for ChainlistNetworkRepository implementation with remote data source integration
+- Updated architecture overview to include external service interaction pattern
+- Enhanced query methods section with analysis of caching mechanism and fallback strategies
+- Added new section on external data source repositories with detailed implementation analysis
+- Expanded performance implications section to address remote service call considerations
+- Updated configuration details with wallet.networks properties from application.yml
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -33,31 +34,41 @@
 9. [Transaction Management and Exception Handling](#transaction-management-and-exception-handling)
 10. [Performance Implications](#performance-implications)
 11. [Extending Repository Functionality](#extending-repository-functionality)
+12. [External Data Source Repositories](#external-data-source-repositories)
 
 ## Introduction
-The repository pattern in bloco-wallet-java implements a clean separation between domain logic and data persistence concerns. This document details the implementation of the WalletRepository interface, its infrastructure-specific implementation, and the supporting components that enable data persistence while maintaining domain integrity. The architecture follows domain-driven design principles with clear boundaries between layers. Recent updates have completed the repository implementation with comprehensive query capabilities for user-specific wallet retrieval.
+The repository pattern in bloco-wallet-java implements a clean separation between domain logic and data persistence concerns. This document details the implementation of the WalletRepository interface, its infrastructure-specific implementation, and the supporting components that enable data persistence while maintaining domain integrity. The architecture follows domain-driven design principles with clear boundaries between layers. Recent updates have completed the repository implementation with comprehensive query capabilities for user-specific wallet retrieval and introduced external data source integration through ChainlistNetworkRepository.
 
 ## Architecture Overview
-The repository implementation follows a layered architecture with distinct responsibilities across domain and infrastructure layers. The design ensures loose coupling between business logic and data access mechanisms. The pattern is consistently applied across different domain entities, as evidenced by the parallel implementation in UserRepository.
+The repository implementation follows a layered architecture with distinct responsibilities across domain and infrastructure layers. The design ensures loose coupling between business logic and data access mechanisms. The pattern is consistently applied across different domain entities, as evidenced by the parallel implementation in UserRepository. The addition of ChainlistNetworkRepository introduces external service integration with caching and fallback mechanisms.
 
 ```mermaid
 graph TB
 subgraph "Domain Layer"
 A[WalletRepository<br/>Interface]
 B[Wallet<br/>Domain Model]
+C[NetworkRepository<br/>Interface]
+D[Network<br/>Domain Model]
 end
 subgraph "Infrastructure Layer"
-C[JpaWalletRepository<br/>Implementation]
-D[SpringDataWalletRepository<br/>JPA Interface]
-E[WalletMapper<br/>Mapping Component]
-F[WalletEntity<br/>JPA Entity]
+E[JpaWalletRepository<br/>Implementation]
+F[SpringDataWalletRepository<br/>JPA Interface]
+G[WalletMapper<br/>Mapping Component]
+H[WalletEntity<br/>JPA Entity]
+I[ChainlistNetworkRepository<br/>External Service Adapter]
+J[WebClient<br/>HTTP Client]
+K[Cache<br/>In-Memory Storage]
 end
-A --> C
-B --> C
-C --> D
-C --> E
+A --> E
+B --> E
 E --> F
-D --> F
+E --> G
+G --> H
+F --> H
+C --> I
+D --> I
+I --> J
+I --> K
 ```
 
 **Diagram sources**
@@ -67,6 +78,7 @@ D --> F
 - [WalletMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/WalletMapper.java)
 - [WalletEntity.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/entity/WalletEntity.java)
 - [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java)
+- [ChainlistNetworkRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/ChainlistNetworkRepository.java)
 
 ## Domain Gateway Interface
 The WalletRepository interface defines the contract for wallet persistence operations in the domain layer. It specifies methods for CRUD operations and query functionality without exposing implementation details. The interface has been enhanced with user-specific query methods to support multi-user scenarios.
@@ -269,7 +281,7 @@ end
 - [JpaWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaWalletRepository.java)
 
 ## Performance Implications
-The repository implementation has several performance considerations, particularly around query efficiency and object mapping overhead. Database-level operations are preferred over in-memory filtering to minimize data transfer and processing. Current implementations of findByName, findByUserId, and related methods load all records before filtering, which could impact performance with large datasets.
+The repository implementation has several performance considerations, particularly around query efficiency and object mapping overhead. Database-level operations are preferred over in-memory filtering to minimize data transfer and processing. Current implementations of findByName, findByUserId, and related methods load all records before filtering, which could impact performance with large datasets. The ChainlistNetworkRepository introduces additional considerations for remote service calls, caching, and timeout handling.
 
 ```mermaid
 graph TD
@@ -280,16 +292,21 @@ A --> E[findByName: In-memory<br/>filtering after full load]
 A --> F[findByUserId: In-memory<br/>filtering after full load]
 A --> G[findByUserIdAndStatus: In-memory<br/>filtering after full load]
 A --> H[Mapping: CPU overhead<br/>for entity-domain conversion]
-I[Optimization Opportunities] --> J[Add name column to<br/>WalletEntity schema]
-I --> K[Add indexed columns for<br/>userId and status fields]
-I --> L[Implement database-level<br/>queries for filtering]
-I --> M[Use projections for<br/>read-only operations]
-I --> N[Consider pagination<br/>for large result sets]
+A --> I[Remote Calls: Network latency<br/>and timeout considerations]
+A --> J[Caching: Cache hit rate<br/>and TTL effectiveness]
+K[Optimization Opportunities] --> L[Add name column to<br/>WalletEntity schema]
+K --> M[Add indexed columns for<br/>userId and status fields]
+K --> N[Implement database-level<br/>queries for filtering]
+K --> O[Use projections for<br/>read-only operations]
+K --> P[Consider pagination<br/>for large result sets]
+K --> Q[Optimize cache TTL<br/>based on usage patterns]
+K --> R[Implement circuit breaker<br/>for remote services]
 ```
 
 **Section sources**
 - [JpaWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaWalletRepository.java)
 - [WalletEntity.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/entity/WalletEntity.java)
+- [ChainlistNetworkRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/ChainlistNetworkRepository.java)
 
 ## Extending Repository Functionality
 New query operations can be added by extending the repository interface hierarchy. Custom queries can be implemented through Spring Data JPA method naming conventions or JPQL annotations. The recent addition of user-specific query methods demonstrates this extensibility, though current implementations could be optimized by adding appropriate database indexes and schema elements.
@@ -325,3 +342,39 @@ JpaWalletRepository --> SpringDataWalletRepository
 - [WalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/WalletRepository.java)
 - [SpringDataWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataWalletRepository.java)
 - [JpaWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaWalletRepository.java)
+
+## External Data Source Repositories
+The ChainlistNetworkRepository implements a specialized repository pattern for external data sources, retrieving network metadata from the Chainlist service. It incorporates caching to reduce remote calls, with a configurable TTL (Time-To-Live) of 5 minutes by default. The implementation handles correlation IDs for tracing requests and includes fallback mechanisms when remote service calls fail.
+
+```mermaid
+sequenceDiagram
+participant UseCase as AddNetworkUseCase
+participant Repo as NetworkRepository
+participant ChainlistRepo as ChainlistNetworkRepository
+participant WebClient as WebClient
+participant Cache as Cache
+UseCase->>Repo : addNetwork()
+Repo->>ChainlistRepo : save(network)
+ChainlistRepo->>Cache : Store in customNetworks
+ChainlistRepo-->>Repo : Saved network
+UseCase->>Repo : findAll()
+Repo->>ChainlistRepo : findAll()
+alt Cache Hit
+ChainlistRepo->>Cache : Check cachedRemoteNetworks
+ChainlistRepo->>Cache : Return cached data
+else Cache Miss
+ChainlistRepo->>WebClient : HTTP GET to chainlistUrl
+WebClient-->>ChainlistRepo : Response payload
+ChainlistRepo->>Cache : Parse JSON and map to Network objects
+ChainlistRepo->>Cache : Update cachedRemoteNetworks
+ChainlistRepo->>Cache : Set cacheExpiresAt
+end
+ChainlistRepo-->>Repo : Combined networks (remote + custom)
+Repo-->>UseCase : List of networks
+```
+
+**Section sources**
+- [ChainlistNetworkRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/ChainlistNetworkRepository.java)
+- [application.yml](file://src/main/resources/application.yml)
+- [NetworkRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/NetworkRepository.java)
+- [Network.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/Network.java)

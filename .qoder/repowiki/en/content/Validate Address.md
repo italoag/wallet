@@ -2,20 +2,30 @@
 
 <cite>
 **Referenced Files in This Document**
-- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java)
-- [ValidateAddressUseCaseTest.java](file://src/test/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCaseTest.java)
+- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java) - *Updated with correlation ID support*
+- [ValidateAddressUseCaseTest.java](file://src/test/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCaseTest.java) - *Enhanced test coverage*
 - [AccountAddress.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/AccountAddress.java)
 - [NetworkRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/NetworkRepository.java)
 - [Network.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/Network.java)
 </cite>
 
+## Update Summary
+**Changes Made**
+- Added correlation ID parameter to validation methods for request tracing
+- Updated API interface documentation to reflect new method signatures
+- Enhanced troubleshooting guide with correlation ID error scenarios
+- Added section on correlation ID handling and validation
+- Updated usage examples to include correlation ID parameter
+- Modified validation logic description to include correlation processing
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Core Components](#core-components)
 3. [Validation Logic](#validation-logic)
-4. [API Interface](#api-interface)
-5. [Usage Examples](#usage-examples)
-6. [Troubleshooting Guide](#troubleshooting-guide)
+4. [Correlation ID Handling](#correlation-id-handling)
+5. [API Interface](#api-interface)
+6. [Usage Examples](#usage-examples)
+7. [Troubleshooting Guide](#troubleshooting-guide)
 
 ## Introduction
 
@@ -40,8 +50,8 @@ The use case follows a record-based design pattern, making it immutable and thre
 ```mermaid
 classDiagram
 class ValidateAddressUseCase {
-+validateAddress(String, UUID) AddressValidationResult
-+validateAddresses(String[], UUID) AddressValidationResult[]
++validateAddress(String, UUID, String) AddressValidationResult
++validateAddresses(String[], UUID, String) AddressValidationResult[]
 }
 class AddressValidationResult {
 -valid : boolean
@@ -62,8 +72,8 @@ class AccountAddress {
 +getValue() String
 }
 class NetworkRepository {
-+findById(UUID) Optional~Network~
-+findAll() Network[]
++findById(UUID, String) Optional~Network~
++findAll(String) Network[]
 }
 class Network {
 -name : String
@@ -144,6 +154,40 @@ SetIncompatible --> BuildResult
 **Section sources**
 - [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java#L96-L131)
 
+## Correlation ID Handling
+
+The ValidateAddressUseCase now includes correlation ID support for request tracing and monitoring purposes. This enhancement allows operations teams to track validation requests across distributed systems.
+
+### Correlation ID Validation Rules
+
+The system performs strict validation on correlation IDs:
+
+- Must be provided (cannot be null or empty)
+- Must be a valid UUID format
+- Will be normalized to standard UUID string representation
+- Used in all downstream repository calls for traceability
+
+```java
+private String normalizeCorrelationId(String correlationId) {
+    if (!StringUtils.hasText(correlationId)) {
+        throw new IllegalArgumentException("Correlation ID must be provided");
+    }
+    
+    try {
+        UUID parsed = UUID.fromString(correlationId.trim());
+        return parsed.toString();
+    } catch (IllegalArgumentException ex) {
+        throw new IllegalArgumentException("Correlation ID must be a valid UUID", ex);
+    }
+}
+```
+
+When a correlation ID is provided, it is passed through to the NetworkRepository.findById() call, enabling end-to-end request tracing. This is particularly useful for debugging and performance monitoring in production environments.
+
+**Section sources**
+- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java#L193-L205)
+- [ValidateAddressUseCaseTest.java](file://src/test/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCaseTest.java#L25-L30)
+
 ## API Interface
 
 The ValidateAddressUseCase provides a clean and intuitive API for address validation operations. The interface supports both single and batch validation scenarios, making it flexible for various use cases within the wallet application.
@@ -151,18 +195,18 @@ The ValidateAddressUseCase provides a clean and intuitive API for address valida
 ### Single Address Validation
 
 ```java
-public AddressValidationResult validateAddress(String addressValue, UUID networkId)
+public AddressValidationResult validateAddress(String addressValue, UUID networkId, String correlationId)
 ```
 
-Validates a single address against optional network constraints. Returns detailed validation information including format type and network compatibility status.
+Validates a single address against optional network constraints. Returns detailed validation information including format type and network compatibility status. The correlationId parameter enables request tracing.
 
 ### Batch Address Validation
 
 ```java
-public AddressValidationResult[] validateAddresses(String[] addresses, UUID networkId)
+public AddressValidationResult[] validateAddresses(String[] addresses, UUID networkId, String correlationId)
 ```
 
-Performs validation on multiple addresses simultaneously, returning an array of results. This method efficiently processes each address through the same validation pipeline used for single address checks.
+Performs validation on multiple addresses simultaneously, returning an array of results. This method efficiently processes each address through the same validation pipeline used for single address checks. The correlationId is propagated to each individual validation operation.
 
 ### Validation Result Structure
 
@@ -189,10 +233,12 @@ The AddressValidationResult class uses the Builder pattern to create immutable r
 // Example: Validating an Ethereum address on the Ethereum network
 String ethereumAddress = "0x742dB5C8A5d8c837e95C5fc73D3DCFFF84C8b742";
 UUID ethereumNetworkId = UUID.fromString("f8e8b9c7-a6b5-4c3d-8e7f-6a5b4c3d2e1f");
+String correlationId = UUID.randomUUID().toString();
 
 AddressValidationResult result = validateAddressUseCase.validateAddress(
     ethereumAddress, 
-    ethereumNetworkId
+    ethereumNetworkId,
+    correlationId
 );
 
 // Result:
@@ -208,10 +254,12 @@ AddressValidationResult result = validateAddressUseCase.validateAddress(
 // Example: Validating a Bitcoin Legacy address on the Bitcoin network
 String bitcoinAddress = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
 UUID bitcoinNetworkId = UUID.fromString("c3d2e1f6-a5b4-4c3d-8e7f-6a5b4c3d2e1f");
+String correlationId = UUID.randomUUID().toString();
 
 AddressValidationResult result = validateAddressUseCase.validateAddress(
     bitcoinAddress, 
-    bitcoinNetworkId
+    bitcoinNetworkId,
+    correlationId
 );
 
 // Result:
@@ -230,10 +278,12 @@ String[] addresses = {
     "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa",         // Bitcoin
     "invalid-address"                              // Invalid
 };
+String correlationId = UUID.randomUUID().toString();
 
 AddressValidationResult[] results = validateAddressUseCase.validateAddresses(
     addresses, 
-    ethereumNetworkId
+    ethereumNetworkId,
+    correlationId
 );
 
 // Process results array to handle each validation outcome
@@ -252,10 +302,12 @@ for (AddressValidationResult result : results) {
 ```java
 // Example: Format-only validation without network specification
 String address = "0x742dB5C8A5d8c837e95C5fc73D3DCFFF84C8b742";
+String correlationId = UUID.randomUUID().toString();
 
 AddressValidationResult result = validateAddressUseCase.validateAddress(
     address, 
-    null  // No network specified
+    null,
+    correlationId
 );
 
 // When no network is specified, compatibility depends only on format validity
@@ -295,6 +347,18 @@ This section addresses common validation issues and their solutions.
 **Example**: Valid Bitcoin address being validated against an Ethereum network
 **Solution**: Confirm that the selected network matches the address type. The system will accept the address format but flag it as incompatible with the current network context.
 
+#### Correlation ID Issues
+**Symptom**: `IllegalArgumentException` with message "Correlation ID must be provided" or "Correlation ID must be a valid UUID"
+**Causes**:
+- Missing correlation ID parameter
+- Invalid UUID format in correlation ID
+- Whitespace or formatting issues in UUID string
+
+**Solutions**:
+- Always provide a correlation ID when calling validation methods
+- Ensure the correlation ID is a properly formatted UUID
+- Use UUID.randomUUID().toString() to generate valid correlation IDs
+
 ### Edge Cases
 
 #### Case Sensitivity
@@ -308,4 +372,5 @@ Addresses that are truncated or incomplete will fail format validation. Ensure t
 
 **Section sources**
 - [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java#L67-L94)
+- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java#L193-L205)
 - [ValidateAddressUseCaseTest.java](file://src/test/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCaseTest.java#L73-L85)
