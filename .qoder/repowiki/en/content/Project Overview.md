@@ -6,10 +6,24 @@
 - [README.md](file://README.md)
 - [UseCaseConfig.java](file://src/main/java/dev/bloco/wallet/hub/config/UseCaseConfig.java)
 - [CreateWalletUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/CreateWalletUseCase.java)
+- [AddFundsUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/AddFundsUseCase.java)
+- [TransferFundsUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/TransferFundsUseCase.java)
+- [WithdrawFundsUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/WithdrawFundsUseCase.java)
 - [KafkaEventProducer.java](file://src/main/java/dev/bloco/wallet/hub/infra/adapter/event/producer/KafkaEventProducer.java)
 - [WalletCreatedEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/wallet/WalletCreatedEvent.java)
+- [FundsAddedEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/wallet/FundsAddedEvent.java)
+- [FundsTransferredEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/wallet/FundsTransferredEvent.java)
+- [FundsWithdrawnEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/wallet/FundsWithdrawnEvent.java)
 - [application.yml](file://src/main/resources/application.yml)
 </cite>
+
+## Update Summary
+**Changes Made**   
+- Expanded coverage of use cases to reflect newly documented functionality in README.md
+- Added detailed descriptions of wallet lifecycle management, address, token, network, user, and analytics use cases
+- Enhanced section on system architecture to include full scope of domain events and management capabilities
+- Updated key features section to reflect comprehensive set of operations now documented
+- Added references to newly analyzed use case files and domain events
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -53,6 +67,14 @@ Persistence is managed through a **multi-database strategy**:
 
 Additionally, the project supports **reactive programming** via Spring WebFlux and R2DBC, allowing non-blocking I/O operations for improved throughput under high load.
 
+The domain layer includes comprehensive event modeling across multiple domains:
+- **wallet**: WalletCreatedEvent, FundsAddedEvent, FundsTransferredEvent, FundsWithdrawnEvent
+- **transaction**: TransactionCreatedEvent, TransactionConfirmedEvent
+- **user**: UserCreatedEvent, UserAuthenticatedEvent
+- **address**: AddressCreatedEvent, AddressStatusChangedEvent
+- **network**: NetworkAddedEvent, NetworkCreatedEvent
+- **token**: TokenCreatedEvent, TokenBalanceChangedEvent
+
 **Section sources**
 - [README.md](file://README.md#L51-L100)
 - [UseCaseConfig.java](file://src/main/java/dev/bloco/wallet/hub/config/UseCaseConfig.java#L1-L142)
@@ -61,21 +83,15 @@ Additionally, the project supports **reactive programming** via Spring WebFlux a
 
 The system supports several core financial operations through dedicated **use cases**, each encapsulating a specific business capability:
 
-### Wallet Creation
-The `CreateWalletUseCase` handles the creation of new wallets. When invoked, it:
-1. Instantiates a new `Wallet` entity with a generated ID
-2. Persists it via `WalletRepository`
-3. Publishes a `WalletCreatedEvent` for downstream processing
-
-```java
-public Wallet createWallet(UUID userId, String correlationId) {
-    Wallet wallet = Wallet.create(UUID.randomUUID(), "Default Wallet", "");
-    walletRepository.save(wallet);
-    WalletCreatedEvent event = new WalletCreatedEvent(wallet.getId(), UUID.fromString(correlationId));
-    eventPublisher.publish(event);
-    return wallet;
-}
-```
+### Wallet Management
+The system provides comprehensive wallet lifecycle management through multiple use cases:
+- **CreateWalletUseCase**: Handles wallet creation, persistence, and event publishing
+- **UpdateWalletUseCase**: Modifies wallet metadata (name, description)
+- **ActivateWalletUseCase/DeactivateWalletUseCase**: Controls wallet operational status
+- **DeleteWalletUseCase**: Removes wallets from the system
+- **RecoverWalletUseCase**: Initiates wallet recovery procedures
+- **ListWalletsUseCase**: Retrieves all wallets for a user
+- **GetWalletDetailsUseCase**: Fetches detailed wallet information including associated addresses
 
 ### Fund Management
 - **AddFundsUseCase**: Increases a wallet’s balance and records the deposit
@@ -83,6 +99,17 @@ public Wallet createWallet(UUID userId, String correlationId) {
 - **TransferFundsUseCase**: Moves funds between two wallets atomically
 
 Each operation updates the wallet state, persists a transaction record, and emits a corresponding domain event (`FundsAddedEvent`, `FundsWithdrawnEvent`, `FundsTransferredEvent`).
+
+```java
+public void addFunds(UUID walletId, BigDecimal amount, String correlationId) {
+    Wallet wallet = walletRepository.findById(walletId)
+        .orElseThrow(() -> new IllegalArgumentException("Wallet not found"));
+    wallet.addFunds(amount);
+    walletRepository.update(wallet);
+    FundsAddedEvent event = new FundsAddedEvent(wallet.getId(), amount, correlationId);
+    eventPublisher.publish(event);
+}
+```
 
 ### Transaction Lifecycle
 The system tracks transaction states using a **Saga State Machine** powered by **Spring StateMachine**. Key use cases include:
@@ -92,10 +119,41 @@ The system tracks transaction states using a **Saga State Machine** powered by *
 
 These use cases publish events like `TransactionCreatedEvent` and `TransactionConfirmedEvent`, which can trigger further actions in external systems.
 
+### Address Management
+- **CreateAddressUseCase**: Generates new blockchain addresses
+- **ImportAddressUseCase**: Imports existing addresses into wallets
+- **ValidateAddressUseCase**: Validates address format against network rules
+- **ListAddressesByWalletUseCase**: Retrieves all addresses associated with a wallet
+- **UpdateAddressStatusUseCase**: Modifies address status (active/inactive)
+
+### Token Management
+- **AddTokenToWalletUseCase**: Enables support for new tokens in a wallet
+- **RemoveTokenFromWalletUseCase**: Removes token support from a wallet
+- **GetTokenBalanceUseCase**: Retrieves balance for specific tokens
+- **ListSupportedTokensUseCase**: Lists all tokens supported by the system
+
+### Network Management
+- **AddNetworkUseCase**: Adds support for new blockchain networks
+- **ListNetworksUseCase**: Retrieves available networks
+
+### User Management
+- **CreateUserUseCase**: Registers new users
+- **AuthenticateUserUseCase**: Handles user authentication
+- **UpdateUserProfileUseCase**: Updates user profile information
+- **ChangePasswordUseCase**: Handles password changes
+- **DeactivateUserUseCase**: Deactivates user accounts
+
+### Analytics and Portfolio
+- **EstimateTransactionFeeUseCase**: Calculates transaction fees based on network conditions
+- **GetPortfolioSummaryUseCase**: Provides comprehensive portfolio valuation across all wallets and tokens
+
 All use cases are configured as Spring beans in `UseCaseConfig`, injecting required dependencies such as repositories and event publishers, ensuring dependency inversion and testability.
 
 **Section sources**
 - [CreateWalletUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/CreateWalletUseCase.java#L1-L42)
+- [AddFundsUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/AddFundsUseCase.java#L1-L59)
+- [TransferFundsUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/TransferFundsUseCase.java#L1-L65)
+- [WithdrawFundsUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/WithdrawFundsUseCase.java#L1-L53)
 - [UseCaseConfig.java](file://src/main/java/dev/bloco/wallet/hub/config/UseCaseConfig.java#L27-L142)
 
 ## System Context and Event Flow
@@ -146,6 +204,9 @@ This design guarantees **reliable messaging** even in the face of transient fail
 **Section sources**
 - [KafkaEventProducer.java](file://src/main/java/dev/bloco/wallet/hub/infra/adapter/event/producer/KafkaEventProducer.java#L29-L151)
 - [WalletCreatedEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/wallet/WalletCreatedEvent.java#L18-L38)
+- [FundsAddedEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/wallet/FundsAddedEvent.java#L1-L27)
+- [FundsTransferredEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/wallet/FundsTransferredEvent.java#L1-L28)
+- [FundsWithdrawnEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/wallet/FundsWithdrawnEvent.java#L1-L25)
 
 ## Entry Point and Configuration
 
@@ -226,6 +287,7 @@ Key strengths include:
 - Flexible persistence options across SQL, NoSQL, and cache stores
 - Standardized event formats using CloudEvents
 - Configurable for local development and production deployment
+- Comprehensive set of use cases covering wallet, address, token, network, and user management
 
 With proper API exposure (currently undocumented), this system could serve as the backbone for wallet services in blockchain or fintech platforms.
 

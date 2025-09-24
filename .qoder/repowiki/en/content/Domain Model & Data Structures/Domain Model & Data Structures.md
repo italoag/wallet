@@ -1,4 +1,4 @@
-
+<docs>
 # Domain Model & Data Structures
 
 <cite>
@@ -17,6 +17,7 @@
 - [WalletStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/wallet/WalletStatus.java)
 - [VaultStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/vault/VaultStatus.java)
 - [AddressStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/AddressStatus.java)
+- [UserStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/UserStatus.java)
 </cite>
 
 ## Table of Contents
@@ -36,14 +37,14 @@
 The bloco-wallet-java application implements a domain-driven design (DDD) architecture for managing digital wallets, transactions, and related blockchain entities. This document details the core domain model, focusing on the primary entities—Wallet, Transaction, User, Token, and Vault—along with their relationships, business rules, and design patterns. The domain model emphasizes encapsulation, immutability where appropriate, and clear separation from infrastructure concerns. Entities extend base classes (Entity and AggregateRoot) to provide common functionality, while value objects like TransactionHash and PublicKey ensure data integrity. Status enums govern lifecycle transitions, and domain events capture state changes for eventual consistency.
 
 **Section sources**
-- [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java#L1-L121)
+- [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java#L1-L242)
 - [Transaction.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/Transaction.java#L1-L210)
-- [User.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/User.java#L1-L32)
+- [User.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/User.java#L1-L235)
 
 ## Core Domain Entities
 
 ### Wallet
-The Wallet entity represents a user's digital wallet, serving as an aggregate root that manages funds and associated addresses. It contains fields for `name`, `description`, `balance`, and a set of `addressIds` that reference Address entities. The Wallet is created with a zero balance and can be updated via `updateInfo()`. Funds can be added or withdrawn using `addFunds()` and `withdrawFunds()`, which include validation to prevent negative amounts or overdrafts. The Wallet also tracks creation and update timestamps.
+The Wallet entity represents a user's digital wallet, serving as an aggregate root that manages funds and associated addresses. It contains fields for `name`, `description`, `balance`, and a set of `addressIds` that reference Address entities. The Wallet is created with a zero balance and can be updated via `updateInfo()`. Funds can be added or withdrawn using `addFunds()` and `withdrawFunds()`, which include validation to prevent negative amounts or overdrafts. The Wallet also tracks creation and update timestamps. The Wallet has multiple status states including ACTIVE, INACTIVE, DELETED, RECOVERING, and LOCKED, allowing for comprehensive lifecycle management. Operations are only permitted when the wallet is active, enforced by the `validateOperationAllowed()` method.
 
 ```mermaid
 classDiagram
@@ -55,6 +56,8 @@ class Wallet {
 +Instant updatedAt
 +BigDecimal balance
 +UUID correlationId
++WalletStatus status
++UUID userId
 +static Wallet create(UUID, String, String)
 +void updateInfo(String, String)
 +void addAddress(UUID)
@@ -62,14 +65,22 @@ class Wallet {
 +boolean containsAddress(UUID)
 +void addFunds(BigDecimal)
 +void withdrawFunds(BigDecimal)
++void activate()
++void deactivate()
++void delete(String)
++void lock(String)
++void initiateRecovery(String)
++boolean isActive()
++boolean isDeleted()
++void validateOperationAllowed()
 }
 ```
 
 **Diagram sources**
-- [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java#L23-L121)
+- [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java#L27-L242)
 
 **Section sources**
-- [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java#L23-L121)
+- [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java#L27-L242)
 
 ### Transaction
 The Transaction entity represents a blockchain transaction, capturing details such as the sender (`fromAddress`), recipient (`toAddress`), value, gas information, and status. It is an aggregate root with a lifecycle that begins in a PENDING state and transitions to CONFIRMED or FAILED. The `confirm()` method updates the transaction with block details and changes its status, while `fail()` marks it as failed with a reason. The `getHash()` method returns the transaction hash as a string, delegating to the TransactionHash value object.
@@ -108,23 +119,50 @@ class Transaction {
 - [Transaction.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/Transaction.java#L20-L210)
 
 ### User
-The User entity represents a system user with a unique identifier, name, and email. It is a simple entity with no behavior beyond construction. The User is immutable, with all fields set at creation time. The constructor generates a UUID for the user, ensuring uniqueness.
+The User entity represents a system user with a unique identifier, name, email, and password hash. It extends AggregateRoot and includes additional fields for authentication and security management such as `status`, `emailVerified`, `failedLoginAttempts`, and `lockedUntil`. The User supports operations like profile updates, password changes, activation/deactivation, suspension, two-factor authentication, and login attempt tracking. Account locking occurs after 5 failed login attempts for 30 minutes, providing built-in security measures. The User maintains timestamps for creation, updates, and last login.
 
 ```mermaid
 classDiagram
 class User {
-+UUID id
 +String name
 +String email
-+User(String, String)
++String passwordHash
++UserStatus status
++Instant createdAt
++Instant updatedAt
++Instant lastLoginAt
++boolean emailVerified
++String emailVerificationToken
++TwoFactorAuth twoFactorAuth
++int failedLoginAttempts
++Instant lockedUntil
++static User create(UUID, String, String, String)
++static User create(String, String, String)
++void updateProfile(String, String)
++void changePassword(String)
++void activate()
++void deactivate()
++void suspend(String)
++void verifyEmail()
++void setEmailVerificationToken(String)
++void recordSuccessfulLogin()
++void recordFailedLogin()
++boolean isLocked()
++void unlock()
++boolean isActive()
++void validateOperationAllowed()
++void enableTwoFactorAuth(String)
++void disableTwoFactorAuth()
++boolean isTwoFactorEnabled()
++int getAvailableBackupCodesCount()
 }
 ```
 
 **Diagram sources**
-- [User.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/User.java#L13-L31)
+- [User.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/User.java#L18-L235)
 
 **Section sources**
-- [User.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/User.java#L13-L31)
+- [User.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/User.java#L18-L235)
 
 ### Token
 The Token entity represents a cryptocurrency token (e.g., ERC-20, ERC-721) on a specific network. It includes fields for `name`, `symbol`, `decimals`, `type`, and `contractAddress`. The Token class provides methods to determine the token type (`isFungible()`, `isNFT()`, `isNative()`) and to format/parse amounts according to the token's decimal precision. For fungible tokens, amounts are scaled by 10^decimals, while NFTs are treated as whole numbers.
@@ -296,7 +334,44 @@ class TransactionStatus {
 - [TransactionStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/TransactionStatus.java#L2-L6)
 
 ### WalletStatus
-The WalletStatus enum (not explicitly shown in the provided code but implied by Wallet behavior) would manage wallet states such as ACTIVE, INACTIVE, or LOCKED. Status transitions are typically handled by methods that update the status and register domain events.
+The WalletStatus enum manages the lifecycle states of a wallet: ACTIVE, INACTIVE, DELETED, RECOVERING, and LOCKED. The wallet starts as ACTIVE and can transition through various states based on user actions or system events. The `activate()` and `deactivate()` methods control the ACTIVE/INACTIVE states, while `delete()` moves the wallet to DELETED state. Security concerns can trigger the LOCKED state, and recovery processes use the RECOVERING state. Each status transition registers a WalletStatusChangedEvent.
+
+```mermaid
+classDiagram
+class WalletStatus {
++ACTIVE
++INACTIVE
++DELETED
++RECOVERING
++LOCKED
+}
+```
+
+**Diagram sources**
+- [WalletStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/wallet/WalletStatus.java#L7-L37)
+
+**Section sources**
+- [WalletStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/wallet/WalletStatus.java#L7-L37)
+
+### UserStatus
+The UserStatus enum defines the operational states of a user account: ACTIVE, INACTIVE, SUSPENDED, PENDING_VERIFICATION, and DEACTIVATED. New users start in PENDING_VERIFICATION state until their email is verified. After verification, they become ACTIVE. Administrative actions can move users to INACTIVE, SUSPENDED, or DEACTIVATED states. The User entity enforces that operations are only allowed for active accounts that are not locked due to failed login attempts.
+
+```mermaid
+classDiagram
+class UserStatus {
++ACTIVE
++INACTIVE
++SUSPENDED
++PENDING_VERIFICATION
++DEACTIVATED
+}
+```
+
+**Diagram sources**
+- [UserStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/UserStatus.java#L7-L36)
+
+**Section sources**
+- [UserStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/UserStatus.java#L7-L36)
 
 ### VaultStatus
 The VaultStatus enum defines the operational states of a vault: ACTIVE and INACTIVE. The Vault class provides `activate()` and `deactivate()` methods to change the status, with checks to prevent redundant transitions. Status changes are recorded as VaultStatusChangedEvent.
@@ -345,35 +420,20 @@ Token }|--|| Network : "on"
 Transaction }|--|| Wallet : "from/to"
 TokenBalance }|--|| Token : "of"
 TokenBalance }|--|| Address : "held by"
+User ||--o{ Wallet : "owns"
+User ||--o{ Session : "has"
+Vault ||--o{ Key : "stores"
 ```
 
 **Diagram sources**
-- [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java#L23-L121)
+- [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java#L27-L242)
 - [Address.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/Address.java#L11-L132)
 - [Vault.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/vault/Vault.java#L8-L96)
 - [Transaction.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/Transaction.java#L20-L210)
 - [Token.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/token/Token.java#L9-L105)
+- [User.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/user/User.java#L18-L235)
 
 **Section sources**
-- [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java#L23-L121)
+- [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java#L27-L242)
 - [Address.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/Address.java#L11-L132)
-- [Vault.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/vault/Vault.java#L8-L96)
-
-## Persistence and Infrastructure Integration
-
-The domain model is separated from persistence concerns through the use of gateways (repositories) and mappers. The WalletRepository, TransactionRepository, etc., define interfaces for saving and retrieving entities. Infrastructure implementations (e.g., JpaWalletRepository) use mappers (e.g., WalletMapper) to convert between domain models and JPA entities. This allows the domain logic to remain pure and independent of the database schema.
-
-```mermaid
-flowchart TD
-UseCase --> Gateway
-Gateway --> Mapper
-Mapper --> JPAEntity
-JPAEntity --> Database[(Database)]
-```
-
-**Section sources**
-- [WalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/WalletRepository.java#L16-L21)
-- [JpaWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaWalletRepository.java#L67-L91)
-- [WalletMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/WalletMapper.java#L34-L49)
-
-##
+- [Vault.java

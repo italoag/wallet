@@ -9,6 +9,8 @@
 - [application.yml](file://src/main/resources/application.yml)
 - [WalletHubApplication.java](file://src/main/java/dev/bloco/wallet/hub/WalletHubApplication.java)
 - [DinamoLibraryLoader.java](file://src/main/java/dev/bloco/wallet/hub/config/DinamoLibraryLoader.java)
+- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java) - *Updated in recent commit*
+- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java) - *Updated in recent commit*
 </cite>
 
 ## Table of Contents
@@ -170,9 +172,18 @@ The `DinamoLibraryLoader` loads OS-specific native libraries from `libs/windows`
 ### Dependency Resolution
 Ensure Maven can download dependencies. If behind a corporate proxy, configure `settings.xml` accordingly. Use `./mvnw dependency:resolve` to verify.
 
+### Updated Use Case Implementation
+The `ValidateAddressUseCase` has been updated to support network-specific address validation logic. It now integrates with `NetworkRepository` to validate addresses against specific blockchain networks (e.g., Ethereum, Bitcoin). Developers should ensure that network data is properly seeded during testing.
+
+Additionally, `JpaUserRepository` has been enhanced with fallback implementations for email and status-based queries using in-memory filtering when direct repository methods are unavailable.
+
 **Section sources**
 - [README.md](file://README.md#L117-L128)
 - [DinamoLibraryLoader.java](file://src/main/java/dev/bloco/wallet/hub/config/DinamoLibraryLoader.java#L1-L118)
+- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java#L1-L185)
+- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java#L35-L131)
+- [NetworkRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/NetworkRepository.java#L1-L27)
+- [Network.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/Network.java#L1-L114)
 
 ## Verification Steps
 After setup, verify the environment:

@@ -8,6 +8,8 @@
 - [VaultConfiguration.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/vault/VaultConfiguration.java)
 - [Vault.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/vault/Vault.java)
 - [VaultType.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/vault/VaultType.java)
+- [UseCaseConfig.java](file://src/main/java/dev/bloco/wallet/hub/config/UseCaseConfig.java) - *Updated in recent commit*
+- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java) - *Updated in recent commit*
 </cite>
 
 ## Table of Contents
@@ -238,7 +240,7 @@ Environment variables should be used to override sensitive configuration in prod
 SPRING_DATASOURCE_URL=jdbc:postgresql://prod-db:5432/walletdb
 SPRING_DATASOURCE_USERNAME=prod_user
 SPRING_DATASOURCE_PASSWORD=${DB_PASSWORD}
-SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS=kafka1:9092,kafka2:9092
+SPRING_CLOUD_STREAM_KAFKA_BINDER_BROKERS=kafka1:9092,kafka2:902
 ```
 
 **Section sources**

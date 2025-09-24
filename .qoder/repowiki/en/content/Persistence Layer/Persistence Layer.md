@@ -1,4 +1,3 @@
-
 # Persistence Layer
 
 <cite>
@@ -11,10 +10,14 @@
 - [UserEntity.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/entity/UserEntity.java)
 - [WalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/WalletRepository.java)
 - [TransactionRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/TransactionRepository.java)
+- [UserRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/UserRepository.java) - *Added in recent commit*
 - [JpaWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaWalletRepository.java)
 - [SpringDataWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataWalletRepository.java)
+- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java) - *Added in recent commit*
+- [SpringDataUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataUserRepository.java) - *Added in recent commit*
 - [WalletMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/WalletMapper.java)
 - [TransactionMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/TransactionMapper.java)
+- [UserMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/UserMapper.java) - *Added in recent commit*
 - [application.yml](file://src/main/resources/application.yml)
 </cite>
 
@@ -205,6 +208,19 @@ class TransactionRepository {
 +existsById(id)
 +existsByHash(hash)
 }
+class UserRepository {
++save(user)
++findById(id)
++update(user)
++delete(id)
++findAll()
++findByEmail(email)
++findByStatus(status)
++existsById(id)
++existsByEmail(email)
++findActiveUsers()
++findByEmailVerificationToken(token)
+}
 class JpaWalletRepository {
 +save(wallet)
 +update(wallet)
@@ -228,6 +244,19 @@ class JpaTransactionRepository {
 +existsById(id)
 +existsByHash(hash)
 }
+class JpaUserRepository {
++save(user)
++findById(id)
++update(user)
++delete(id)
++findAll()
++findByEmail(email)
++findByStatus(status)
++existsById(id)
++existsByEmail(email)
++findActiveUsers()
++findByEmailVerificationToken(token)
+}
 class SpringDataWalletRepository {
 +save(entity)
 +findById(id)
@@ -248,27 +277,41 @@ class SpringDataTransactionRepository {
 +findByTimestampBetween(start, end)
 +existsByHash(hash)
 }
+class SpringDataUserRepository {
++save(entity)
++findById(id)
++findAll()
++deleteById(id)
++existsById(id)
+}
 WalletRepository <|-- JpaWalletRepository
 TransactionRepository <|-- JpaTransactionRepository
+UserRepository <|-- JpaUserRepository
 JpaWalletRepository --> SpringDataWalletRepository : "delegates to"
 JpaTransactionRepository --> SpringDataTransactionRepository : "delegates to"
+JpaUserRepository --> SpringDataUserRepository : "delegates to"
 SpringDataWalletRepository <|-- JpaRepository
 SpringDataTransactionRepository <|-- JpaRepository
+SpringDataUserRepository <|-- JpaRepository
 ```
 
 **Diagram sources**
 - [WalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/WalletRepository.java#L17-L32)
 - [TransactionRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/TransactionRepository.java#L20-L54)
+- [UserRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/UserRepository.java#L16-L38) - *Added in recent commit*
 - [JpaWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaWalletRepository.java#L35-L117)
+- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java#L35-L131) - *Added in recent commit*
 - [SpringDataWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataWalletRepository.java#L25-L26)
-- [SpringDataTransactionRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataTransactionRepository.java#L15-L23)
+- [SpringDataUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataUserRepository.java#L33-L34) - *Added in recent commit*
 
 **Section sources**
 - [WalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/WalletRepository.java#L17-L32)
 - [TransactionRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/TransactionRepository.java#L20-L54)
+- [UserRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/UserRepository.java#L16-L38) - *Added in recent commit*
 - [JpaWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaWalletRepository.java#L35-L117)
+- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java#L35-L131) - *Added in recent commit*
 - [SpringDataWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataWalletRepository.java#L25-L26)
-- [SpringDataTransactionRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataTransactionRepository.java#L15-L23)
+- [SpringDataUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataUserRepository.java#L33-L34) - *Added in recent commit*
 
 ### Data Access Flow
 The repository implementation follows a layered approach where domain repositories delegate to Spring Data JPA repositories through a service layer that handles mapping.
@@ -299,6 +342,32 @@ DomainRepo-->>UseCase : Saved wallet
 **Section sources**
 - [JpaWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaWalletRepository.java#L35-L117)
 - [WalletMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/WalletMapper.java#L31-L50)
+
+### User Repository Implementation
+The `JpaUserRepository` class implements the `UserRepository` interface and provides concrete methods for user data access operations. It delegates persistence operations to `SpringDataUserRepository` while handling domain-to-entity mapping via `UserMapper`.
+
+```mermaid
+sequenceDiagram
+participant UseCase as "Use Case"
+participant DomainRepo as "UserRepository"
+participant JpaRepo as "JpaUserRepository"
+participant SpringData as "SpringDataUserRepository"
+participant DB as "Database"
+UseCase->>DomainRepo : findByEmail(email)
+DomainRepo->>JpaRepo : findByEmail(email)
+JpaRepo->>JpaRepo : findAll()
+JpaRepo->>JpaRepo : filter users by email
+JpaRepo-->>DomainRepo : Optional<User>
+DomainRepo-->>UseCase : Optional<User>
+```
+
+**Diagram sources**
+- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java#L35-L131) - *Added in recent commit*
+- [UserMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/UserMapper.java#L32-L48) - *Added in recent commit*
+
+**Section sources**
+- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java#L35-L131) - *Added in recent commit*
+- [UserMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/UserMapper.java#L32-L48) - *Added in recent commit*
 
 ## Database Configuration and Multi-Database Strategy
 
@@ -494,6 +563,10 @@ public interface SpringDataTransactionRepository extends JpaRepository<Transacti
     List<TransactionEntity> findByTimestampBetween(Instant start, Instant end);
     boolean existsByHash(String hash);
 }
+
+public interface SpringDataUserRepository extends JpaRepository<UserEntity, UUID> {
+    // Inherits standard CRUD operations
+}
 ```
 
 This approach eliminates the need for explicit JPQL or native queries for common access patterns, reducing boilerplate code and potential SQL injection vulnerabilities.
@@ -517,3 +590,8 @@ The repository layer implements several data retrieval patterns:
 
 ```mermaid
 flowchart TD
+```
+
+**Section sources**
+- [SpringDataTransactionRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataTransactionRepository.java#L15-L23)
+- [SpringDataUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataUserRepository.java#L33-L34) - *Added in recent commit*

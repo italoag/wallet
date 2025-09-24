@@ -25,7 +25,8 @@
 9. [Build & Compilation with Maven](#build--compilation-with-maven)
 10. [Infrastructure Provisioning with Docker Compose](#infrastructure-provisioning-with-docker-compose)
 11. [Toolchain Management with mise](#toolchain-management-with-mise)
-12. [Technology Rationale & System Benefits](#technology-rationale--system-benefits)
+12. [AI & Document Processing with Spring AI](#ai--document-processing-with-spring-ai)
+13. [Technology Rationale & System Benefits](#technology-rationale--system-benefits)
 
 ## Java & Spring Boot Foundation
 
@@ -194,6 +195,21 @@ The project uses **mise** (formerly `rtx`) for toolchain management, as defined 
 **Section sources**
 - [mise.toml](file://mise.toml#L2)
 
+## AI & Document Processing with Spring AI
+
+The application has integrated **Spring AI** to support AI-powered features and document processing capabilities. This is evident from the addition of multiple Spring AI starter dependencies in the `pom.xml`, including:
+
+- **Document Readers**: Support for parsing PDF (`spring-ai-pdf-document-reader`), Markdown (`spring-ai-markdown-document-reader`), and various document formats via Apache Tika (`spring-ai-tika-document-reader`).
+- **Embedding Models**: Integration with embedding models such as PostgresML (`spring-ai-starter-model-postgresml-embedding`) for semantic analysis and vectorization.
+- **Vector Stores**: Support for storing and querying vector embeddings using Qdrant (`spring-ai-starter-vector-store-qdrant`), Redis (`spring-ai-starter-vector-store-redis`), and PGVector (`spring-ai-starter-vector-store-pgvector`).
+- **Chat Memory**: State management for conversational AI via `spring-ai-starter-model-chat-memory` and Neo4j-backed memory (`spring-ai-starter-model-chat-memory-repository-neo4j`).
+- **Model Integrations**: Support for various AI models including Bedrock, Ollama, OpenAI, Anthropic, and Transformers.
+
+These capabilities enable the wallet application to support intelligent document processing, semantic search, and AI-driven user interactions, positioning it for advanced financial analytics and automated customer support features.
+
+**Section sources**
+- [pom.xml](file://pom.xml#L232-L328)
+
 ## Technology Rationale & System Benefits
 
 The chosen technology stack supports the application's goals of **scalability, reliability, and maintainability**.
@@ -201,6 +217,7 @@ The chosen technology stack supports the application's goals of **scalability, r
 - **Scalability**: The reactive programming model (WebFlux, R2DBC) allows the application to handle a large number of concurrent users with minimal resource consumption.
 - **Reliability**: The outbox pattern with Kafka ensures that critical events (e.g., wallet creation, fund transfers) are not lost, even during system failures. The saga pattern with Spring StateMachine ensures data consistency across distributed operations.
 - **Maintainability**: The use of Spring Boot, MapStruct, and Lombok reduces boilerplate code and enforces a clean, modular architecture. Standardized event formats (CloudEvents) and observability (Micrometer) make the system easier to monitor and debug.
+- **Future-Proofing**: The integration of Spring AI enables the application to evolve with AI-driven features such as intelligent transaction categorization, document-based identity verification, and natural language financial insights.
 
 This comprehensive stack provides a solid foundation for a modern, cloud-native financial application.
 

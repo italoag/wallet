@@ -16,6 +16,13 @@
 - [SpringDataUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/SpringDataUserRepository.java)
 </cite>
 
+## Update Summary
+**Changes Made**   
+- Updated **Best Practices and Design Patterns** section to include detailed analysis of repository implementation patterns.
+- Added new content about the `JpaUserRepository` class and its role in data access.
+- Enhanced documentation on mapper implementations and their interaction with repositories.
+- No structural changes to existing sections; all updates are content enhancements based on code analysis.
+
 ## Table of Contents
 1. [Introduction](#introduction)
 2. [Entity Overview](#entity-overview)
@@ -164,10 +171,13 @@ string status
 
 The JPA entity design in `bloco-wallet-java` follows several best practices and design patterns. First, the use of Lombok annotations (`@Getter`, `@Setter`, `@ToString`, `@RequiredArgsConstructor`) significantly reduces boilerplate code while maintaining clean and readable entity classes. Second, the `WalletEntity` implements a robust `equals` and `hashCode` strategy that is compatible with Hibernate proxies, ensuring correct behavior in collections and when dealing with lazy-loaded entities. This implementation compares entities based on their persistent identifier (`id`) rather than all fields, which is the recommended approach for JPA entities. Third, the separation of concerns is maintained through the use of dedicated mapper interfaces (MapStruct) that handle conversion between domain and entity layers, preventing persistence concerns from leaking into business logic. Finally, the repository pattern is properly implemented with `JpaWalletRepository`, `JpaTransactionRepository`, and `JpaUserRepository` classes that encapsulate data access logic and delegate to Spring Data JPA repositories.
 
+The `JpaUserRepository` class exemplifies the repository pattern implementation, providing a complete set of CRUD operations and query methods for user management. It uses constructor injection via `@Autowired` to receive dependencies on `SpringDataUserRepository` and `UserMapper`, ensuring proper dependency management. The repository implements methods like `findById`, `save`, `update`, `delete`, and specialized queries such as `findByEmail` and `findByStatus`. Notably, some methods like `findByEmail` use a fallback implementation that filters all users, indicating potential performance considerations for large datasets. The repository also provides convenience methods like `findActiveUsers` and `existsByEmail` to simplify common operations in the service layer.
+
 **Section sources**
 - [WalletEntity.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/entity/WalletEntity.java#L50-L62)
 - [WalletMapper.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/mapper/WalletMapper.java#L25-L45)
 - [JpaWalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaWalletRepository.java#L35-L55)
+- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java#L35-L131)
 
 ## Schema Evolution and Migration Considerations
 

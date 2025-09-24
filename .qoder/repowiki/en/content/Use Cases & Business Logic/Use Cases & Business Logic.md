@@ -10,21 +10,31 @@
 - [FailTransactionUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/FailTransactionUseCase.java)
 - [CreateTransactionUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/CreateTransactionUseCase.java)
 - [CheckBalanceUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/CheckBalanceUseCase.java)
+- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java) - *Added in recent commit*
 - [WalletRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/WalletRepository.java)
 - [TransactionRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/TransactionRepository.java)
+- [NetworkRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/NetworkRepository.java) - *Added in recent commit*
 - [DomainEventPublisher.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/DomainEventPublisher.java)
 - [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java)
 - [Transaction.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/Transaction.java)
+- [AccountAddress.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/AccountAddress.java) - *Added in recent commit*
+- [Network.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/Network.java) - *Added in recent commit*
 - [WalletCreatedEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/wallet/WalletCreatedEvent.java)
 - [FundsAddedEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/wallet/FundsAddedEvent.java)
 - [FundsWithdrawnEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/wallet/FundsWithdrawnEvent.java)
 - [FundsTransferredEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/wallet/FundsTransferredEvent.java)
 - [TransactionCreatedEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/transaction/TransactionCreatedEvent.java)
 - [TransactionConfirmedEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/transaction/TransactionConfirmedEvent.java)
-- [WalletCreatedEventConsumer.java](file://src/main/java/dev/bloco/wallet/hub/infra/adapter/event/consumer/WalletCreatedEventConsumer.java)
-- [FundsAddedEventConsumer.java](file://src/main/java/dev/bloco/wallet/hub/infra/adapter/event/consumer/FundsAddedEventConsumer.java)
-- [StandardSagaStateMachineConfig.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/config/StandardSagaStateMachineConfig.java)
+- [UseCaseConfig.java](file://src/main/java/dev/bloco/wallet/hub/config/UseCaseConfig.java) - *Updated in recent commit*
 </cite>
+
+## Update Summary
+**Changes Made**   
+- Added comprehensive documentation for the new ValidateAddressUseCase
+- Updated document to reflect new use case additions and configuration changes
+- Added references to NetworkRepository, AccountAddress, and Network model classes
+- Enhanced source tracking with annotations for newly added files
+- Maintained existing use case documentation as no functional changes were detected
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -501,6 +511,70 @@ end
 **Section sources**
 - [CheckBalanceUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/CheckBalanceUseCase.java#L1-L44)
 
+### ValidateAddress Use Case
+
+The `ValidateAddressUseCase` is responsible for validating blockchain address formats and network compatibility.
+
+**Invocation Flow:**
+1. Client calls `validateAddress(addressValue, networkId)`
+2. Input validation checks for null or empty address
+3. Address format is determined using regex patterns
+4. If networkId provided, network is retrieved from `NetworkRepository`
+5. Compatibility between address format and network is evaluated
+6. `AddressValidationResult` is constructed with validation details
+7. Result is returned to caller
+
+**Input Parameters:**
+- `addressValue`: String representation of the blockchain address
+- `networkId`: Optional UUID of the target network for compatibility checking
+
+**Business Rules:**
+- Address value must be provided (not null or empty)
+- Format validation uses predefined regex patterns for different address types
+- Network compatibility is checked when networkId is provided
+- Validation does not publish domain events (pure query operation)
+
+**Domain Interactions:**
+- Uses `NetworkRepository.findById()` when network-specific validation is requested
+- Creates `AccountAddress` value object for basic validation
+- Returns `AddressValidationResult` DTO with detailed validation information
+
+```mermaid
+sequenceDiagram
+participant Client
+participant UseCase as ValidateAddressUseCase
+participant Repository as NetworkRepository
+participant Address as AccountAddress
+participant Network as Network
+Client->>UseCase : validateAddress("0x...", networkId)
+UseCase->>UseCase : Check address not null/empty
+UseCase->>UseCase : Determine format via regex
+alt networkId provided
+UseCase->>Repository : findById(networkId)
+alt Network found
+Repository-->>UseCase : Network
+UseCase->>UseCase : Check format-network compatibility
+else Network not found
+Repository-->>UseCase : Optional.empty()
+UseCase->>UseCase : Set networkCompatible=false
+end
+else No networkId
+UseCase->>UseCase : Set networkCompatible=validFormat
+end
+UseCase->>UseCase : Build AddressValidationResult
+UseCase-->>Client : result
+```
+
+**Diagram sources**
+- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java#L45-L85)
+- [AccountAddress.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/AccountAddress.java#L7-L10)
+- [Network.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/Network.java#L24-L36)
+- [NetworkRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/NetworkRepository.java#L12-L14)
+
+**Section sources**
+- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java#L1-L185)
+- [ValidateAddressUseCaseTest.java](file://src/test/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCaseTest.java#L20-L171)
+
 ## Domain Event Publishing
 
 The use case layer integrates with the domain event publishing mechanism to notify other system components of business operations. All state-changing use cases publish domain events through the `DomainEventPublisher` interface.
@@ -571,4 +645,8 @@ These events follow the domain-driven design principle that business operations 
 
 ```mermaid
 classDiagram
-    class Domain
+class Domain
+```
+
+**Section sources**
+- [UseCaseConfig.java](file://src/main/java/dev/bloco/wallet/hub/config/UseCaseConfig.java) - *Updated in recent commit*

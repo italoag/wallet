@@ -8,6 +8,10 @@
 - [application.yml](file://src/main/resources/application.yml)
 - [WalletHubApplication.java](file://src/main/java/dev/bloco/wallet/hub/WalletHubApplication.java)
 - [DinamoLibraryLoader.java](file://src/main/java/dev/bloco/wallet/hub/config/DinamoLibraryLoader.java)
+- [ValidateAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ValidateAddressUseCase.java) - *Updated in recent commit*
+- [ImportAddressUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ImportAddressUseCase.java) - *Updated in recent commit*
+- [JpaUserRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/JpaUserRepository.java) - *Updated in recent commit*
+- [UseCaseConfig.java](file://src/main/java/dev/bloco/wallet/hub/config/UseCaseConfig.java) - *Updated to include ValidateAddressUseCase bean*
 </cite>
 
 ## Table of Contents

@@ -8,7 +8,6 @@ import dev.bloco.wallet.hub.domain.model.user.UserSession;
 import dev.bloco.wallet.hub.domain.event.user.UserAuthenticatedEvent;
 
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Arrays;
