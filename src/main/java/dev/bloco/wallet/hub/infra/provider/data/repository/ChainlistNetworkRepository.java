@@ -54,7 +54,7 @@ public class ChainlistNetworkRepository implements NetworkRepository {
     public ChainlistNetworkRepository(
             WebClient.Builder webClientBuilder,
             ObjectMapper objectMapper,
-            @Value("${wallet.networks.chainlist-url:") String chainlistUrl,
+            @Value("${wallet.networks.chainlist-url:}") String chainlistUrl,
             @Value("${wallet.networks.cache-ttl:PT5M}") Duration cacheTtl) {
         this.webClient = webClientBuilder
                 .codecs(configurer -> configurer.defaultCodecs().maxInMemorySize(1024 * 1024)) // 1MB limit
@@ -62,7 +62,6 @@ public class ChainlistNetworkRepository implements NetworkRepository {
         this.objectMapper = objectMapper;
         this.chainlistUrl = chainlistUrl;
         this.cacheTtl = cacheTtl.isNegative() ? Duration.ZERO : cacheTtl;
-    }
     }
 
     @Override
@@ -160,6 +159,9 @@ public class ChainlistNetworkRepository implements NetworkRepository {
     }
 
     private boolean cacheExpired(Instant now, List<Network> cached) {
+        return now.isAfter(cacheExpiresAt) || cached.isEmpty();
+    }
+
     private List<Network> fetchFromChainlist(String correlationId) {
         try {
             Mono<String> responseMono = webClient.get()
@@ -194,23 +196,19 @@ public class ChainlistNetworkRepository implements NetworkRepository {
                             return List.<Network>of();
                         }
                     })
-                    .onErrorReturn(ex -> {
+                    .doOnError(ex -> {
                         if (ex instanceof WebClientResponseException wcEx) {
                             LOGGER.error("Chainlist responded with {} when fetching networks", wcEx.getStatusCode(), wcEx);
                         } else {
                             LOGGER.error("Unexpected error fetching networks from Chainlist", ex);
                         }
-                        return List.of();
                     })
+                    .onErrorReturn(List.of())
                     .block();
         } catch (Exception ex) {
             LOGGER.error("Unexpected error in fetchFromChainlist", ex);
             return List.of();
         }
-    }
-        }
-
-        return List.of();
     }
 
     private void applyCorrelation(HttpHeaders headers, String correlationId) {
@@ -227,13 +225,16 @@ public class ChainlistNetworkRepository implements NetworkRepository {
         }
 
         String chainId = chainIdNode.asText();
+        String rpcUrl = extractRpcUrl(node.path("rpc"));
+        if (rpcUrl == null) {
+            rpcUrl = "https://chainlist.org/chain/" + chainId; // fallback URL
+        }
+        
         String explorerUrl = extractExplorerUrl(node.path("explorers")).orElse(rpcUrl);
+        
         // Add timestamp or random component to prevent collisions
         String uniqueInput = "chainlist:" + chainId + ":" + System.currentTimeMillis();
         UUID id = UUID.nameUUIDFromBytes(uniqueInput.getBytes(StandardCharsets.UTF_8));
-
-        String explorerUrl = extractExplorerUrl(node.path("explorers")).orElse(rpcUrl);
-        UUID id = UUID.nameUUIDFromBytes(("chainlist:" + chainId).getBytes(StandardCharsets.UTF_8));
 
         Network network = Network.create(id, name, chainId, rpcUrl, explorerUrl);
         return Optional.of(network);
