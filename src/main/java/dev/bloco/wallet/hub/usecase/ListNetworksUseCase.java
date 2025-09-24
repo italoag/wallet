@@ -6,6 +6,8 @@ import dev.bloco.wallet.hub.domain.model.network.Network;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.util.StringUtils;
+
 /**
  * ListNetworksUseCase is responsible for retrieving blockchain networks.
  * It provides filtering capabilities and network status information.
@@ -19,13 +21,21 @@ import java.util.UUID;
  */
 public record ListNetworksUseCase(NetworkRepository networkRepository) {
 
+    private static final String ERROR_NETWORK_ID_REQUIRED = "Network ID must be provided";
+    private static final String ERROR_NETWORK_NOT_FOUND_TEMPLATE = "Network not found with id: %s";
+    private static final String ERROR_CORRELATION_ID_REQUIRED = "Correlation ID must be provided";
+    private static final String ERROR_CORRELATION_ID_INVALID = "Correlation ID must be a valid UUID";
+    private static final String HEALTH_STATUS_HEALTHY = "Healthy";
+    private static final String HEALTH_STATUS_UNAVAILABLE = "Unavailable";
+
     /**
      * Retrieves all active networks.
      *
      * @return list of active networks
      */
-    public List<Network> listActiveNetworks() {
-        return networkRepository.findAll().stream()
+    public List<Network> listActiveNetworks(String correlationId) {
+        String normalizedCorrelation = normalizeCorrelationId(correlationId);
+        return networkRepository.findAll(normalizedCorrelation).stream()
                 .filter(Network::isAvailable)
                 .toList();
     }
@@ -35,8 +45,8 @@ public record ListNetworksUseCase(NetworkRepository networkRepository) {
      *
      * @return list of all networks
      */
-    public List<Network> listAllNetworks() {
-        return networkRepository.findAll();
+    public List<Network> listAllNetworks(String correlationId) {
+        return networkRepository.findAll(normalizeCorrelationId(correlationId));
     }
 
     /**
@@ -46,13 +56,12 @@ public record ListNetworksUseCase(NetworkRepository networkRepository) {
      * @return the network information
      * @throws IllegalArgumentException if network not found
      */
-    public Network getNetworkDetails(UUID networkId) {
-        if (networkId == null) {
-            throw new IllegalArgumentException("Network ID must be provided");
-        }
+    public Network getNetworkDetails(UUID networkId, String correlationId) {
+        validateNetworkId(networkId);
+        String normalizedCorrelation = normalizeCorrelationId(correlationId);
 
-        return networkRepository.findById(networkId)
-                .orElseThrow(() -> new IllegalArgumentException("Network not found with id: " + networkId));
+        return networkRepository.findById(networkId, normalizedCorrelation)
+                .orElseThrow(() -> new IllegalArgumentException(ERROR_NETWORK_NOT_FOUND_TEMPLATE.formatted(networkId)));
     }
 
     /**
@@ -60,9 +69,9 @@ public record ListNetworksUseCase(NetworkRepository networkRepository) {
      *
      * @return list of networks with health information
      */
-    public List<NetworkHealthInfo> getNetworkHealthStatus() {
-        List<Network> networks = networkRepository.findAll();
-        
+    public List<NetworkHealthInfo> getNetworkHealthStatus(String correlationId) {
+        List<Network> networks = networkRepository.findAll(normalizeCorrelationId(correlationId));
+
         return networks.stream()
                 .map(this::createHealthInfo)
                 .toList();
@@ -74,13 +83,13 @@ public record ListNetworksUseCase(NetworkRepository networkRepository) {
      * @param namePattern the pattern to search for in network names
      * @return list of matching networks
      */
-    public List<Network> searchNetworksByName(String namePattern) {
-        if (namePattern == null || namePattern.trim().isEmpty()) {
+    public List<Network> searchNetworksByName(String namePattern, String correlationId) {
+        if (!StringUtils.hasText(namePattern)) {
             return List.of();
         }
-        
+
         String pattern = namePattern.toLowerCase();
-        return networkRepository.findAll().stream()
+        return networkRepository.findAll(normalizeCorrelationId(correlationId)).stream()
                 .filter(network -> network.getName().toLowerCase().contains(pattern))
                 .toList();
     }
@@ -88,8 +97,8 @@ public record ListNetworksUseCase(NetworkRepository networkRepository) {
     private NetworkHealthInfo createHealthInfo(Network network) {
         // In a real implementation, this would check network connectivity
         boolean isHealthy = network.isAvailable();
-        String healthStatus = isHealthy ? "Healthy" : "Unavailable";
-        
+        String healthStatus = isHealthy ? HEALTH_STATUS_HEALTHY : HEALTH_STATUS_UNAVAILABLE;
+
         return new NetworkHealthInfo(
             network.getId(),
             network.getName(),
@@ -113,4 +122,23 @@ public record ListNetworksUseCase(NetworkRepository networkRepository) {
         String healthStatus,
         String rpcUrl
     ) {}
+
+    private void validateNetworkId(UUID networkId) {
+        if (networkId == null) {
+            throw new IllegalArgumentException(ERROR_NETWORK_ID_REQUIRED);
+        }
+    }
+
+    private String normalizeCorrelationId(String correlationId) {
+        if (!StringUtils.hasText(correlationId)) {
+            throw new IllegalArgumentException(ERROR_CORRELATION_ID_REQUIRED);
+        }
+
+        try {
+            UUID parsed = UUID.fromString(correlationId.trim());
+            return parsed.toString();
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(ERROR_CORRELATION_ID_INVALID, ex);
+        }
+    }
 }

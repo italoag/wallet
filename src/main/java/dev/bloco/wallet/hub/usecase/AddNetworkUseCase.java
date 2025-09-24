@@ -7,6 +7,8 @@ import dev.bloco.wallet.hub.domain.event.network.NetworkCreatedEvent;
 
 import java.util.UUID;
 
+import org.springframework.util.StringUtils;
+
 /**
  * AddNetworkUseCase is responsible for adding new blockchain networks to the system.
  * This enables support for additional blockchain networks and their tokens.
@@ -24,6 +26,16 @@ public record AddNetworkUseCase(
     NetworkRepository networkRepository,
     DomainEventPublisher eventPublisher) {
 
+    private static final String ERROR_NAME_REQUIRED = "Network name must be provided";
+    private static final String ERROR_CHAIN_ID_REQUIRED = "Chain ID must be provided";
+    private static final String ERROR_RPC_URL_REQUIRED = "RPC URL must be provided";
+    private static final String ERROR_EXPLORER_URL_REQUIRED = "Explorer URL must be provided";
+    private static final String ERROR_INVALID_RPC_URL = "RPC URL must be a valid HTTP/HTTPS URL";
+    private static final String ERROR_INVALID_EXPLORER_URL = "Explorer URL must be a valid HTTP/HTTPS URL";
+    private static final String ERROR_CORRELATION_ID_REQUIRED = "Correlation ID must be provided";
+    private static final String ERROR_CORRELATION_ID_INVALID = "Correlation ID must be a valid UUID";
+    private static final String ERROR_CHAIN_ID_IN_USE = "A network with the provided chain ID already exists";
+
     /**
      * Adds a new blockchain network to the system.
      *
@@ -36,13 +48,13 @@ public record AddNetworkUseCase(
      * @throws IllegalArgumentException if validation fails
      */
     public Network addNetwork(String name, String chainId, String rpcUrl, String explorerUrl, String correlationId) {
-        // Validate inputs
+        String normalizedCorrelation = normalizeCorrelationId(correlationId);
         validateInputs(name, chainId, rpcUrl, explorerUrl);
 
-        // TODO: In a real implementation, we would check for uniqueness
-        // For now, we'll create the network directly
+        if (networkRepository.existsByChainId(chainId, normalizedCorrelation)) {
+            throw new IllegalArgumentException(ERROR_CHAIN_ID_IN_USE);
+        }
 
-        // Create network
         Network network = Network.create(
                 UUID.randomUUID(),
                 name,
@@ -51,42 +63,56 @@ public record AddNetworkUseCase(
                 explorerUrl
         );
 
-        // Save network
-        networkRepository.save(network);
+        networkRepository.save(network, normalizedCorrelation);
 
-        // Publish event
         NetworkCreatedEvent event = NetworkCreatedEvent.builder()
                 .networkId(network.getId())
                 .name(name)
                 .chainId(chainId)
-                .correlationId(UUID.fromString(correlationId))
+                .correlationId(UUID.fromString(normalizedCorrelation))
                 .build();
-        
+
         eventPublisher.publish(event);
 
         return network;
     }
 
     private void validateInputs(String name, String chainId, String rpcUrl, String explorerUrl) {
-        if (name == null || name.trim().isEmpty()) {
-            throw new IllegalArgumentException("Network name must be provided");
+        if (!StringUtils.hasText(name)) {
+            throw new IllegalArgumentException(ERROR_NAME_REQUIRED);
         }
-        if (chainId == null || chainId.trim().isEmpty()) {
-            throw new IllegalArgumentException("Chain ID must be provided");
+        if (!StringUtils.hasText(chainId)) {
+            throw new IllegalArgumentException(ERROR_CHAIN_ID_REQUIRED);
         }
-        if (rpcUrl == null || rpcUrl.trim().isEmpty()) {
-            throw new IllegalArgumentException("RPC URL must be provided");
+        if (!StringUtils.hasText(rpcUrl)) {
+            throw new IllegalArgumentException(ERROR_RPC_URL_REQUIRED);
         }
-        if (explorerUrl == null || explorerUrl.trim().isEmpty()) {
-            throw new IllegalArgumentException("Explorer URL must be provided");
+        if (!StringUtils.hasText(explorerUrl)) {
+            throw new IllegalArgumentException(ERROR_EXPLORER_URL_REQUIRED);
         }
 
-        // Basic URL validation
-        if (!rpcUrl.startsWith("http://") && !rpcUrl.startsWith("https://")) {
-            throw new IllegalArgumentException("RPC URL must be a valid HTTP/HTTPS URL");
+        if (!isHttpUrl(rpcUrl)) {
+            throw new IllegalArgumentException(ERROR_INVALID_RPC_URL);
         }
-        if (!explorerUrl.startsWith("http://") && !explorerUrl.startsWith("https://")) {
-            throw new IllegalArgumentException("Explorer URL must be a valid HTTP/HTTPS URL");
+        if (!isHttpUrl(explorerUrl)) {
+            throw new IllegalArgumentException(ERROR_INVALID_EXPLORER_URL);
         }
+    }
+
+    private String normalizeCorrelationId(String correlationId) {
+        if (!StringUtils.hasText(correlationId)) {
+            throw new IllegalArgumentException(ERROR_CORRELATION_ID_REQUIRED);
+        }
+
+        try {
+            UUID parsed = UUID.fromString(correlationId.trim());
+            return parsed.toString();
+        } catch (IllegalArgumentException ex) {
+            throw new IllegalArgumentException(ERROR_CORRELATION_ID_INVALID, ex);
+        }
+    }
+
+    private boolean isHttpUrl(String value) {
+        return value.startsWith("http://") || value.startsWith("https://");
     }
 }
