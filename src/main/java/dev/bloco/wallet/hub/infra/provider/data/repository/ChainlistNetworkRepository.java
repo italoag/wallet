@@ -160,9 +160,6 @@ public class ChainlistNetworkRepository implements NetworkRepository {
     }
 
     private boolean cacheExpired(Instant now, List<Network> cached) {
-        return now.isAfter(cacheExpiresAt) || cached.isEmpty();
-    }
-
     private List<Network> fetchFromChainlist(String correlationId) {
         try {
             Mono<String> responseMono = webClient.get()
@@ -172,30 +169,45 @@ public class ChainlistNetworkRepository implements NetworkRepository {
                     .retrieve()
                     .bodyToMono(String.class);
 
-            String payload = responseMono.block(DEFAULT_TIMEOUT);
-            if (!StringUtils.hasText(payload)) {
-                LOGGER.warn("Empty response when fetching networks from Chainlist");
-                return List.of();
-            }
+            return responseMono
+                    .timeout(DEFAULT_TIMEOUT)
+                    .map(payload -> {
+                        if (!StringUtils.hasText(payload)) {
+                            LOGGER.warn("Empty response when fetching networks from Chainlist");
+                            return List.<Network>of();
+                        }
+                        
+                        try {
+                            JsonNode root = objectMapper.readTree(payload);
+                            if (!root.isArray()) {
+                                LOGGER.warn("Unexpected Chainlist payload format: not an array");
+                                return List.<Network>of();
+                            }
 
-            JsonNode root = objectMapper.readTree(payload);
-            if (!root.isArray()) {
-                LOGGER.warn("Unexpected Chainlist payload format: not an array");
-                return List.of();
-            }
-
-            List<Network> networks = new ArrayList<>();
-            for (JsonNode node : root) {
-                mapToNetwork(node).ifPresent(networks::add);
-            }
-
-            return networks;
-        } catch (WebClientResponseException ex) {
-            LOGGER.error("Chainlist responded with {} when fetching networks", ex.getStatusCode(), ex);
-        } catch (JsonProcessingException ex) {
-            LOGGER.error("Failed to parse Chainlist response", ex);
+                            List<Network> networks = new ArrayList<>();
+                            for (JsonNode node : root) {
+                                mapToNetwork(node).ifPresent(networks::add);
+                            }
+                            return networks;
+                        } catch (JsonProcessingException ex) {
+                            LOGGER.error("Failed to parse Chainlist response", ex);
+                            return List.<Network>of();
+                        }
+                    })
+                    .onErrorReturn(ex -> {
+                        if (ex instanceof WebClientResponseException wcEx) {
+                            LOGGER.error("Chainlist responded with {} when fetching networks", wcEx.getStatusCode(), wcEx);
+                        } else {
+                            LOGGER.error("Unexpected error fetching networks from Chainlist", ex);
+                        }
+                        return List.of();
+                    })
+                    .block();
         } catch (Exception ex) {
-            LOGGER.error("Unexpected error fetching networks from Chainlist", ex);
+            LOGGER.error("Unexpected error in fetchFromChainlist", ex);
+            return List.of();
+        }
+    }
         }
 
         return List.of();
