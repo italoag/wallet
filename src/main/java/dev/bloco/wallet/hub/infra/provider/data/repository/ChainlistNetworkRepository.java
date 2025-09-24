@@ -227,10 +227,10 @@ public class ChainlistNetworkRepository implements NetworkRepository {
         }
 
         String chainId = chainIdNode.asText();
-        String rpcUrl = extractRpcUrl(node.path("rpc"));
-        if (!StringUtils.hasText(rpcUrl)) {
-            return Optional.empty();
-        }
+        String explorerUrl = extractExplorerUrl(node.path("explorers")).orElse(rpcUrl);
+        // Add timestamp or random component to prevent collisions
+        String uniqueInput = "chainlist:" + chainId + ":" + System.currentTimeMillis();
+        UUID id = UUID.nameUUIDFromBytes(uniqueInput.getBytes(StandardCharsets.UTF_8));
 
         String explorerUrl = extractExplorerUrl(node.path("explorers")).orElse(rpcUrl);
         UUID id = UUID.nameUUIDFromBytes(("chainlist:" + chainId).getBytes(StandardCharsets.UTF_8));
