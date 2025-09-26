@@ -37,3 +37,14 @@ wallet:
   networks:
     chainlist-url: https://chainlist.org/rpcs.json
     cache-ttl: PT5M
+  auth:
+    # Time-to-live (seconds) for issued access tokens (Client Credentials)
+    token-ttl-seconds: 1800
+    # Maximum failed attempts within lock-window before triggering lock
+    lock-threshold: 5
+    # Sliding window size for counting failed attempts (ISO-8601 duration)
+    lock-window: PT5M
+    # Duration of lock applied after threshold exceeded (ISO-8601 duration)
+    lock-duration: PT30M
+    # Clock skew tolerance for token validation (seconds)
+    clock-skew-seconds: 60

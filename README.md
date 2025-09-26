@@ -4,6 +4,8 @@ Event-driven wallet service built with Spring Boot and Spring Cloud Stream. The 
 
 > Note: This README reflects the current repository snapshot as of 2025-09-17. Where details are unclear in the codebase, TODOs are noted rather than invented.
 
+> Engineering Constitution: see `docs/CONSTITUTION.md` for authoritative guidelines (design principles, patterns, testing, observability, security, dependency policy).
+
 ## Stack at a glance
 - Language: Java (toolchain release 25)
 - Build/Package: Maven (Maven Wrapper included)
