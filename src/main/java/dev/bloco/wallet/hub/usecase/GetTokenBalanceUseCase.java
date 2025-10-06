@@ -6,6 +6,7 @@ import dev.bloco.wallet.hub.domain.gateway.TokenRepository;
 import dev.bloco.wallet.hub.domain.model.Wallet;
 import dev.bloco.wallet.hub.domain.model.token.Token;
 import dev.bloco.wallet.hub.domain.model.token.TokenBalance;
+import dev.bloco.wallet.hub.domain.model.token.TokenBalanceDetails;
 
 import java.math.BigDecimal;
 import java.util.UUID;
@@ -107,84 +108,16 @@ public record GetTokenBalanceUseCase(
         // Format the balance according to token decimals
         String formattedBalance = token.formatAmount(totalBalance);
 
-        return TokenBalanceDetails.builder()
-                .walletId(walletId)
-                .tokenId(tokenId)
-                .tokenSymbol(token.getSymbol())
-                .tokenName(token.getName())
-                .rawBalance(totalBalance)
-                .formattedBalance(formattedBalance)
-                .decimals(token.getDecimals())
-                .addressesWithBalance(addressCount)
-                .totalAddresses(wallet.getAddressIds().size())
-                .build();
-    }
-
-    /**
-     * Detailed token balance information.
-     */
-    public static class TokenBalanceDetails {
-        private final UUID walletId;
-        private final UUID tokenId;
-        private final String tokenSymbol;
-        private final String tokenName;
-        private final BigDecimal rawBalance;
-        private final String formattedBalance;
-        private final int decimals;
-        private final int addressesWithBalance;
-        private final int totalAddresses;
-
-        private TokenBalanceDetails(Builder builder) {
-            this.walletId = builder.walletId;
-            this.tokenId = builder.tokenId;
-            this.tokenSymbol = builder.tokenSymbol;
-            this.tokenName = builder.tokenName;
-            this.rawBalance = builder.rawBalance;
-            this.formattedBalance = builder.formattedBalance;
-            this.decimals = builder.decimals;
-            this.addressesWithBalance = builder.addressesWithBalance;
-            this.totalAddresses = builder.totalAddresses;
-        }
-
-        public static Builder builder() {
-            return new Builder();
-        }
-
-        // Getters
-        public UUID getWalletId() { return walletId; }
-        public UUID getTokenId() { return tokenId; }
-        public String getTokenSymbol() { return tokenSymbol; }
-        public String getTokenName() { return tokenName; }
-        public BigDecimal getRawBalance() { return rawBalance; }
-        public String getFormattedBalance() { return formattedBalance; }
-        public int getDecimals() { return decimals; }
-        public int getAddressesWithBalance() { return addressesWithBalance; }
-        public int getTotalAddresses() { return totalAddresses; }
-
-        public static class Builder {
-            private UUID walletId;
-            private UUID tokenId;
-            private String tokenSymbol;
-            private String tokenName;
-            private BigDecimal rawBalance;
-            private String formattedBalance;
-            private int decimals;
-            private int addressesWithBalance;
-            private int totalAddresses;
-
-            public Builder walletId(UUID walletId) { this.walletId = walletId; return this; }
-            public Builder tokenId(UUID tokenId) { this.tokenId = tokenId; return this; }
-            public Builder tokenSymbol(String tokenSymbol) { this.tokenSymbol = tokenSymbol; return this; }
-            public Builder tokenName(String tokenName) { this.tokenName = tokenName; return this; }
-            public Builder rawBalance(BigDecimal rawBalance) { this.rawBalance = rawBalance; return this; }
-            public Builder formattedBalance(String formattedBalance) { this.formattedBalance = formattedBalance; return this; }
-            public Builder decimals(int decimals) { this.decimals = decimals; return this; }
-            public Builder addressesWithBalance(int addressesWithBalance) { this.addressesWithBalance = addressesWithBalance; return this; }
-            public Builder totalAddresses(int totalAddresses) { this.totalAddresses = totalAddresses; return this; }
-
-            public TokenBalanceDetails build() {
-                return new TokenBalanceDetails(this);
-            }
-        }
+        return new TokenBalanceDetails(
+                walletId,
+                tokenId,
+                token.getSymbol(),
+                token.getName(),
+                totalBalance,
+                formattedBalance,
+                token.getDecimals(),
+                addressCount,
+                wallet.getAddressIds().size()
+        );
     }
 }

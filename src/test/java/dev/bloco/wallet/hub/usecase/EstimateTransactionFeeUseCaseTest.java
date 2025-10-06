@@ -3,9 +3,11 @@ package dev.bloco.wallet.hub.usecase;
 import dev.bloco.wallet.hub.domain.gateway.NetworkRepository;
 import dev.bloco.wallet.hub.domain.gateway.TransactionFeeRepository;
 import dev.bloco.wallet.hub.domain.model.network.Network;
+import dev.bloco.wallet.hub.domain.model.transaction.BlockchainTransactionType;
+import dev.bloco.wallet.hub.domain.model.transaction.FeeEstimate;
+import dev.bloco.wallet.hub.domain.model.transaction.FeeEstimateResult;
 import dev.bloco.wallet.hub.domain.model.transaction.FeeLevel;
 import dev.bloco.wallet.hub.domain.model.transaction.TransactionFee;
-import dev.bloco.wallet.hub.usecase.EstimateTransactionFeeUseCase.FeeEstimateResult;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -217,5 +219,209 @@ class EstimateTransactionFeeUseCaseTest {
     assertEquals(mockNetwork.getName(), result.networkName());
     assertEquals(gasLimit, result.gasLimit());
     assertNotNull(result.estimates());
+  }
+
+  @Test
+  @DisplayName("estimateGasLimit returns correct gas limit for SIMPLE_TRANSFER")
+  void shouldEstimateGasLimitForSimpleTransfer() {
+    NetworkRepository networkRepository = Mockito.mock(NetworkRepository.class);
+    TransactionFeeRepository transactionFeeRepository = Mockito.mock(TransactionFeeRepository.class);
+    EstimateTransactionFeeUseCase useCase = new EstimateTransactionFeeUseCase(networkRepository, transactionFeeRepository);
+
+    UUID networkId = UUID.randomUUID();
+    String correlationId = UUID.randomUUID().toString();
+
+    Network mockNetwork = Mockito.mock(Network.class);
+    Mockito.when(networkRepository.findById(eq(networkId), any())).thenReturn(Optional.of(mockNetwork));
+
+    BigDecimal gasLimit = useCase.estimateGasLimit(networkId, BlockchainTransactionType.SIMPLE_TRANSFER, correlationId);
+
+    assertEquals(new BigDecimal("21000"), gasLimit);
+  }
+
+  @Test
+  @DisplayName("estimateGasLimit returns correct gas limit for ERC20_TRANSFER")
+  void shouldEstimateGasLimitForERC20Transfer() {
+    NetworkRepository networkRepository = Mockito.mock(NetworkRepository.class);
+    TransactionFeeRepository transactionFeeRepository = Mockito.mock(TransactionFeeRepository.class);
+    EstimateTransactionFeeUseCase useCase = new EstimateTransactionFeeUseCase(networkRepository, transactionFeeRepository);
+
+    UUID networkId = UUID.randomUUID();
+    String correlationId = UUID.randomUUID().toString();
+
+    Network mockNetwork = Mockito.mock(Network.class);
+    Mockito.when(networkRepository.findById(eq(networkId), any())).thenReturn(Optional.of(mockNetwork));
+
+    BigDecimal gasLimit = useCase.estimateGasLimit(networkId, BlockchainTransactionType.ERC20_TRANSFER, correlationId);
+
+    assertEquals(new BigDecimal("65000"), gasLimit);
+  }
+
+  @Test
+  @DisplayName("estimateGasLimit returns correct gas limit for ERC721_TRANSFER")
+  void shouldEstimateGasLimitForERC721Transfer() {
+    NetworkRepository networkRepository = Mockito.mock(NetworkRepository.class);
+    TransactionFeeRepository transactionFeeRepository = Mockito.mock(TransactionFeeRepository.class);
+    EstimateTransactionFeeUseCase useCase = new EstimateTransactionFeeUseCase(networkRepository, transactionFeeRepository);
+
+    UUID networkId = UUID.randomUUID();
+    String correlationId = UUID.randomUUID().toString();
+
+    Network mockNetwork = Mockito.mock(Network.class);
+    Mockito.when(networkRepository.findById(eq(networkId), any())).thenReturn(Optional.of(mockNetwork));
+
+    BigDecimal gasLimit = useCase.estimateGasLimit(networkId, BlockchainTransactionType.ERC721_TRANSFER, correlationId);
+
+    assertEquals(new BigDecimal("85000"), gasLimit);
+  }
+
+  @Test
+  @DisplayName("estimateGasLimit returns correct gas limit for CONTRACT_INTERACTION")
+  void shouldEstimateGasLimitForContractInteraction() {
+    NetworkRepository networkRepository = Mockito.mock(NetworkRepository.class);
+    TransactionFeeRepository transactionFeeRepository = Mockito.mock(TransactionFeeRepository.class);
+    EstimateTransactionFeeUseCase useCase = new EstimateTransactionFeeUseCase(networkRepository, transactionFeeRepository);
+
+    UUID networkId = UUID.randomUUID();
+    String correlationId = UUID.randomUUID().toString();
+
+    Network mockNetwork = Mockito.mock(Network.class);
+    Mockito.when(networkRepository.findById(eq(networkId), any())).thenReturn(Optional.of(mockNetwork));
+
+    BigDecimal gasLimit = useCase.estimateGasLimit(networkId, BlockchainTransactionType.CONTRACT_INTERACTION, correlationId);
+
+    assertEquals(new BigDecimal("150000"), gasLimit);
+  }
+
+  @Test
+  @DisplayName("estimateGasLimit returns correct gas limit for CONTRACT_DEPLOYMENT")
+  void shouldEstimateGasLimitForContractDeployment() {
+    NetworkRepository networkRepository = Mockito.mock(NetworkRepository.class);
+    TransactionFeeRepository transactionFeeRepository = Mockito.mock(TransactionFeeRepository.class);
+    EstimateTransactionFeeUseCase useCase = new EstimateTransactionFeeUseCase(networkRepository, transactionFeeRepository);
+
+    UUID networkId = UUID.randomUUID();
+    String correlationId = UUID.randomUUID().toString();
+
+    Network mockNetwork = Mockito.mock(Network.class);
+    Mockito.when(networkRepository.findById(eq(networkId), any())).thenReturn(Optional.of(mockNetwork));
+
+    BigDecimal gasLimit = useCase.estimateGasLimit(networkId, BlockchainTransactionType.CONTRACT_DEPLOYMENT, correlationId);
+
+    assertEquals(new BigDecimal("500000"), gasLimit);
+  }
+
+  @Test
+  @DisplayName("estimateGasLimit returns correct gas limit for COMPLEX_DEFI")
+  void shouldEstimateGasLimitForComplexDeFi() {
+    NetworkRepository networkRepository = Mockito.mock(NetworkRepository.class);
+    TransactionFeeRepository transactionFeeRepository = Mockito.mock(TransactionFeeRepository.class);
+    EstimateTransactionFeeUseCase useCase = new EstimateTransactionFeeUseCase(networkRepository, transactionFeeRepository);
+
+    UUID networkId = UUID.randomUUID();
+    String correlationId = UUID.randomUUID().toString();
+
+    Network mockNetwork = Mockito.mock(Network.class);
+    Mockito.when(networkRepository.findById(eq(networkId), any())).thenReturn(Optional.of(mockNetwork));
+
+    BigDecimal gasLimit = useCase.estimateGasLimit(networkId, BlockchainTransactionType.COMPLEX_DEFI, correlationId);
+
+    assertEquals(new BigDecimal("300000"), gasLimit);
+  }
+
+  @Test
+  @DisplayName("estimateGasLimit throws exception when networkId is null")
+  void shouldThrowExceptionWhenEstimateGasLimitWithNullNetworkId() {
+    NetworkRepository networkRepository = Mockito.mock(NetworkRepository.class);
+    TransactionFeeRepository transactionFeeRepository = Mockito.mock(TransactionFeeRepository.class);
+    EstimateTransactionFeeUseCase useCase = new EstimateTransactionFeeUseCase(networkRepository, transactionFeeRepository);
+
+    String correlationId = UUID.randomUUID().toString();
+
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+        useCase.estimateGasLimit(null, BlockchainTransactionType.SIMPLE_TRANSFER, correlationId)
+    );
+
+    assertEquals("Network ID must be provided", exception.getMessage());
+  }
+
+  @Test
+  @DisplayName("estimateGasLimit throws exception when transactionType is null")
+  void shouldThrowExceptionWhenEstimateGasLimitWithNullTransactionType() {
+    NetworkRepository networkRepository = Mockito.mock(NetworkRepository.class);
+    TransactionFeeRepository transactionFeeRepository = Mockito.mock(TransactionFeeRepository.class);
+    EstimateTransactionFeeUseCase useCase = new EstimateTransactionFeeUseCase(networkRepository, transactionFeeRepository);
+
+    UUID networkId = UUID.randomUUID();
+    String correlationId = UUID.randomUUID().toString();
+
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+        useCase.estimateGasLimit(networkId, null, correlationId)
+    );
+
+    assertEquals("Transaction type must be provided", exception.getMessage());
+  }
+
+  @Test
+  @DisplayName("estimateGasLimit throws exception when network is not found")
+  void shouldThrowExceptionWhenEstimateGasLimitWithNonExistentNetwork() {
+    NetworkRepository networkRepository = Mockito.mock(NetworkRepository.class);
+    TransactionFeeRepository transactionFeeRepository = Mockito.mock(TransactionFeeRepository.class);
+    EstimateTransactionFeeUseCase useCase = new EstimateTransactionFeeUseCase(networkRepository, transactionFeeRepository);
+
+    UUID networkId = UUID.randomUUID();
+    String correlationId = UUID.randomUUID().toString();
+
+    Mockito.when(networkRepository.findById(eq(networkId), any())).thenReturn(Optional.empty());
+
+    IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () ->
+        useCase.estimateGasLimit(networkId, BlockchainTransactionType.SIMPLE_TRANSFER, correlationId)
+    );
+
+    assertEquals("Network not found with id: " + networkId, exception.getMessage());
+  }
+
+  @Test
+  @DisplayName("getLatestFee returns fee from repository when available")
+  void shouldReturnFeeFromRepositoryWhenAvailable() {
+    NetworkRepository networkRepository = Mockito.mock(NetworkRepository.class);
+    TransactionFeeRepository transactionFeeRepository = Mockito.mock(TransactionFeeRepository.class);
+    EstimateTransactionFeeUseCase useCase = new EstimateTransactionFeeUseCase(networkRepository, transactionFeeRepository);
+
+    UUID networkId = UUID.randomUUID();
+    FeeLevel feeLevel = FeeLevel.STANDARD;
+
+    TransactionFee mockFee = Mockito.mock(TransactionFee.class);
+    Mockito.when(transactionFeeRepository.findLatestByNetworkIdAndLevel(networkId, feeLevel))
+        .thenReturn(Optional.of(mockFee));
+
+    TransactionFee result = useCase.getLatestFee(networkId, feeLevel);
+
+    assertEquals(mockFee, result);
+    Mockito.verify(transactionFeeRepository, Mockito.times(1))
+        .findLatestByNetworkIdAndLevel(networkId, feeLevel);
+  }
+
+  @Test
+  @DisplayName("getLatestFee returns default fee when not found in repository")
+  void shouldReturnDefaultFeeWhenNotFoundInRepository() {
+    NetworkRepository networkRepository = Mockito.mock(NetworkRepository.class);
+    TransactionFeeRepository transactionFeeRepository = Mockito.mock(TransactionFeeRepository.class);
+    EstimateTransactionFeeUseCase useCase = new EstimateTransactionFeeUseCase(networkRepository, transactionFeeRepository);
+
+    UUID networkId = UUID.randomUUID();
+    FeeLevel feeLevel = FeeLevel.FAST;
+
+    Mockito.when(transactionFeeRepository.findLatestByNetworkIdAndLevel(networkId, feeLevel))
+        .thenReturn(Optional.empty());
+
+    TransactionFee result = useCase.getLatestFee(networkId, feeLevel);
+
+    assertNotNull(result);
+    assertNotNull(result.getGasPrice());
+    assertTrue(result.getGasPrice().compareTo(BigDecimal.ZERO) > 0);
+    assertEquals(feeLevel, result.getLevel());
+    Mockito.verify(transactionFeeRepository, Mockito.times(1))
+        .findLatestByNetworkIdAndLevel(networkId, feeLevel);
   }
 }

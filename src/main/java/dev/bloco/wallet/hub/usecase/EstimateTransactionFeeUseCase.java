@@ -5,6 +5,9 @@ import dev.bloco.wallet.hub.domain.gateway.TransactionFeeRepository;
 import dev.bloco.wallet.hub.domain.model.network.Network;
 import dev.bloco.wallet.hub.domain.model.transaction.TransactionFee;
 import dev.bloco.wallet.hub.domain.model.transaction.FeeLevel;
+import dev.bloco.wallet.hub.domain.model.transaction.BlockchainTransactionType;
+import dev.bloco.wallet.hub.domain.model.transaction.FeeEstimate;
+import dev.bloco.wallet.hub.domain.model.transaction.FeeEstimateResult;
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
@@ -41,7 +44,7 @@ public record EstimateTransactionFeeUseCase(
      * @param gasLimit the estimated gas limit for the transaction
      * @param correlationId the correlation identifier for tracking downstream requests
      * @return fee estimates for all levels
-     * @throws IllegalArgumentException if network not found or invalid gas limit
+     * @throws IllegalArgumentException if network isn't found or invalid gas limit
      */
     public FeeEstimateResult estimateTransactionFee(UUID networkId, BigDecimal gasLimit, String correlationId) {
         if (networkId == null) {
@@ -78,15 +81,15 @@ public record EstimateTransactionFeeUseCase(
      * Estimates gas limit for common transaction types.
      *
      * @param networkId the unique identifier of the network
-     * @param transactionType the type of transaction
+     * @param blockchainTransactionType the type of transaction
      * @param correlationId correlation identifier for repository lookups
      * @return estimated gas limit
      */
-    public BigDecimal estimateGasLimit(UUID networkId, TransactionType transactionType, String correlationId) {
+    public BigDecimal estimateGasLimit(UUID networkId, BlockchainTransactionType blockchainTransactionType, String correlationId) {
         if (networkId == null) {
             throw new IllegalArgumentException(ERROR_NETWORK_ID_REQUIRED);
         }
-        if (transactionType == null) {
+        if (blockchainTransactionType == null) {
             throw new IllegalArgumentException(ERROR_TRANSACTION_TYPE_REQUIRED);
         }
 
@@ -95,7 +98,7 @@ public record EstimateTransactionFeeUseCase(
                 .orElseThrow(() -> new IllegalArgumentException(ERROR_NETWORK_NOT_FOUND_TEMPLATE.formatted(networkId)));
 
         // Return estimated gas limits based on transaction type
-        return switch (transactionType) {
+        return switch (blockchainTransactionType) {
             case SIMPLE_TRANSFER -> new BigDecimal("21000");
             case ERC20_TRANSFER -> new BigDecimal("65000");
             case ERC721_TRANSFER -> new BigDecimal("85000");
@@ -173,39 +176,4 @@ public record EstimateTransactionFeeUseCase(
             throw new IllegalArgumentException(ERROR_CORRELATION_INVALID, ex);
         }
     }
-
-    /**
-     * Transaction types for gas estimation.
-     */
-    public enum TransactionType {
-        SIMPLE_TRANSFER,
-        ERC20_TRANSFER,
-        ERC721_TRANSFER,
-        CONTRACT_INTERACTION,
-        CONTRACT_DEPLOYMENT,
-        COMPLEX_DEFI
-    }
-
-    /**
-     * Fee estimate for a specific level.
-     */
-    public record FeeEstimate(
-        FeeLevel level,
-        BigDecimal gasPrice,
-        BigDecimal baseFee,
-        BigDecimal priorityFee,
-        BigDecimal totalCost,
-        String estimatedTime,
-        String description
-    ) {}
-
-    /**
-     * Complete fee estimation result.
-     */
-    public record FeeEstimateResult(
-        UUID networkId,
-        String networkName,
-        BigDecimal gasLimit,
-        List<FeeEstimate> estimates
-    ) {}
 }

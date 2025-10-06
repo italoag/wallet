@@ -4,6 +4,8 @@ package dev.bloco.wallet.hub.domain.model.token;
 import dev.bloco.wallet.hub.domain.event.common.DomainEventPublisher;
 import dev.bloco.wallet.hub.domain.event.token.TokenBalanceChangedEvent;
 import dev.bloco.wallet.hub.domain.model.common.Entity;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -14,6 +16,8 @@ import java.util.UUID;
  * This class is used to track the balance of a token associated with a specific address
  * and to manage updates to that balance while publishing events related to those updates.
  */
+@Getter
+@EqualsAndHashCode(callSuper = true)
 public class TokenBalance extends Entity {
     private final UUID addressId;
     private final UUID tokenId;
@@ -59,22 +63,6 @@ public class TokenBalance extends Entity {
         this.tokenId = tokenId;
         this.balance = balance;
         this.lastUpdated = Instant.now();
-    }
-
-    public UUID getAddressId() {
-        return addressId;
-    }
-
-    public UUID getTokenId() {
-        return tokenId;
-    }
-
-    public BigDecimal getBalance() {
-        return balance;
-    }
-
-    public Instant getLastUpdated() {
-        return lastUpdated;
     }
 
   /**
