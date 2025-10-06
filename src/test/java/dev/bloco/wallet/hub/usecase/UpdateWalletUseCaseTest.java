@@ -6,6 +6,7 @@ import dev.bloco.wallet.hub.domain.model.Wallet;
 import dev.bloco.wallet.hub.domain.model.wallet.WalletStatus;
 import dev.bloco.wallet.hub.domain.event.wallet.WalletUpdatedEvent;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -22,6 +23,7 @@ import static org.mockito.Mockito.*;
  * Unit tests for UpdateWalletUseCase.
  * Tests the wallet update functionality including validation and event publishing.
  */
+@DisplayName("Update Wallet Use Case Tests")
 @ExtendWith(MockitoExtension.class)
 class UpdateWalletUseCaseTest {
 
@@ -43,12 +45,13 @@ class UpdateWalletUseCaseTest {
         walletId = UUID.randomUUID();
         correlationId = UUID.randomUUID().toString();
         
-        // Create test wallet with active status
+        // Create a test wallet with active status
         testWallet = new Wallet(walletId, "Original Name", "Original Description");
         testWallet.setStatus(WalletStatus.ACTIVE);
     }
 
     @Test
+    @DisplayName("updateWallet updates wallet name and description and publishes event")
     void updateWallet_shouldUpdateNameAndDescription_whenValidInput() {
         // Arrange
         String newName = "Updated Wallet Name";
@@ -73,6 +76,7 @@ class UpdateWalletUseCaseTest {
     }
 
     @Test
+    @DisplayName("updateWallet updates wallet name and publishes event")
     void updateWallet_shouldUpdateOnlyName_whenDescriptionIsNull() {
         // Arrange
         String newName = "Updated Name Only";
@@ -92,6 +96,7 @@ class UpdateWalletUseCaseTest {
     }
 
     @Test
+    @DisplayName("updateWallet updates wallet description and publishes event")
     void updateWallet_shouldUpdateOnlyDescription_whenNameIsNull() {
         // Arrange
         String newDescription = "Updated Description Only";
@@ -111,6 +116,7 @@ class UpdateWalletUseCaseTest {
     }
 
     @Test
+    @DisplayName("updateWallet throws exception when both name and description are null")
     void updateWallet_shouldThrowException_whenBothNameAndDescriptionAreNull() {
         // Act & Assert
         IllegalArgumentException exception = assertThrows(
@@ -127,6 +133,7 @@ class UpdateWalletUseCaseTest {
     }
 
     @Test
+    @DisplayName("updateWallet throws exception when wallet is not found")
     void updateWallet_shouldThrowException_whenWalletNotFound() {
         // Arrange
         when(walletRepository.findById(walletId)).thenReturn(Optional.empty());
@@ -146,6 +153,7 @@ class UpdateWalletUseCaseTest {
     }
 
     @Test
+    @DisplayName("updateWallet throws exception when wallet is not active")
     void updateWallet_shouldThrowException_whenWalletIsNotActive() {
         // Arrange
         testWallet.setStatus(WalletStatus.DELETED);
@@ -166,6 +174,7 @@ class UpdateWalletUseCaseTest {
     }
 
     @Test
+    @DisplayName("updateWallet sets correlationId when updating")
     void updateWallet_shouldSetCorrelationId_whenUpdating() {
         // Arrange
         String newName = "Updated Name";

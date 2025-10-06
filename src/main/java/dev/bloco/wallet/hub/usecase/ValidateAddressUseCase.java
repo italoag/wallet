@@ -149,7 +149,7 @@ public record ValidateAddressUseCase(NetworkRepository networkRepository) {
         private final boolean networkCompatible;
         private final String error;
 
-        private AddressValidationResult(Builder builder) {
+        AddressValidationResult(Builder builder) {
             this.valid = builder.valid;
             this.address = builder.address;
             this.format = builder.format;

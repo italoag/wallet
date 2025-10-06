@@ -31,6 +31,7 @@ datetime updated_at
     VAULT {
         uuid id PK
         string name
+        string code
         enum type
         json configuration
         enum status

@@ -27,7 +27,7 @@ public record ActivateWalletUseCase(WalletRepository walletRepository, DomainEve
      * @param correlationId a unique identifier used to trace this operation
      * @return the activated wallet instance
      * @throws IllegalArgumentException if wallet not found
-     * @throws IllegalStateException if wallet is deleted and cannot be activated
+     * @throws IllegalStateException if the wallet is deleted and cannot be activated
      */
     public Wallet activateWallet(UUID walletId, String correlationId) {
         Wallet wallet = walletRepository.findById(walletId)

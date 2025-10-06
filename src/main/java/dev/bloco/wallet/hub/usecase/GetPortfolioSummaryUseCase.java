@@ -188,7 +188,7 @@ public record GetPortfolioSummaryUseCase(
     }
 
     /**
-     * Individual token holding information.
+     * Individual token-holding information.
      */
     public record TokenHolding(
         UUID tokenId,

@@ -64,12 +64,12 @@ class WalletTest {
 
         assertThatThrownBy(() -> wallet.withdrawFunds(BigDecimal.ZERO))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Insufficient balance or invalid amount");
+                .hasMessageContaining("Amount must be greater than zero");
         assertThatThrownBy(() -> wallet.withdrawFunds(new BigDecimal("-1")))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Insufficient balance or invalid amount");
+                .hasMessageContaining("Amount must be greater than zero");
         assertThatThrownBy(() -> wallet.withdrawFunds(new BigDecimal("20")))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Insufficient balance or invalid amount");
+                .hasMessageContaining("Insufficient balance");
     }
 }

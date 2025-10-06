@@ -24,101 +24,100 @@ import static org.mockito.Mockito.*;
 @DisplayName("Kafka Event Producer Tests")
 class KafkaEventProducerTest {
 
-    private OutboxService outboxService;
-    private StreamBridge streamBridge;
-    private ObjectMapper objectMapper;
-    private KafkaEventProducer producer;
+  private OutboxService outboxService;
+  private StreamBridge streamBridge;
+  private KafkaEventProducer producer;
 
-    @BeforeEach
-    void setUp() {
-        outboxService = mock(OutboxService.class);
-        streamBridge = mock(StreamBridge.class);
-        objectMapper = new ObjectMapper();
-        producer = new KafkaEventProducer(outboxService, streamBridge, objectMapper);
-    }
+  @BeforeEach
+  void setUp() {
+    outboxService = mock(OutboxService.class);
+    streamBridge = mock(StreamBridge.class);
+    ObjectMapper objectMapper = new ObjectMapper();
+    producer = new KafkaEventProducer(outboxService, streamBridge, objectMapper);
+  }
 
-    @Test
-    @DisplayName("Should produce wallet created event saved into outbox with correct type")
-    void produceWalletCreatedEvent_savesIntoOutboxWithCorrectType() {
-        var event = new WalletCreatedEvent(UUID.randomUUID(), UUID.randomUUID());
+  @Test
+  @DisplayName("Should produce wallet created event saved into outbox with correct type")
+  void produceWalletCreatedEvent_savesIntoOutboxWithCorrectType() {
+    var event = new WalletCreatedEvent(UUID.randomUUID(), UUID.randomUUID());
 
-        producer.produceWalletCreatedEvent(event);
+    producer.produceWalletCreatedEvent(event);
 
-        verifySaved("walletCreatedEventProducer", event);
-    }
+    verifySaved("walletCreatedEventProducer", event);
+  }
 
-    @Test
-    @DisplayName("Should produce funds added event saved into outbox with correct type")
-    void produceFundsAddedEvent_savesIntoOutboxWithCorrectType() {
-        var event = FundsAddedEvent.builder()
-                .walletId(UUID.randomUUID())
-                .amount(new BigDecimal("10.50"))
-                .correlationId("c-2")
-                .build();
+  @Test
+  @DisplayName("Should produce funds added event saved into outbox with correct type")
+  void produceFundsAddedEvent_savesIntoOutboxWithCorrectType() {
+    var event = FundsAddedEvent.builder()
+        .walletId(UUID.randomUUID())
+        .amount(new BigDecimal("10.50"))
+        .correlationId("c-2")
+        .build();
 
-        producer.produceFundsAddedEvent(event);
+    producer.produceFundsAddedEvent(event);
 
-        verifySaved("fundsAddedEventProducer", event);
-    }
+    verifySaved("fundsAddedEventProducer", event);
+  }
 
-    @Test
-    @DisplayName("Should produce funds withdrawn event saved into outbox with correct type")
-    void produceFundsWithdrawnEvent_savesIntoOutboxWithCorrectType() {
-        var event = FundsWithdrawnEvent.builder()
-                .walletId(UUID.randomUUID())
-                .amount(new BigDecimal("5.00"))
-                .correlationId("c-3")
-                .build();
+  @Test
+  @DisplayName("Should produce funds withdrawn event saved into outbox with correct type")
+  void produceFundsWithdrawnEvent_savesIntoOutboxWithCorrectType() {
+    var event = FundsWithdrawnEvent.builder()
+        .walletId(UUID.randomUUID())
+        .amount(new BigDecimal("5.00"))
+        .correlationId("c-3")
+        .build();
 
-        producer.produceFundsWithdrawnEvent(event);
+    producer.produceFundsWithdrawnEvent(event);
 
-        verifySaved("fundsWithdrawnEventProducer", event);
-    }
+    verifySaved("fundsWithdrawnEventProducer", event);
+  }
 
-    @Test
-    @DisplayName("Should produce funds transferred event saved into outbox with correct type")
-    void produceFundsTransferredEvent_savesIntoOutboxWithCorrectType() {
-        var event = FundsTransferredEvent.builder()
-                .fromWalletId(UUID.randomUUID())
-                .toWalletId(UUID.randomUUID())
-                .amount(new BigDecimal("1.00"))
-                .correlationId("c-4")
-                .build();
+  @Test
+  @DisplayName("Should produce funds transferred event saved into outbox with correct type")
+  void produceFundsTransferredEvent_savesIntoOutboxWithCorrectType() {
+    var event = FundsTransferredEvent.builder()
+        .fromWalletId(UUID.randomUUID())
+        .toWalletId(UUID.randomUUID())
+        .amount(new BigDecimal("1.00"))
+        .correlationId("c-4")
+        .build();
 
-        producer.produceFundsTransferredEvent(event);
+    producer.produceFundsTransferredEvent(event);
 
-        verifySaved("fundsTransferredEventProducer", event);
-    }
+    verifySaved("fundsTransferredEventProducer", event);
+  }
 
-    private void verifySaved(String expectedType, Object expectedEvent) {
-        ArgumentCaptor<String> typeCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> payloadCaptor = ArgumentCaptor.forClass(String.class);
-        verify(outboxService).saveOutboxEvent(typeCaptor.capture(), payloadCaptor.capture(), isNull());
-        assertThat(typeCaptor.getValue()).isEqualTo(expectedType);
-        assertThat(payloadCaptor.getValue()).contains("correlationId");
-    }
+  private void verifySaved(String expectedType, Object expectedEvent) {
+    ArgumentCaptor<String> typeCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<String> payloadCaptor = ArgumentCaptor.forClass(String.class);
+    verify(outboxService).saveOutboxEvent(typeCaptor.capture(), payloadCaptor.capture(), isNull());
+    assertThat(typeCaptor.getValue()).isEqualTo(expectedType);
+    assertThat(payloadCaptor.getValue()).contains("correlationId");
+  }
 
-    @Test
-    @DisplayName("Should process outbox and send events to kafka")
-    void processOutbox_sendsOnlySuccessfulAndMarksAsSent() {
-        // given
-        var e1 = new OutboxEvent();
-        e1.setId(1L);
-        e1.setEventType("fundsAddedEventProducer");
-        e1.setPayload("p1");
-        var e2 = new OutboxEvent();
-        e2.setId(2L);
-        e2.setEventType("fundsWithdrawnEventProducer");
-        e2.setPayload("p2");
-        when(outboxService.getUnsentEvents()).thenReturn(List.of(e1, e2));
-        when(streamBridge.send(eq("fundsAddedEventProducer-out-0"), eq("p1"))).thenReturn(true);
-        when(streamBridge.send(eq("fundsWithdrawnEventProducer-out-0"), eq("p2"))).thenReturn(false);
+  @Test
+  @DisplayName("Should process outbox and send events to kafka")
+  void processOutbox_sendsOnlySuccessfulAndMarksAsSent() {
+    // given
+    var e1 = new OutboxEvent();
+    e1.setId(1L);
+    e1.setEventType("fundsAddedEventProducer");
+    e1.setPayload("p1");
+    var e2 = new OutboxEvent();
+    e2.setId(2L);
+    e2.setEventType("fundsWithdrawnEventProducer");
+    e2.setPayload("p2");
+    when(outboxService.getUnsentEvents()).thenReturn(List.of(e1, e2));
+    when(streamBridge.send(eq("fundsAddedEventProducer-out-0"), eq("p1"))).thenReturn(true);
+    when(streamBridge.send(eq("fundsWithdrawnEventProducer-out-0"), eq("p2"))).thenReturn(false);
 
-        // when
-        producer.processOutbox();
+    // when
+    producer.processOutbox();
 
-        // then
-        verify(outboxService).markEventAsSent(e1);
-        verify(outboxService, never()).markEventAsSent(e2);
-    }
+    // then
+    verify(outboxService).markEventAsSent(e1);
+    verify(outboxService, never()).markEventAsSent(e2);
+  }
 }

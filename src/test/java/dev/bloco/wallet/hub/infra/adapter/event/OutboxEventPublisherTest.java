@@ -20,46 +20,46 @@ import static org.mockito.Mockito.*;
 @DisplayName("Outbox Event Publisher Tests")
 class OutboxEventPublisherTest {
 
-    private OutboxRepository outboxRepository;
-    private ObjectMapper objectMapper;
-    private OutboxEventPublisher publisher;
+  private OutboxRepository outboxRepository;
+  private OutboxEventPublisher publisher;
 
-    @BeforeEach
-    void setUp() {
-        outboxRepository = mock(OutboxRepository.class);
-        objectMapper = new ObjectMapper();
-        publisher = new OutboxEventPublisher(outboxRepository, objectMapper);
-    }
+  @BeforeEach
+  void setUp() {
+    outboxRepository = mock(OutboxRepository.class);
+    ObjectMapper objectMapper = new ObjectMapper();
+    publisher = new OutboxEventPublisher(outboxRepository, objectMapper);
+  }
 
-    @Test
-    @DisplayName("Should save event into outbox")
-    void publish_serializesEventAndSavesOutbox() {
-        // given
-        var event = new WalletCreatedEvent(UUID.randomUUID(), UUID.randomUUID());
+  @Test
+  @DisplayName("Should save event into outbox")
+  void publish_serializesEventAndSavesOutbox() {
+    // given
+    var event = new WalletCreatedEvent(UUID.randomUUID(), UUID.randomUUID());
 
-        // when
-        publisher.publish(event);
+    // when
+    publisher.publish(event);
 
-        // then
-        ArgumentCaptor<OutboxEvent> captor = ArgumentCaptor.forClass(OutboxEvent.class);
-        verify(outboxRepository).save(captor.capture());
-        OutboxEvent saved = captor.getValue();
-        assertThat(saved.getEventType()).isEqualTo("WalletCreatedEvent");
-        assertThat(saved.getPayload()).contains("correlationId");
-    }
+    // then
+    ArgumentCaptor<OutboxEvent> captor = ArgumentCaptor.forClass(OutboxEvent.class);
+    verify(outboxRepository).save(captor.capture());
+    OutboxEvent saved = captor.getValue();
+    assertThat(saved.getEventType()).isEqualTo("WalletCreatedEvent");
+    assertThat(saved.getPayload()).contains("correlationId");
+  }
 
-    @Test
-    @DisplayName("Should throw when serialization fails")
-    void publish_onSerializationError_throwsRuntimeException() throws JsonProcessingException {
-        // given
-        var badMapper = mock(ObjectMapper.class);
-        when(badMapper.writeValueAsString(any())).thenThrow(new JsonProcessingException("boom") {});
-        var failingPublisher = new OutboxEventPublisher(outboxRepository, badMapper);
+  @Test
+  @DisplayName("Should throw when serialization fails")
+  void publish_onSerializationError_throwsRuntimeException() throws JsonProcessingException {
+    // given
+    var badMapper = mock(ObjectMapper.class);
+    when(badMapper.writeValueAsString(any())).thenThrow(new JsonProcessingException("boom") {
+    });
+    var failingPublisher = new OutboxEventPublisher(outboxRepository, badMapper);
 
-        // when/then
-        assertThatThrownBy(() -> failingPublisher.publish(new Object()))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessageContaining("Failed to serialize event");
-        verify(outboxRepository, never()).save(any());
-    }
+    // when/then
+    assertThatThrownBy(() -> failingPublisher.publish(new Object()))
+        .isInstanceOf(RuntimeException.class)
+        .hasMessageContaining("Failed to serialize event");
+    verify(outboxRepository, never()).save(any());
+  }
 }

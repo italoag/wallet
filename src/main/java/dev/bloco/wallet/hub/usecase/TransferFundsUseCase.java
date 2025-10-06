@@ -50,6 +50,9 @@ public record TransferFundsUseCase(WalletRepository walletRepository, Transactio
    *                                  or the source wallet has insufficient funds for the transfer.
    */
   public void transferFunds(UUID fromWalletId, UUID toWalletId, BigDecimal amount, String correlationId) {
+    if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+      throw new IllegalArgumentException("Transfer amount must be greater than zero");
+    }
     Wallet fromWallet = walletRepository.findById(fromWalletId)
         .orElseThrow(() -> new IllegalArgumentException("From Wallet not found"));
     Wallet toWallet = walletRepository.findById(toWalletId)

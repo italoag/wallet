@@ -23,7 +23,7 @@ import org.springframework.util.StringUtils;
  * - Wallet must exist and be active
  * - Network must exist and be active
  * - Address must not already exist in the system
- * - Address format must be valid for the target network
+ * - an Address format must be valid for the target network
  * - Public key is optional for watch-only addresses
  * <p/>
  * Publishes:
@@ -93,7 +93,7 @@ public record ImportAddressUseCase(
             throw new IllegalArgumentException(ERROR_INVALID_ADDRESS_TEMPLATE.formatted(validationResult.getError()));
         }
 
-        // Check if address already exists
+        // Check if the address already exists
         if (addressRepository.findByNetworkIdAndAccountAddress(networkId, accountAddressValue).isPresent()) {
             throw new IllegalArgumentException(ERROR_ADDRESS_ALREADY_EXISTS_TEMPLATE.formatted(accountAddressValue));
         }
@@ -113,10 +113,10 @@ public record ImportAddressUseCase(
         // Create value objects
         AccountAddress accountAddress = new AccountAddress(accountAddressValue);
         
-        // Determine address type based on import context
+        // Determine an address type based on import context
         AddressType addressType = isWatchOnly ? AddressType.EXTERNAL : AddressType.EXTERNAL;
         
-        // Create derivation path for imported address
+        // Create a derivation path for imported address
         String derivationPath = "imported/" + (label != null ? label : "unlabeled");
 
         // Create address
@@ -143,7 +143,7 @@ public record ImportAddressUseCase(
     }
 
     /**
-     * Imports multiple addresses in batch.
+     * Imports multiple addresses in a batch.
      *
      * @param walletId the unique identifier of the wallet
      * @param networkId the unique identifier of the network

@@ -14,9 +14,11 @@ import okhttp3.mockwebserver.MockWebServer;
 import okhttp3.mockwebserver.RecordedRequest;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.web.reactive.function.client.WebClient;
 
+@DisplayName("Chainlist Network Repository Tests")
 class ChainlistNetworkRepositoryTest {
 
     private static final String CORRELATION_ID = UUID.randomUUID().toString();
@@ -45,6 +47,7 @@ class ChainlistNetworkRepositoryTest {
     }
 
     @Test
+    @DisplayName("findAll should fetch networks from chainlist")
     void findAll_shouldFetchNetworksFromChainlist() throws InterruptedException {
         String payload = "[" +
                 "{" +

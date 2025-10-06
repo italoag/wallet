@@ -166,7 +166,7 @@ public record AuthenticateUserUseCase(
         sessionRepository.invalidateAllUserSessions(userId);
     }
 
-    private UserSession createSession(UUID userId, String ipAddress, String userAgent) {
+    UserSession createSession(UUID userId, String ipAddress, String userAgent) {
         String sessionToken = generateSessionToken();
         Instant expiresAt = Instant.now().plusSeconds(24 * 60 * 60); // 24 hours
 
@@ -184,7 +184,7 @@ public record AuthenticateUserUseCase(
         return Base64.getUrlEncoder().withoutPadding().encodeToString(token);
     }
 
-    private boolean verifyPassword(String password, String hashedPassword) {
+    boolean verifyPassword(String password, String hashedPassword) {
         try {
             byte[] combined = Base64.getDecoder().decode(hashedPassword);
             

@@ -145,7 +145,7 @@ public record ChangePasswordUseCase(
         }
     }
 
-    private String hashPassword(String password) {
+    String hashPassword(String password) {
         try {
             // Generate salt
             SecureRandom random = new SecureRandom();

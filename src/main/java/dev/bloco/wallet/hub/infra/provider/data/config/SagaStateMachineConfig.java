@@ -36,6 +36,7 @@ public class SagaStateMachineConfig extends StateMachineConfigurerAdapter<SagaSt
         this.stateMachineRepository = stateMachineRepository;
     }
 
+
   /**
    * Configures the states of the state machine for the saga process.
    *</p>
