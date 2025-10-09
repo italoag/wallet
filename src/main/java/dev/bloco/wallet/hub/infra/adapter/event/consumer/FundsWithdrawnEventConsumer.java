@@ -5,10 +5,10 @@ import dev.bloco.wallet.hub.infra.provider.data.config.SagaEvents;
 import dev.bloco.wallet.hub.infra.provider.data.config.SagaStates;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.statemachine.StateMachine;
-import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import java.util.function.Consumer;
@@ -22,42 +22,42 @@ import java.util.function.Consumer;
  * and updates the state machine accordingly by sending appropriate events. If the correlation ID
  * is missing or null, it transitions the state machine to a SAGA_FAILED state and logs the failure.
  *<p/>
- * This class is configured as a Spring component and provides a bean of type Consumer<Message<FundsWithdrawnEvent>>,
+ * This class is configured to provide a bean of type Consumer<Message<FundsWithdrawnEvent>>,
  * which receives and processes the FundsWithdrawnEvent messages.
  */
-@Component
+@Configuration
 @Slf4j
 public class FundsWithdrawnEventConsumer {
 
     private final StateMachine<SagaStates, SagaEvents> stateMachine;
 
-  /**
-   * Constructs a FundsWithdrawnEventConsumer instance.
-   *<p/>
-   * This constructor initializes the {@code FundsWithdrawnEventConsumer} with a state machine
-   * used for managing the state transitions of the saga process when funds are withdrawn from a wallet.
-   *
-   * @param stateMachine the state machine instance responsible for tracking and transitioning
-   *                     between various states of the saga process
-   */
-  public FundsWithdrawnEventConsumer(StateMachine<SagaStates, SagaEvents> stateMachine) {
+    /**
+     * Constructs a FundsWithdrawnEventConsumer instance.
+     *<p/>
+     * This constructor initializes the {@code FundsWithdrawnEventConsumer} with a state machine
+     * used for managing the state transitions of the saga process when funds are withdrawn from a wallet.
+     *
+     * @param stateMachine the state machine instance responsible for tracking and transitioning
+     *                     between various states of the saga process
+     */
+    public FundsWithdrawnEventConsumer(StateMachine<SagaStates, SagaEvents> stateMachine) {
         this.stateMachine = stateMachine;
     }
 
-  /**
-   * Creates a consumer function for handling FundsWithdrawnEvent messages.
-   *<p/>
-   * This method is responsible for processing incoming messages of type FundsWithdrawnEvent,
-   * ensuring the presence of a valid correlation ID, and transitioning the state machine
-   * through the appropriate saga events. If the correlation ID is missing or null, the function
-   * transitions the state machine to a SAGA_FAILED state and logs the failure.
-   *<p/>
-   * The function supports state management by interacting with a state machine and helps to
-   * maintain consistency in distributed operations such as fund withdrawal processes.
-   *
-   * @return a Consumer function that processes messages containing FundsWithdrawnEvent data
-   */
-  @Bean
+    /**
+     * Creates a consumer function for handling FundsWithdrawnEvent messages.
+     *<p/>
+     * This method is responsible for processing incoming messages of type FundsWithdrawnEvent,
+     * ensuring the presence of a valid correlation ID, and transitioning the state machine
+     * through the appropriate saga events. If the correlation ID is missing or null, the function
+     * transitions the state machine to a SAGA_FAILED state and logs the failure.
+     *<p/>
+     * The function supports state management by interacting with a state machine and helps to
+     * maintain consistency in distributed operations such as fund withdrawal processes.
+     *
+     * @return a Consumer function that processes messages containing FundsWithdrawnEvent data
+     */
+    @Bean
     public Consumer<Message<FundsWithdrawnEvent>> fundsWithdrawnEventConsumerFunction() {
         return message -> {
             var event = message.getPayload();

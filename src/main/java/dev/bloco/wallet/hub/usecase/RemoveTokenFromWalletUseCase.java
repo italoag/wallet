@@ -34,7 +34,7 @@ public record RemoveTokenFromWalletUseCase(
      * @param reason the reason for removal (for audit purposes)
      * @param correlationId a unique identifier used to trace this operation
      * @throws IllegalArgumentException if validation fails
-     * @throws IllegalStateException if wallet is not active
+     * @throws IllegalStateException if the wallet is not active
      */
     public void removeTokenFromWallet(UUID walletId, UUID tokenId, String reason, String correlationId) {
         // Validate inputs

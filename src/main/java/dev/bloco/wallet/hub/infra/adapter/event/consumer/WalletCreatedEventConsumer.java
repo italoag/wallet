@@ -5,10 +5,10 @@ import dev.bloco.wallet.hub.infra.provider.data.config.SagaEvents;
 import dev.bloco.wallet.hub.infra.provider.data.config.SagaStates;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.statemachine.StateMachine;
-import org.springframework.stereotype.Component;
 import reactor.core.publisher.Mono;
 
 import java.util.function.Consumer;
@@ -25,7 +25,7 @@ import java.util.function.Consumer;
  * The class is annotated as a Spring component and provides a bean of type Consumer<Message<WalletCreatedEvent>>,
  * which is used to receive and process the WalletCreatedEvent messages.
  */
-@Component
+@Configuration
 @Slf4j
 public class WalletCreatedEventConsumer {
 
@@ -35,21 +35,21 @@ public class WalletCreatedEventConsumer {
         this.stateMachine = stateMachine;
     }
 
-  /**
-   * Creates a consumer function for handling WalletCreatedEvent messages.
-   *<p/>
-   * This method processes incoming messages of type WalletCreatedEvent, validates the presence
-   * of a correlation ID, and triggers appropriate state transitions in the state machine
-   * using saga events. If the correlation ID is present, it transitions the state machine
-   * to the WALLET_CREATED state and logs the success. If the correlation ID is missing or
-   * null, it transitions the state machine to the SAGA_FAILED state and logs the failure.
-   *<p/>
-   * The function facilitates the coordination of distributed operations by managing
-   * saga state transitions through the state machine.
-   *
-   * @return a Consumer function that processes messages containing WalletCreatedEvent data
-   */
-  @Bean
+    /**
+     * Creates a consumer function for handling WalletCreatedEvent messages.
+     *<p/>
+     * This method processes incoming messages of type WalletCreatedEvent, validates the presence
+     * of a correlation ID, and triggers appropriate state transitions in the state machine
+     * using saga events. If the correlation ID is present, it transitions the state machine
+     * to the WALLET_CREATED state and logs the success. If the correlation ID is missing or
+     * null, it transitions the state machine to the SAGA_FAILED state and logs the failure.
+     *<p/>
+     * The function facilitates the coordination of distributed operations by managing
+     * saga state transitions through the state machine.
+     *
+     * @return a Consumer function that processes messages containing WalletCreatedEvent data
+     */
+    @Bean
     public Consumer<Message<WalletCreatedEvent>> walletCreatedEventConsumerFunction() {
         return message -> {
             var event = message.getPayload();

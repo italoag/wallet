@@ -29,6 +29,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
+import reactor.core.scheduler.Schedulers;
 
 /**
  * {@link NetworkRepository} implementation that retrieves network metadata dynamically from
@@ -153,7 +154,7 @@ public class ChainlistNetworkRepository implements NetworkRepository {
                 return refreshed;
             }
 
-            // When refresh fails keep serving the existing cache, even if stale
+            // When refresh fails, keep serving the existing cache, even if stale
             return cached;
         }
     }
@@ -204,6 +205,7 @@ public class ChainlistNetworkRepository implements NetworkRepository {
                         }
                     })
                     .onErrorReturn(List.of())
+                    .subscribeOn(Schedulers.boundedElastic())
                     .block();
         } catch (Exception ex) {
             LOGGER.error("Unexpected error in fetchFromChainlist", ex);
@@ -232,7 +234,7 @@ public class ChainlistNetworkRepository implements NetworkRepository {
         
         String explorerUrl = extractExplorerUrl(node.path("explorers")).orElse(rpcUrl);
         
-        // Add timestamp or random component to prevent collisions
+        // Add a timestamp or random component to prevent collisions
         String uniqueInput = "chainlist:" + chainId + ":" + System.currentTimeMillis();
         UUID id = UUID.nameUUIDFromBytes(uniqueInput.getBytes(StandardCharsets.UTF_8));
 
