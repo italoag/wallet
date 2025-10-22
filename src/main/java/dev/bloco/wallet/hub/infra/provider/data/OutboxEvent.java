@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import lombok.*;
 import org.hibernate.proxy.HibernateProxy;
 
-import java.time.LocalDateTime;
+import org.hibernate.annotations.CreationTimestamp;
+
+import java.time.Instant;
 import java.util.Objects;
 
 /**
@@ -44,7 +46,7 @@ import java.util.Objects;
 @Setter
 @ToString
 @RequiredArgsConstructor
-@Table(name = "outbox")
+@Table(name = "outbox", indexes = {@Index(name = "idx_outbox_created_at", columnList = "created_at")})
 public class OutboxEvent {
 
     @Id
@@ -60,8 +62,9 @@ public class OutboxEvent {
     @Column(name = "correlation_id")
     private String correlationId;
 
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt = LocalDateTime.now();
+    @CreationTimestamp
+    @Column(name = "created_at", nullable = false, updatable = false)
+    private Instant createdAt;
 
     @Column(name = "sent", nullable = false)
     private boolean sent = false;
