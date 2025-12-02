@@ -63,18 +63,17 @@ public class FundsAddedEventConsumer {
     public Consumer<Message<FundsAddedEvent>> fundsAddedEventConsumerFunction() {
         return message -> {
             var event = message.getPayload();
-            try {
-                Objects.requireNonNull(event.correlationId(), "correlationId is required");
-                var stateMachineMessage = MessageBuilder.withPayload(SagaEvents.FUNDS_ADDED)
-                        .setHeader("correlationId", event.correlationId())
-                        .build();
-                var result = stateMachine.sendEvent(Mono.just(stateMachineMessage));
-                result.subscribe(); // Process the result if needed
-                log.info("Funds added: {} to wallet {}", event.amount(), event.walletId());
-            } catch (NullPointerException e) {
+            String corr = event.correlationId();
+            if (corr == null || corr.isBlank()) {
                 stateMachine.sendEvent(Mono.just(MessageBuilder.withPayload(SagaEvents.SAGA_FAILED).build())).subscribe();
-                log.info("Failed to add funds: {}", e.getMessage());
+                log.warn("Failed to add funds due to missing correlationId for wallet {}", event.walletId());
+                return;
             }
+            var stateMachineMessage = MessageBuilder.withPayload(SagaEvents.FUNDS_ADDED)
+                    .setHeader("correlationId", corr)
+                    .build();
+            stateMachine.sendEvent(Mono.just(stateMachineMessage)).subscribe();
+            log.info("Funds added: {} to wallet {}", event.amount(), event.walletId());
         };
     }
 }

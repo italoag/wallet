@@ -91,8 +91,21 @@ public class SagaStateMachineConfig extends StateMachineConfigurerAdapter<SagaSt
                 .withExternal()
                 .source(SagaStates.FUNDS_TRANSFERRED).target(SagaStates.COMPLETED).event(SagaEvents.SAGA_COMPLETED)
                 .and()
+                // Explicit failure transitions from each state
                 .withExternal()
-                .source(SagaStates.ANY).target(SagaStates.FAILED).event(SagaEvents.SAGA_FAILED);
+                .source(SagaStates.INITIAL).target(SagaStates.FAILED).event(SagaEvents.SAGA_FAILED)
+                .and()
+                .withExternal()
+                .source(SagaStates.WALLET_CREATED).target(SagaStates.FAILED).event(SagaEvents.SAGA_FAILED)
+                .and()
+                .withExternal()
+                .source(SagaStates.FUNDS_ADDED).target(SagaStates.FAILED).event(SagaEvents.SAGA_FAILED)
+                .and()
+                .withExternal()
+                .source(SagaStates.FUNDS_WITHDRAWN).target(SagaStates.FAILED).event(SagaEvents.SAGA_FAILED)
+                .and()
+                .withExternal()
+                .source(SagaStates.FUNDS_TRANSFERRED).target(SagaStates.FAILED).event(SagaEvents.SAGA_FAILED);
     }
 
   /**

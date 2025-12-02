@@ -10,7 +10,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.stream.function.StreamBridge;
-import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 /**
@@ -118,11 +117,32 @@ public class KafkaEventProducer implements EventProducer {
     private void saveEventToOutbox(String eventType, Object event) {
         try {
             var payload = objectMapper.writeValueAsString(event);
-            outboxService.saveOutboxEvent(eventType, payload, null);
+            String correlationId = extractCorrelationId(event);
+            outboxService.saveOutboxEvent(eventType, payload, correlationId);
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize event", e);
             throw new RuntimeException("Failed to serialize event", e);
         }
+    }
+
+    private String extractCorrelationId(Object event) {
+        try {
+            if (event instanceof dev.bloco.wallet.hub.domain.event.common.DomainEvent de && de.getCorrelationId() != null) {
+                return de.getCorrelationId().toString();
+            }
+            if (event instanceof FundsAddedEvent fa) {
+                return fa.correlationId();
+            }
+            if (event instanceof FundsWithdrawnEvent fw) {
+                return fw.correlationId();
+            }
+            if (event instanceof FundsTransferredEvent ft) {
+                return ft.correlationId();
+            }
+        } catch (Exception ignored) {
+            // ignore and return null
+        }
+        return null;
     }
 
   /**
@@ -142,11 +162,4 @@ public class KafkaEventProducer implements EventProducer {
    * - `outboxService` is used to fetch unsent events and update their status.
    * - `streamBridge` is used to send the serialized event payload to Kafka.
    */
-  @Scheduled(fixedRate = 5000)
-    public void processOutbox() {
-        var unsentEvents = outboxService.getUnsentEvents();
-        unsentEvents.stream()
-            .filter(event -> streamBridge.send(event.getEventType() + "-out-0", event.getPayload()))
-            .forEach(outboxService::markEventAsSent);
-    }
 }

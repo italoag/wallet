@@ -12,6 +12,7 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.cloud.stream.function.StreamBridge;
+import dev.bloco.wallet.hub.infra.provider.data.OutboxWorker;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -39,11 +40,12 @@ class KafkaEventProducerTest {
   @Test
   @DisplayName("Should produce wallet created event saved into outbox with correct type")
   void produceWalletCreatedEvent_savesIntoOutboxWithCorrectType() {
-    var event = new WalletCreatedEvent(UUID.randomUUID(), UUID.randomUUID());
+    var corr = UUID.randomUUID();
+    var event = new WalletCreatedEvent(UUID.randomUUID(), corr);
 
     producer.produceWalletCreatedEvent(event);
 
-    verifySaved("walletCreatedEventProducer", event);
+    verifySaved("walletCreatedEventProducer", event, corr.toString());
   }
 
   @Test
@@ -57,7 +59,7 @@ class KafkaEventProducerTest {
 
     producer.produceFundsAddedEvent(event);
 
-    verifySaved("fundsAddedEventProducer", event);
+    verifySaved("fundsAddedEventProducer", event, "c-2");
   }
 
   @Test
@@ -71,7 +73,7 @@ class KafkaEventProducerTest {
 
     producer.produceFundsWithdrawnEvent(event);
 
-    verifySaved("fundsWithdrawnEventProducer", event);
+    verifySaved("fundsWithdrawnEventProducer", event, "c-3");
   }
 
   @Test
@@ -86,15 +88,17 @@ class KafkaEventProducerTest {
 
     producer.produceFundsTransferredEvent(event);
 
-    verifySaved("fundsTransferredEventProducer", event);
+    verifySaved("fundsTransferredEventProducer", event, "c-4");
   }
 
-  private void verifySaved(String expectedType, Object expectedEvent) {
+  private void verifySaved(String expectedType, Object expectedEvent, String expectedCorrelationId) {
     ArgumentCaptor<String> typeCaptor = ArgumentCaptor.forClass(String.class);
     ArgumentCaptor<String> payloadCaptor = ArgumentCaptor.forClass(String.class);
-    verify(outboxService).saveOutboxEvent(typeCaptor.capture(), payloadCaptor.capture(), isNull());
+    ArgumentCaptor<String> corrCaptor = ArgumentCaptor.forClass(String.class);
+    verify(outboxService).saveOutboxEvent(typeCaptor.capture(), payloadCaptor.capture(), corrCaptor.capture());
     assertThat(typeCaptor.getValue()).isEqualTo(expectedType);
     assertThat(payloadCaptor.getValue()).contains("correlationId");
+    assertThat(corrCaptor.getValue()).isEqualTo(expectedCorrelationId);
   }
 
   @Test
@@ -114,7 +118,8 @@ class KafkaEventProducerTest {
     when(streamBridge.send(eq("fundsWithdrawnEventProducer-out-0"), eq("p2"))).thenReturn(false);
 
     // when
-    producer.processOutbox();
+    OutboxWorker worker = new OutboxWorker(outboxService, streamBridge);
+    worker.processOutbox();
 
     // then
     verify(outboxService).markEventAsSent(e1);

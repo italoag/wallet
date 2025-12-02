@@ -31,7 +31,8 @@ import org.springframework.statemachine.config.builders.StateMachineTransitionCo
  * - Any state can transition to the `FAILED` end state upon the `SAGA_FAILED` event.
  */
 @Configuration
-@EnableStateMachine
+@org.springframework.context.annotation.Profile("standard-saga-disabled")
+@Deprecated
 public class StandardSagaStateMachineConfig extends StateMachineConfigurerAdapter<SagaStates, SagaEvents> {
 
   /**

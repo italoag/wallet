@@ -9,10 +9,18 @@ import reactor.core.publisher.Mono;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringJUnitConfig(classes = StandardSagaStateMachineConfig.class)
+@SpringJUnitConfig(classes = {SagaStateMachineConfig.class, StandardSagaStateMachineConfigTest.MockBeans.class})
 @org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
-@DisplayName("Standard Saga State Machine Config Tests")
+@DisplayName("Saga State Machine Config Tests (former standard config)")
 class StandardSagaStateMachineConfigTest {
+
+    @org.springframework.context.annotation.Configuration
+    static class MockBeans {
+        @org.springframework.context.annotation.Bean
+        dev.bloco.wallet.hub.infra.provider.data.repository.StateMachineRepository stateMachineRepository() {
+            return org.mockito.Mockito.mock(dev.bloco.wallet.hub.infra.provider.data.repository.StateMachineRepository.class);
+        }
+    }
 
     @org.springframework.beans.factory.annotation.Autowired
     private StateMachine<SagaStates, SagaEvents> sm;

@@ -27,7 +27,9 @@ class CloudEventUtilsTest {
         assertThat(event.getType()).isEqualTo(type);
         assertThat(event.getSource()).isEqualTo(URI.create(source));
         assertThat(event.getData()).isNotNull();
-        assertThat(new String(event.getData().toBytes())).isEqualTo(data);
+        // JSON string payload should be quoted
+        assertThat(new String(event.getData().toBytes())).isEqualTo("\"payload-data\"");
+        assertThat(event.getDataContentType()).isEqualTo("application/json");
         // no correlationId extension present
         assertThat(event.getExtensionNames()).doesNotContain("correlationid");
     }
@@ -48,7 +50,9 @@ class CloudEventUtilsTest {
         assertThat(event.getId()).isNotNull();
         assertThat(event.getType()).isEqualTo(type);
         assertThat(event.getSource()).isEqualTo(URI.create(source));
-        assertThat(new String(event.getData().toBytes())).isEqualTo(data);
+        // JSON string payload should be quoted
+        assertThat(new String(event.getData().toBytes())).isEqualTo("\"another-payload\"");
+        assertThat(event.getDataContentType()).isEqualTo("application/json");
         // CloudEvents SDK stores extension keys in lowercase
         assertThat(event.getExtensionNames()).contains("correlationid");
         assertThat(event.getExtension("correlationid")).isEqualTo(correlationId);

@@ -16,17 +16,19 @@ public class CloudEventUtils {
    * This method generates a unique ID for the event and includes the provided payload data.
    *
    * @param <T>   The type of the data payload.
-   * @param data  The payload data to include in the CloudEvent. The data is serialized to a byte array using the result of {@code data.toString()}.
+   * @param data  The payload data to include in the CloudEvent. The data is serialized to JSON bytes.
    * @param type  The type of the CloudEvent, identifying the nature of the event.
    * @param source The URI that identifies the source of the CloudEvent.
    * @return A CloudEvent instance containing the specified attributes and data payload.
    */
     public static <T> CloudEvent createCloudEvent(T data, String type, String source) {
+        byte[] json = toJsonBytes(data);
         return CloudEventBuilder.v1()
                 .withId(UUID.randomUUID().toString())
                 .withType(type)
                 .withSource(URI.create(source))
-                .withData(data.toString().getBytes())
+                .withDataContentType("application/json")
+                .withData(json)
                 .build();
     }
 
@@ -36,20 +38,33 @@ public class CloudEventUtils {
    * and includes the correlation ID as an extension attribute.
    *
    * @param <T>           The type of the data payload.
-   * @param data          The payload data to include in the CloudEvent. The data is serialized to a byte array
-   *                      using the result of {@code data.toString()}.
+   * @param data          The payload data to include in the CloudEvent. The data is serialized to JSON bytes.
    * @param type          The type of the CloudEvent, identifying the nature of the event.
    * @param source        The URI that identifies the source of the CloudEvent.
    * @param correlationId The ID used to correlate the event with related events or actions.
    * @return A CloudEvent instance containing the specified attributes, data payload, and the correlation ID.
    */
     public static <T> CloudEvent createCloudEvent(T data, String type, String source, String correlationId) {
+        byte[] json = toJsonBytes(data);
         return CloudEventBuilder.v1()
                 .withId(UUID.randomUUID().toString())
                 .withType(type)
                 .withSource(URI.create(source))
                 .withExtension("correlationid", correlationId)
-                .withData(data.toString().getBytes())
+                .withDataContentType("application/json")
+                .withData(json)
                 .build();
+    }
+
+    private static byte[] toJsonBytes(Object data) {
+        try {
+            // Use Jackson if available on classpath
+            com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
+            om.findAndRegisterModules();
+            return om.writeValueAsBytes(data);
+        } catch (Exception ex) {
+            // Fallback to toString() if serialization fails to avoid hard failures
+            return String.valueOf(data).getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        }
     }
 }

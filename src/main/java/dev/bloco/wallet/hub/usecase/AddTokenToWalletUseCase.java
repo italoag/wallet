@@ -59,12 +59,12 @@ public record AddTokenToWalletUseCase(
         Token token = tokenRepository.findById(tokenId)
                 .orElseThrow(() -> new IllegalArgumentException("Token not found with id: " + tokenId));
 
-        // Check if token is already added to wallet
+        // Check if a token is already added to the wallet
         if (walletTokenRepository.existsByWalletIdAndTokenId(walletId, tokenId)) {
             throw new IllegalArgumentException("Token is already added to this wallet");
         }
 
-        // Create wallet-token relationship
+        // Create a wallet-token relationship
         WalletToken walletToken = displayName != null ? 
             WalletToken.create(UUID.randomUUID(), walletId, tokenId, displayName) :
             WalletToken.create(UUID.randomUUID(), walletId, tokenId);

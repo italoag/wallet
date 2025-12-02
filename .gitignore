@@ -32,3 +32,15 @@ build/
 ### VS Code ###
 .vscode/
 .DS_Store
+
+### AI Agents
+.agent-os/
+.claude/
+.codex/
+.gemini/
+.github/prompts/
+.github/agents/
+.specify/
+.junie/
+.qodo/
+.qoder/
