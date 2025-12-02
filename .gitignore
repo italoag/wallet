@@ -44,3 +44,4 @@ build/
 .junie/
 .qodo/
 .qoder/
+.envrc
