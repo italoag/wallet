@@ -388,6 +388,6 @@ public class ReactiveContextPropagator {
                 // Trace context cleanup handled by Micrometer
                 log.trace("Reactive operation completed [signal={}]", signal);
             });
-        }).contextWrite(ctx -> ctx.putAll(context));
+        }).contextWrite(ctx -> ctx.putAll(ctx));
     }
 }

@@ -1,10 +1,9 @@
 package dev.bloco.wallet.hub.infra.provider.mapper;
 
+import org.mapstruct.Mapper;
+
 import dev.bloco.wallet.hub.domain.model.transaction.Transaction;
 import dev.bloco.wallet.hub.infra.provider.data.entity.TransactionEntity;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.Mappings;
 
 /**
  * Mapper interface for converting between {@link Transaction} domain objects and

@@ -173,12 +173,10 @@ public class UseCaseTracingAspect {
                          className, methodName, ex.getClass().getSimpleName());
                 
                 // Rethrow as RuntimeException if it's a checked exception
-                if (ex instanceof RuntimeException) {
-                    throw (RuntimeException) ex;
-                } else if (ex instanceof Error) {
-                    throw (Error) ex;
-                } else {
-                    throw new RuntimeException("Use case execution failed", ex);
+                switch (ex) {
+                    case RuntimeException runtimeException -> throw runtimeException;
+                    case Error error -> throw error;
+                    default -> throw new RuntimeException("Use case execution failed", ex);
                 }
             }
         });

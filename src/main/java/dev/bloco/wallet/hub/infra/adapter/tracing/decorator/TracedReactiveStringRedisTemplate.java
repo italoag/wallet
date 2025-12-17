@@ -1,19 +1,18 @@
 package dev.bloco.wallet.hub.infra.adapter.tracing.decorator;
 
+import java.time.Duration;
+import java.util.Collection;
+import java.util.Map;
+
+import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
+import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
+
 import dev.bloco.wallet.hub.infra.adapter.tracing.config.TracingFeatureFlags;
 import dev.bloco.wallet.hub.infra.adapter.tracing.propagation.ReactiveContextPropagator;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.data.redis.connection.ReactiveRedisConnectionFactory;
-import org.springframework.data.redis.core.ReactiveStringRedisTemplate;
-import reactor.core.publisher.Flux;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
-
-import java.time.Duration;
-import java.util.Collection;
-import java.util.Map;
 
 /**
  * Traced wrapper for ReactiveStringRedisTemplate that adds distributed tracing
@@ -51,9 +50,8 @@ import java.util.Map;
  *     .map(value -> deserialize(value));
  * }</pre>
  */
+@Slf4j
 public class TracedReactiveStringRedisTemplate {
-
-    private static final Logger log = LoggerFactory.getLogger(TracedReactiveStringRedisTemplate.class);
     
     private final ReactiveStringRedisTemplate delegate;
     private final Tracer tracer;

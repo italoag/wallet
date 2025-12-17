@@ -1,6 +1,7 @@
 package dev.bloco.wallet.hub.infra.adapter.tracing.aspect;
 
 import java.lang.reflect.Method;
+import java.util.function.Supplier;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -154,12 +155,10 @@ public class RepositoryTracingAspect {
                          className, methodName, ex.getClass().getSimpleName());
                 
                 // Rethrow as RuntimeException if it's a checked exception
-                if (ex instanceof RuntimeException) {
-                    throw (RuntimeException) ex;
-                } else if (ex instanceof Error) {
-                    throw (Error) ex;
-                } else {
-                    throw new RuntimeException("Repository operation failed", ex);
+                switch (ex) {
+                    case RuntimeException runtimeException -> throw runtimeException;
+                    case Error error -> throw error;
+                    default -> throw new RuntimeException("Repository operation failed", ex);
                 }
             }
         });
@@ -203,43 +202,44 @@ public class RepositoryTracingAspect {
                 .lowCardinalityKeyValue("transaction.class", className)
                 .lowCardinalityKeyValue("transaction.method", methodName);
 
-        return observation.observe(() -> {
-            final long startTime = System.currentTimeMillis();
-            try {
-                // Add transaction attributes
-                addTransactionAttributes(observation, transactional);
-
-                // Execute the transactional method
-                Object result = joinPoint.proceed();
-
-                // Calculate duration
-                long duration = System.currentTimeMillis() - startTime;
-                observation.highCardinalityKeyValue("tx.duration_ms", String.valueOf(duration));
-                observation.lowCardinalityKeyValue("tx.status", "COMMITTED");
-                observation.lowCardinalityKeyValue("status", "success");
-
-                log.trace("Transaction traced: {}.{} ({}ms, COMMITTED)", className, methodName, duration);
-                return result;
-
-            } catch (Throwable ex) {
-                long duration = System.currentTimeMillis() - startTime;
-                observation.highCardinalityKeyValue("tx.duration_ms", String.valueOf(duration));
-                observation.lowCardinalityKeyValue("tx.status", "ROLLED_BACK");
-                observation.lowCardinalityKeyValue("status", "error");
-                observation.error(ex);
-                
-                addErrorAttributes(observation, ex);
-                
-                log.debug("Transaction traced with error: {}.{} - {} (ROLLED_BACK)", 
-                         className, methodName, ex.getClass().getSimpleName());
-                
-                // Rethrow as RuntimeException if it's a checked exception
-                if (ex instanceof RuntimeException) {
-                    throw (RuntimeException) ex;
-                } else if (ex instanceof Error) {
-                    throw (Error) ex;
-                } else {
-                    throw new RuntimeException("Transaction failed", ex);
+        return observation.observe(new Supplier<Object>() {
+            @Override
+            public Object get() {
+                final long startTime = System.currentTimeMillis();
+                try {
+                    // Add transaction attributes
+                    addTransactionAttributes(observation, transactional);
+                    
+                    // Execute the transactional method
+                    Object result = joinPoint.proceed();
+                    
+                    // Calculate duration
+                    long duration = System.currentTimeMillis() - startTime;
+                    observation.highCardinalityKeyValue("tx.duration_ms", String.valueOf(duration));
+                    observation.lowCardinalityKeyValue("tx.status", "COMMITTED");
+                    observation.lowCardinalityKeyValue("status", "success");
+                    
+                    log.trace("Transaction traced: {}.{} ({}ms, COMMITTED)", className, methodName, duration);
+                    return result;
+                    
+                } catch (Throwable ex) {
+                    long duration = System.currentTimeMillis() - startTime;
+                    observation.highCardinalityKeyValue("tx.duration_ms", String.valueOf(duration));
+                    observation.lowCardinalityKeyValue("tx.status", "ROLLED_BACK");
+                    observation.lowCardinalityKeyValue("status", "error");
+                    observation.error(ex);
+                    
+                    addErrorAttributes(observation, ex);
+                    
+                    log.debug("Transaction traced with error: {}.{} - {} (ROLLED_BACK)",
+                            className, methodName, ex.getClass().getSimpleName());
+                    
+                    // Rethrow as RuntimeException if it's a checked exception
+                    switch (ex) {
+                        case RuntimeException runtimeException -> throw runtimeException;
+                        case Error error -> throw error;
+                        default -> throw new RuntimeException("Transaction failed", ex);
+                    }
                 }
             }
         });

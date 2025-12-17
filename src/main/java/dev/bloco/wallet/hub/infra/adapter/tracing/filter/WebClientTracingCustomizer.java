@@ -1,11 +1,7 @@
 package dev.bloco.wallet.hub.infra.adapter.tracing.filter;
 
-import dev.bloco.wallet.hub.infra.adapter.tracing.config.TracingFeatureFlags;
-import io.micrometer.tracing.Span;
-import io.micrometer.tracing.Tracer;
-import io.micrometer.tracing.propagation.Propagator;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import java.net.URI;
+
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.web.reactive.function.client.WebClientCustomizer;
@@ -14,10 +10,14 @@ import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ClientResponse;
 import org.springframework.web.reactive.function.client.ExchangeFilterFunction;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
 
-import java.net.URI;
-import java.time.Duration;
+import dev.bloco.wallet.hub.infra.adapter.tracing.config.TracingFeatureFlags;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
+import io.micrometer.tracing.propagation.Propagator;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
 
 /**
  * WebClient customizer that adds distributed tracing to all outbound HTTP calls.
