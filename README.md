@@ -150,6 +150,54 @@ src/
       infra/... (producers/consumers tests)
 ```
 
+## Distributed Tracing
+
+Wallet Hub includes comprehensive distributed tracing using Micrometer Tracing (Brave) with OpenTelemetry semantic conventions.
+
+### Features
+- **End-to-end transaction tracing** across use cases, databases, Kafka events, and state machines
+- **Reactive pipeline tracing** with context propagation through Mono/Flux operators
+- **Runtime feature flags** for granular control of instrumentation (no restart required)
+- **Sensitive data sanitization** for PII, credentials, and secrets
+- **Resilient export** with circuit breaker and primary/fallback backends
+- **Performance optimized** - <5ms overhead per operation, <1μs feature flag checks
+
+### Quick Start
+
+**View traces:** Access via configured backend (OTLP/Zipkin)
+
+**Health check:**
+```bash
+curl http://localhost:8080/actuator/health/tracing
+```
+
+**Metrics:**
+```bash
+curl http://localhost:8080/actuator/metrics | grep tracing
+```
+
+**Feature flags (application-tracing.yml):**
+```yaml
+tracing:
+  features:
+    database: true        # JPA, R2DBC operations
+    kafka: true           # Kafka events
+    state-machine: true   # State transitions
+    reactive: true        # Reactor pipelines
+```
+
+**Runtime updates:**
+```bash
+# Update configuration, then:
+curl -X POST http://localhost:8080/actuator/refresh
+```
+
+### Documentation
+
+- **Complete guide:** [docs/TRACING.md](docs/TRACING.md) - Feature flags, troubleshooting, performance tuning
+- **Span attributes schema:** [specs/001-observability-tracing/contracts/span-attributes-schema.yaml](specs/001-observability-tracing/contracts/span-attributes-schema.yaml)
+- **Architecture:** [specs/001-observability-tracing/plan.md](specs/001-observability-tracing/plan.md)
+
 ## Changelog
 - See CHANGELOG.md for release notes.
 

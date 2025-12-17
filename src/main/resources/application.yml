@@ -1,6 +1,8 @@
 spring:
   application:
     name: wallet-hub
+  main:
+    allow-bean-definition-overriding: true
   cache:
     cache-names: wallet-hub
   devtools:

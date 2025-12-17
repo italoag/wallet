@@ -1,25 +1,31 @@
 package dev.bloco.wallet.hub.infra.adapter.event.producer;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import dev.bloco.wallet.hub.domain.event.wallet.FundsAddedEvent;
-import dev.bloco.wallet.hub.domain.event.wallet.FundsTransferredEvent;
-import dev.bloco.wallet.hub.domain.event.wallet.FundsWithdrawnEvent;
-import dev.bloco.wallet.hub.domain.event.wallet.WalletCreatedEvent;
-import dev.bloco.wallet.hub.infra.provider.data.OutboxEvent;
-import dev.bloco.wallet.hub.infra.provider.data.OutboxService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
-import org.springframework.cloud.stream.function.StreamBridge;
-
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import org.springframework.cloud.stream.function.StreamBridge;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import dev.bloco.wallet.hub.domain.event.wallet.FundsAddedEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.FundsTransferredEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.FundsWithdrawnEvent;
+import dev.bloco.wallet.hub.domain.event.wallet.WalletCreatedEvent;
+import dev.bloco.wallet.hub.infra.adapter.tracing.propagation.CloudEventTracePropagator;
+import dev.bloco.wallet.hub.infra.provider.data.OutboxEvent;
+import dev.bloco.wallet.hub.infra.provider.data.OutboxService;
 
 @DisplayName("Kafka Event Producer Tests")
 class KafkaEventProducerTest {
@@ -27,6 +33,7 @@ class KafkaEventProducerTest {
     private OutboxService outboxService;
     private StreamBridge streamBridge;
     private ObjectMapper objectMapper;
+    private CloudEventTracePropagator tracePropagator;
     private KafkaEventProducer producer;
 
     @BeforeEach
@@ -34,7 +41,8 @@ class KafkaEventProducerTest {
         outboxService = mock(OutboxService.class);
         streamBridge = mock(StreamBridge.class);
         objectMapper = new ObjectMapper();
-        producer = new KafkaEventProducer(outboxService, streamBridge, objectMapper);
+        tracePropagator = mock(CloudEventTracePropagator.class);
+        producer = new KafkaEventProducer(outboxService, streamBridge, objectMapper, tracePropagator);
     }
 
     @Test
@@ -111,8 +119,9 @@ class KafkaEventProducerTest {
         e2.setEventType("fundsWithdrawnEventProducer");
         e2.setPayload("p2");
         when(outboxService.getUnsentEvents()).thenReturn(List.of(e1, e2));
-        when(streamBridge.send(eq("fundsAddedEventProducer-out-0"), eq("p1"))).thenReturn(true);
-        when(streamBridge.send(eq("fundsWithdrawnEventProducer-out-0"), eq("p2"))).thenReturn(false);
+        // Now expects CloudEvent objects instead of raw strings
+        when(streamBridge.send(eq("fundsAddedEventProducer-out-0"), org.mockito.ArgumentMatchers.any())).thenReturn(true);
+        when(streamBridge.send(eq("fundsWithdrawnEventProducer-out-0"), org.mockito.ArgumentMatchers.any())).thenReturn(false);
 
         // when
         producer.processOutbox();

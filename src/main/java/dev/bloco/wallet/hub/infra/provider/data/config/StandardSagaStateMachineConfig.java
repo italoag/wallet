@@ -1,6 +1,7 @@
 package dev.bloco.wallet.hub.infra.provider.data.config;
 
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.statemachine.config.EnableStateMachine;
 import org.springframework.statemachine.config.StateMachineConfigurerAdapter;
 import org.springframework.statemachine.config.builders.StateMachineStateConfigurer;
@@ -32,6 +33,7 @@ import org.springframework.statemachine.config.builders.StateMachineTransitionCo
  */
 @Configuration
 @EnableStateMachine
+@Profile("!saga")
 public class StandardSagaStateMachineConfig extends StateMachineConfigurerAdapter<SagaStates, SagaEvents> {
 
   /**

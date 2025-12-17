@@ -110,7 +110,8 @@ FOLLOW-UP TODOs:
 - Saga tests: import only state machine config, verify state transitions
 - Contract tests: verify producer/consumer message schemas match
 - TDD cycle: Write test → See it FAIL → Implement → See it PASS → Refactor
-
+- Never use Inner Classes
+ 
 **Rationale**: Test-first ensures specifications are clear, prevents regressions, and provides living documentation. For financial systems, test coverage is non-negotiable for correctness.
 
 ---

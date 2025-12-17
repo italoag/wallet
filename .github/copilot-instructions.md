@@ -138,6 +138,7 @@ src/
 - Executar app (perfil default com H2): ./mvnw spring-boot:run
 - Infra local opcional via Docker Compose (Mongo, Postgres, Redis): docker compose up -d
 - Kafka binder: brokers em localhost:9092 (ajuste ao usar broker local)
+- Nunca tente utilizar o comando timeout no MacOS, pois ele não existe por padrão.
 
 ## Armadilhas Conhecidas
 - Duplicidade de bean em FundsAddedEventConsumer: classe anotada com @Component e método @Bean com mesmo nome (consumer funcional) causam BeanDefinitionOverrideException

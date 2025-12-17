@@ -1,0 +1,35 @@
+# Test configuration for integration tests
+
+management:
+  tracing:
+    enabled: true
+    sampling:
+      probability: 1.0
+
+tracing:
+  features:
+    api: true
+    database: true
+    kafka: true
+    stateMachine: true
+    externalApi: true
+    reactive: true
+    useCase: true
+
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  
+  # TestContainers will override these dynamically
+  datasource:
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    
+logging:
+  level:
+    dev.bloco.wallet: DEBUG
+    org.testcontainers: INFO

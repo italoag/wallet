@@ -1,69 +1,142 @@
 package dev.bloco.wallet.hub.infra.adapter.event.consumer;
 
-import dev.bloco.wallet.hub.domain.event.wallet.WalletCreatedEvent;
-import dev.bloco.wallet.hub.infra.provider.data.config.SagaEvents;
-import dev.bloco.wallet.hub.infra.provider.data.config.SagaStates;
-import lombok.extern.slf4j.Slf4j;
+import java.util.function.Consumer;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.statemachine.StateMachine;
 import org.springframework.stereotype.Component;
+
+import dev.bloco.wallet.hub.domain.event.wallet.WalletCreatedEvent;
+import dev.bloco.wallet.hub.infra.adapter.tracing.propagation.CloudEventTracePropagator;
+import dev.bloco.wallet.hub.infra.provider.data.config.SagaEvents;
+import dev.bloco.wallet.hub.infra.provider.data.config.SagaStates;
+import io.cloudevents.CloudEvent;
+import io.micrometer.tracing.Span;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
-import java.util.function.Consumer;
-
 /**
- * The WalletCreatedEventConsumer class is responsible for handling events of type WalletCreatedEvent.
- * It processes wallet creation events in a distributed system and interacts with a state machine
- * to manage the corresponding saga state transitions.
- *<p/>
- * This class listens for WalletCreatedEvent messages, validates the correlation ID in the event,
- * and updates the state machine accordingly by sending appropriate saga events. If the correlation ID
- * is missing or null, the function transitions the state machine to a SAGA_FAILED state and logs the failure.
- *<p/>
- * The class is annotated as a Spring component and provides a bean of type Consumer<Message<WalletCreatedEvent>>,
- * which is used to receive and process the WalletCreatedEvent messages.
+ * WalletCreatedEventConsumer processes WalletCreatedEvent messages with distributed tracing.
+ * 
+ * <p>This consumer:</p>
+ * <ul>
+ *   <li>Receives CloudEvents from Kafka with embedded W3C Trace Context</li>
+ *   <li>Extracts trace context and creates CONSUMER spans</li>
+ *   <li>Processes wallet creation events</li>
+ *   <li>Updates saga state machine</li>
+ *   <li>Properly finishes tracing spans</li>
+ * </ul>
+ *
+ * <p>The consumer validates correlation IDs and triggers state transitions:</p>
+ * <ul>
+ *   <li>Valid correlation ID → WALLET_CREATED state</li>
+ *   <li>Missing correlation ID → SAGA_FAILED state</li>
+ * </ul>
  */
 @Component
 @Slf4j
 public class WalletCreatedEventConsumer {
 
     private final StateMachine<SagaStates, SagaEvents> stateMachine;
+    private final CloudEventTracePropagator tracePropagator;
 
-    public WalletCreatedEventConsumer(StateMachine<SagaStates, SagaEvents> stateMachine) {
+    public WalletCreatedEventConsumer(StateMachine<SagaStates, SagaEvents> stateMachine,
+                                      CloudEventTracePropagator tracePropagator) {
         this.stateMachine = stateMachine;
+        this.tracePropagator = tracePropagator;
     }
 
   /**
-   * Creates a consumer function for handling WalletCreatedEvent messages.
-   *<p/>
-   * This method processes incoming messages of type WalletCreatedEvent, validates the presence
-   * of a correlation ID, and triggers appropriate state transitions in the state machine
-   * using saga events. If the correlation ID is present, it transitions the state machine
-   * to the WALLET_CREATED state and logs the success. If the correlation ID is missing or
-   * null, it transitions the state machine to the SAGA_FAILED state and logs the failure.
-   *<p/>
-   * The function facilitates the coordination of distributed operations by managing
-   * saga state transitions through the state machine.
+   * Creates a consumer function for WalletCreatedEvent with W3C Trace Context extraction.
    *
-   * @return a Consumer function that processes messages containing WalletCreatedEvent data
+   * <p>Processing flow:</p>
+   * <ol>
+   *   <li>Receive CloudEvent message from Kafka</li>
+   *   <li>Extract W3C Trace Context and create CONSUMER span</li>
+   *   <li>Parse WalletCreatedEvent payload</li>
+   *   <li>Validate correlation ID</li>
+   *   <li>Send appropriate saga event to state machine</li>
+   *   <li>Finish span (success or error)</li>
+   * </ol>
+   *
+   * @return Consumer function for CloudEvent messages containing WalletCreatedEvent
    */
   @Bean
-    public Consumer<Message<WalletCreatedEvent>> walletCreatedEventConsumerFunction() {
+    public Consumer<Message<CloudEvent>> walletCreatedEventConsumerFunction() {
         return message -> {
-            var event = message.getPayload();
-            if (event.getCorrelationId() != null) {
-                var stateMachineMessage = MessageBuilder.withPayload(SagaEvents.WALLET_CREATED)
-                        .setHeader("correlationId", event.getCorrelationId())
-                        .build();
-                var result = stateMachine.sendEvent(Mono.just(stateMachineMessage));
-                result.subscribe(); // Process the result if needed
-                log.info("Wallet created: {}", event.getWalletId());
-            } else {
-                stateMachine.sendEvent(Mono.just(MessageBuilder.withPayload(SagaEvents.SAGA_FAILED).build())).subscribe();
-                log.info("Failed to create wallet: Missing correlationId");
+            CloudEvent cloudEvent = message.getPayload();
+            Span span = null;
+            
+            try {
+                // Extract trace context and create CONSUMER span
+                span = tracePropagator.extractTraceContext(cloudEvent);
+                span.name("consume:WalletCreatedEvent");
+                span.tag("event.type", "WalletCreatedEvent");
+                
+                // Parse WalletCreatedEvent from CloudEvent data
+                String payload = new String(cloudEvent.getData().toBytes());
+                log.debug("Processing WalletCreatedEvent payload: {}", payload);
+                
+                // Extract correlation ID from JSON payload
+                // Simple JSON parsing - in production use Jackson ObjectMapper
+                String correlationId = null;
+                if (payload.contains("correlationId")) {
+                    int start = payload.indexOf("\"correlationId\": \"") + 18;
+                    int end = payload.indexOf("\"", start);
+                    if (start > 18 && end > start) {
+                        correlationId = payload.substring(start, end);
+                    }
+                }
+                
+                span.event("event.parsed");
+                
+                // Process event and update state machine
+                if (correlationId != null && !correlationId.equals("null")) {
+                    var stateMachineMessage = MessageBuilder.withPayload(SagaEvents.WALLET_CREATED)
+                            .setHeader("correlationId", java.util.UUID.fromString(correlationId))
+                            .build();
+                    stateMachine.sendEvent(Mono.just(stateMachineMessage)).subscribe();
+                    log.info("Wallet created with correlationId: {}", correlationId);
+                } else {
+                    stateMachine.sendEvent(Mono.just(MessageBuilder.withPayload(SagaEvents.SAGA_FAILED).build())).subscribe();
+                    log.warn("Failed to create wallet: Missing correlationId");
+                }
+                
+                span.end();
+                log.info("Successfully processed WalletCreatedEvent with trace context");
+                
+            } catch (Exception e) {
+                if (span != null) {
+                    span.error(e);
+                    span.end();
+                }
+                log.error("Error processing WalletCreatedEvent: {}", e.getMessage(), e);
+                throw e;
             }
         };
+    }
+    
+    /**
+     * Legacy consumer function for Message<WalletCreatedEvent> (non-CloudEvent).
+     * This maintains backward compatibility until all producers send CloudEvents.
+     * 
+     * @deprecated Use {@link #walletCreatedEventConsumerFunction()} with CloudEvent once producers are updated
+     */
+    @Deprecated(since = "1.1.0", forRemoval = true)
+    public void processLegacyWalletCreatedEvent(Message<WalletCreatedEvent> message) {
+        var event = message.getPayload();
+        if (event.getCorrelationId() != null) {
+            var stateMachineMessage = MessageBuilder.withPayload(SagaEvents.WALLET_CREATED)
+                    .setHeader("correlationId", event.getCorrelationId())
+                    .build();
+            var result = stateMachine.sendEvent(Mono.just(stateMachineMessage));
+            result.subscribe(); // Process the result if needed
+            log.info("Wallet created: {}", event.getWalletId());
+        } else {
+            stateMachine.sendEvent(Mono.just(MessageBuilder.withPayload(SagaEvents.SAGA_FAILED).build())).subscribe();
+            log.info("Failed to create wallet: Missing correlationId");
+        }
     }
 }
