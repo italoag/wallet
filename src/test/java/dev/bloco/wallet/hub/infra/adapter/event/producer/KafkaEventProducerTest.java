@@ -26,6 +26,7 @@ import dev.bloco.wallet.hub.domain.event.wallet.WalletCreatedEvent;
 import dev.bloco.wallet.hub.infra.adapter.tracing.propagation.CloudEventTracePropagator;
 import dev.bloco.wallet.hub.infra.provider.data.OutboxEvent;
 import dev.bloco.wallet.hub.infra.provider.data.OutboxService;
+import dev.bloco.wallet.hub.infra.provider.data.OutboxWorker;
 
 @DisplayName("Kafka Event Producer Tests")
 class KafkaEventProducerTest {
@@ -48,11 +49,12 @@ class KafkaEventProducerTest {
     @Test
     @DisplayName("Should produce wallet created event saved into outbox with correct type")
     void produceWalletCreatedEvent_savesIntoOutboxWithCorrectType() {
-        var event = new WalletCreatedEvent(UUID.randomUUID(), UUID.randomUUID());
+        var correlationId = UUID.randomUUID();
+        var event = new WalletCreatedEvent(UUID.randomUUID(), correlationId);
 
         producer.produceWalletCreatedEvent(event);
 
-        verifySaved("walletCreatedEventProducer", event);
+        verifySaved("walletCreatedEventProducer", event, correlationId.toString());
     }
 
     @Test
@@ -66,7 +68,7 @@ class KafkaEventProducerTest {
 
         producer.produceFundsAddedEvent(event);
 
-        verifySaved("fundsAddedEventProducer", event);
+        verifySaved("fundsAddedEventProducer", event, "c-2");
     }
 
     @Test
@@ -80,7 +82,7 @@ class KafkaEventProducerTest {
 
         producer.produceFundsWithdrawnEvent(event);
 
-        verifySaved("fundsWithdrawnEventProducer", event);
+        verifySaved("fundsWithdrawnEventProducer", event, "c-3");
     }
 
     @Test
@@ -95,7 +97,7 @@ class KafkaEventProducerTest {
 
         producer.produceFundsTransferredEvent(event);
 
-        verifySaved("fundsTransferredEventProducer", event);
+        verifySaved("fundsTransferredEventProducer", event, "c-4");
     }
 
   private void verifySaved(String expectedType, Object expectedEvent, String expectedCorrelationId) {

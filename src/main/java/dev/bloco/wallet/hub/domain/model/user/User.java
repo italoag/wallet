@@ -53,6 +53,13 @@ public class User extends AggregateRoot {
         return create(UUID.randomUUID(), name, email, passwordHash);
     }
 
+    /**
+     * Rehydrates a User from existing data.
+     */
+    public static User rehydrate(UUID id, String name, String email) {
+        return new User(id, name, email, null);
+    }
+
     private User(UUID id, String name, String email, String passwordHash) {
         super(id);
         this.name = name;
