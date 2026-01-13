@@ -8,6 +8,10 @@ import dev.bloco.wallet.hub.domain.model.Wallet;
 import dev.bloco.wallet.hub.domain.model.address.Address;
 import dev.bloco.wallet.hub.domain.model.token.Token;
 import dev.bloco.wallet.hub.domain.model.token.TokenBalance;
+import dev.bloco.wallet.hub.domain.model.portfolio.AssetAllocation;
+import dev.bloco.wallet.hub.domain.model.portfolio.PortfolioOverview;
+import dev.bloco.wallet.hub.domain.model.portfolio.PortfolioSummary;
+import dev.bloco.wallet.hub.domain.model.portfolio.TokenHolding;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -186,54 +190,4 @@ public record GetPortfolioSummaryUseCase(
                 .sorted((a, b) -> b.percentage().compareTo(a.percentage()))
                 .toList();
     }
-
-    /**
-     * Individual token holding information.
-     */
-    public record TokenHolding(
-        UUID tokenId,
-        String name,
-        String symbol,
-        BigDecimal rawBalance,
-        String formattedBalance,
-        int decimals,
-        BigDecimal estimatedValue,
-        dev.bloco.wallet.hub.domain.model.token.TokenType type
-    ) {}
-
-    /**
-     * Asset allocation information.
-     */
-    public record AssetAllocation(
-        UUID tokenId,
-        String symbol,
-        BigDecimal value,
-        BigDecimal percentage
-    ) {}
-
-    /**
-     * Complete portfolio summary.
-     */
-    public record PortfolioSummary(
-        UUID walletId,
-        String walletName,
-        int totalTokens,
-        int totalAddresses,
-        BigDecimal totalValue,
-        List<TokenHolding> holdings,
-        List<AssetAllocation> assetAllocation,
-        java.time.Instant lastUpdated
-    ) {}
-
-    /**
-     * Simplified portfolio overview.
-     */
-    public record PortfolioOverview(
-        UUID walletId,
-        String walletName,
-        int totalTokens,
-        int totalAddresses,
-        BigDecimal totalValue,
-        java.time.Instant lastUpdated
-    ) {}
 }

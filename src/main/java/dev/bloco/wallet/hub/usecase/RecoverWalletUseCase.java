@@ -14,17 +14,17 @@ import java.util.UUID;
  * - User ID must be provided
  * - Recovery method must be specified
  * - A new wallet is created in RECOVERING status
- * - Recovery process is tracked via correlation ID
+ * - A recovery process is tracked via correlation ID
  * <p/>
  * Publishes:
- * - WalletCreatedEvent when recovery wallet is created
- * - WalletRecoveryInitiatedEvent when recovery process starts
+ * - WalletCreatedEvent when the recovery wallet is created
+ * - WalletRecoveryInitiatedEvent when a recovery process starts
  * - WalletStatusChangedEvent when wallet enters recovery state
  */
 public record RecoverWalletUseCase(WalletRepository walletRepository, DomainEventPublisher eventPublisher) {
 
     /**
-     * Initiates wallet recovery process by creating a wallet in recovery state.
+     * Initiates a wallet recovery process by creating a wallet in recovery state.
      *
      * @param userId the unique identifier of the user recovering the wallet
      * @param walletName the name for the recovered wallet
@@ -67,7 +67,7 @@ public record RecoverWalletUseCase(WalletRepository walletRepository, DomainEven
      * @param correlationId a unique identifier used to trace this operation
      * @return the activated wallet
      * @throws IllegalArgumentException if wallet not found
-     * @throws IllegalStateException if wallet is not in recovery state
+     * @throws IllegalStateException if the wallet is not in recovery state
      */
     public Wallet completeRecovery(UUID walletId, String correlationId) {
         Wallet wallet = walletRepository.findById(walletId)

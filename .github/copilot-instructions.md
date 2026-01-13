@@ -6,8 +6,8 @@ Estas instruções orientam o GitHub Copilot para gerar código alinhado às pr�
 
 - Tipo: Backend Web API e microsserviço orientado a eventos (event-driven)
 - Linguagem/Toolchain: Java 24 (maven.compiler.release 24) com Maven Wrapper
-- Frameworks principais: Spring Boot 3.5.5, Spring Cloud 2025.x
-- Paradigmas: Clean Architecture (portas e adaptadores), reativo (WebFlux) e bloqueante (JPA/Kafka) combinados
+- Frameworks principais: Spring Boot 3.5.6, Spring Cloud 2025.x
+- Paradigmas: Clean Architecture (portas e adaptadores), reativo (WebFlux) e bloqueante (Kafka) combinados
 - Mensageria/Eventos: Spring Cloud Stream com Kafka (binders Kafka/Kafka Streams) e CloudEvents
 - Persistência: JPA (H2/PostgreSQL), R2DBC (H2/Postgres), Redis (reativo), MongoDB (reativo)
 - Orquestração de Saga: Spring Statemachine (com persistência JPA)
@@ -70,7 +70,7 @@ src/
 - Testes: spring-boot-starter-test, reactor-test, spring-kafka-test, spring-cloud-stream-test-binder, testcontainers
 
 ## Arquitetura e Padrões
-- Spring Boot 3.5.5
+- Spring Boot 3.5.6
   - WebFlux
   - Reactive data (Redis, MongoDB)
   - Reactive streams (Kafka)
@@ -140,10 +140,6 @@ src/
 - Kafka binder: brokers em localhost:9092 (ajuste ao usar broker local)
 - Nunca tente utilizar o comando timeout no MacOS, pois ele não existe por padrão.
 
-## Armadilhas Conhecidas
-- Duplicidade de bean em FundsAddedEventConsumer: classe anotada com @Component e método @Bean com mesmo nome (consumer funcional) causam BeanDefinitionOverrideException
-  - Soluções: (1) remover @Component e manter apenas @Bean em @Configuration; (2) renomear o @Bean/binding para evitar colisão; (3) habilitar overriding apenas em perfil de teste (não recomendado em prod)
-- Evite chamadas bloqueantes em pipelines reativas (especialmente JPA/Kafka) sem isolá-las
 
 ## Prompts de Exemplo (alinhados ao projeto)
 - "Crie um produtor funcional Spring Cloud Stream para publicar CloudEvent<WalletCreatedEvent> no tópico wallet-created-topic usando CloudEventUtils."

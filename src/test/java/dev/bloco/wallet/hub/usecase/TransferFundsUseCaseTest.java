@@ -1,9 +1,9 @@
 package dev.bloco.wallet.hub.usecase;
 
 import dev.bloco.wallet.hub.domain.event.wallet.FundsTransferredEvent;
+import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
 import dev.bloco.wallet.hub.domain.gateway.TransactionRepository;
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
-import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
 import dev.bloco.wallet.hub.domain.model.Wallet;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -13,7 +13,8 @@ import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -133,4 +134,87 @@ class TransferFundsUseCaseTest {
         // ensure destination wallet balance not modified
         assertThat(to.getBalance()).isEqualByComparingTo(new BigDecimal("0.00"));
     }
+
+  @Test
+  @DisplayName("transferFunds passes correct correlation ID to FundsTransferredEvent")
+  void transferFunds_correctCorrelationId() {
+    WalletRepository walletRepository = mock(WalletRepository.class);
+    TransactionRepository transactionRepository = mock(TransactionRepository.class);
+    DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
+    TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+
+    UUID fromId = UUID.randomUUID();
+    UUID toId = UUID.randomUUID();
+    Wallet from = new Wallet(fromId, "From", "");
+    Wallet to = new Wallet(toId, "To", "");
+    from.addFunds(new BigDecimal("100.00"));
+    to.addFunds(new BigDecimal("50.00"));
+    String correlationId = "test-correlation-id";
+
+    when(walletRepository.findById(fromId)).thenReturn(Optional.of(from));
+    when(walletRepository.findById(toId)).thenReturn(Optional.of(to));
+
+    useCase.transferFunds(fromId, toId, new BigDecimal("25.00"), correlationId);
+
+    ArgumentCaptor<FundsTransferredEvent> eventCaptor = ArgumentCaptor.forClass(FundsTransferredEvent.class);
+    verify(eventPublisher).publish(eventCaptor.capture());
+    FundsTransferredEvent publishedEvent = eventCaptor.getValue();
+    assertThat(publishedEvent.correlationId()).isEqualTo(correlationId);
+  }
+
+  @Test
+  @DisplayName("transferFunds throws on zero or negative amount")
+  void transferFunds_zeroOrNegativeAmount() {
+    WalletRepository walletRepository = mock(WalletRepository.class);
+    TransactionRepository transactionRepository = mock(TransactionRepository.class);
+    DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
+    TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+
+    UUID fromId = UUID.randomUUID();
+    UUID toId = UUID.randomUUID();
+    Wallet from = new Wallet(fromId, "From", "");
+    Wallet to = new Wallet(toId, "To", "");
+    from.addFunds(new BigDecimal("50.00"));
+
+    when(walletRepository.findById(fromId)).thenReturn(Optional.of(from));
+    when(walletRepository.findById(toId)).thenReturn(Optional.of(to));
+
+    assertThatThrownBy(() -> useCase.transferFunds(fromId, toId, BigDecimal.ZERO, "test-correlation"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Transfer amount must be greater than zero");
+
+    assertThatThrownBy(() -> useCase.transferFunds(fromId, toId, new BigDecimal("-10.00"), "test-correlation"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Transfer amount must be greater than zero");
+  }
+
+  @Test
+  @DisplayName("transferFunds ensures no changes to wallets on failed operation")
+  void transferFunds_noSideEffectsOnFailure() {
+    WalletRepository walletRepository = mock(WalletRepository.class);
+    TransactionRepository transactionRepository = mock(TransactionRepository.class);
+    DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
+    TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+
+    UUID fromId = UUID.randomUUID();
+    UUID toId = UUID.randomUUID();
+    Wallet from = new Wallet(fromId, "From", "");
+    Wallet to = new Wallet(toId, "To", "");
+    from.addFunds(new BigDecimal("20.00"));
+    to.addFunds(new BigDecimal("30.00"));
+
+    when(walletRepository.findById(fromId)).thenReturn(Optional.of(from));
+    when(walletRepository.findById(toId)).thenReturn(Optional.of(to));
+
+    assertThatThrownBy(() -> useCase.transferFunds(fromId, toId, new BigDecimal("30.00"), "failure-corr"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Insufficient");
+
+    // Assert wallet balances are unchanged
+    assertThat(from.getBalance()).isEqualByComparingTo(new BigDecimal("20.00"));
+    assertThat(to.getBalance()).isEqualByComparingTo(new BigDecimal("30.00"));
+
+    verify(walletRepository, never()).update(any());
+    verify(eventPublisher, never()).publish(any());
+  }
 }

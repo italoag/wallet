@@ -16,7 +16,7 @@ import java.util.UUID;
  * - Email verification required for new email addresses
  * <p/>
  * Publishes:
- * - UserProfileUpdatedEvent when profile is successfully updated
+ * - UserProfileUpdatedEvent when the profile is successfully updated
  */
 public record UpdateUserProfileUseCase(UserRepository userRepository, DomainEventPublisher eventPublisher) {
 
@@ -24,12 +24,12 @@ public record UpdateUserProfileUseCase(UserRepository userRepository, DomainEven
      * Updates user profile information.
      *
      * @param userId the unique identifier of the user
-     * @param name the new name (optional, can be null to keep current)
+     * @param name the new name (optional can be null to keep current)
      * @param email the new email (optional, can be null to keep current)
      * @param correlationId a unique identifier used to trace this operation
      * @return the updated user instance
      * @throws IllegalArgumentException if validation fails
-     * @throws IllegalStateException if user is not active or email already exists
+     * @throws IllegalStateException if a user is not active or email already exists
      */
     public User updateProfile(UUID userId, String name, String email, String correlationId) {
         if (userId == null) {

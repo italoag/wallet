@@ -84,7 +84,7 @@ public record CreateAddressUseCase(
             throw new IllegalStateException(ERROR_NETWORK_UNAVAILABLE_TEMPLATE.formatted(network.getName()));
         }
 
-        // Check if address already exists on this network
+        // Check if an address already exists on this network
         if (addressRepository.findByNetworkIdAndAccountAddress(networkId, accountAddressValue).isPresent()) {
             throw new IllegalArgumentException(ERROR_ADDRESS_ALREADY_EXISTS_TEMPLATE.formatted(accountAddressValue));
         }

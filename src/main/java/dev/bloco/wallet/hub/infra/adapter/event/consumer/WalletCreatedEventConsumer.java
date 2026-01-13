@@ -19,7 +19,7 @@ import reactor.core.publisher.Mono;
 
 /**
  * WalletCreatedEventConsumer processes WalletCreatedEvent messages with distributed tracing.
- * 
+ *
  * <p>This consumer:</p>
  * <ul>
  *   <li>Receives CloudEvents from Kafka with embedded W3C Trace Context</li>
@@ -68,17 +68,17 @@ public class WalletCreatedEventConsumer {
         return message -> {
             CloudEvent cloudEvent = message.getPayload();
             Span span = null;
-            
+
             try {
                 // Extract trace context and create CONSUMER span
                 span = tracePropagator.extractTraceContext(cloudEvent);
                 span.name("consume:WalletCreatedEvent");
                 span.tag("event.type", "WalletCreatedEvent");
-                
+
                 // Parse WalletCreatedEvent from CloudEvent data
                 String payload = new String(cloudEvent.getData().toBytes());
                 log.debug("Processing WalletCreatedEvent payload: {}", payload);
-                
+
                 // Extract correlation ID from JSON payload
                 // Simple JSON parsing - in production use Jackson ObjectMapper
                 String correlationId = null;
@@ -89,9 +89,9 @@ public class WalletCreatedEventConsumer {
                         correlationId = payload.substring(start, end);
                     }
                 }
-                
+
                 span.event("event.parsed");
-                
+
                 // Process event and update state machine
                 if (correlationId != null && !correlationId.equals("null")) {
                     var stateMachineMessage = MessageBuilder.withPayload(SagaEvents.WALLET_CREATED)
@@ -103,10 +103,10 @@ public class WalletCreatedEventConsumer {
                     stateMachine.sendEvent(Mono.just(MessageBuilder.withPayload(SagaEvents.SAGA_FAILED).build())).subscribe();
                     log.warn("Failed to create wallet: Missing correlationId");
                 }
-                
+
                 span.end();
                 log.info("Successfully processed WalletCreatedEvent with trace context");
-                
+
             } catch (Exception e) {
                 if (span != null) {
                     span.error(e);
@@ -117,11 +117,11 @@ public class WalletCreatedEventConsumer {
             }
         };
     }
-    
+
     /**
      * Legacy consumer function for Message<WalletCreatedEvent> (non-CloudEvent).
      * This maintains backward compatibility until all producers send CloudEvents.
-     * 
+     *
      * @deprecated Use {@link #walletCreatedEventConsumerFunction()} with CloudEvent once producers are updated
      */
     @Deprecated(since = "1.1.0", forRemoval = true)

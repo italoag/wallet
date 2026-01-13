@@ -98,13 +98,15 @@ class KafkaEventProducerTest {
         verifySaved("fundsTransferredEventProducer", event);
     }
 
-    private void verifySaved(String expectedType, Object expectedEvent) {
-        ArgumentCaptor<String> typeCaptor = ArgumentCaptor.forClass(String.class);
-        ArgumentCaptor<String> payloadCaptor = ArgumentCaptor.forClass(String.class);
-        verify(outboxService).saveOutboxEvent(typeCaptor.capture(), payloadCaptor.capture(), isNull());
-        assertThat(typeCaptor.getValue()).isEqualTo(expectedType);
-        assertThat(payloadCaptor.getValue()).contains("correlationId");
-    }
+  private void verifySaved(String expectedType, Object expectedEvent, String expectedCorrelationId) {
+    ArgumentCaptor<String> typeCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<String> payloadCaptor = ArgumentCaptor.forClass(String.class);
+    ArgumentCaptor<String> corrCaptor = ArgumentCaptor.forClass(String.class);
+    verify(outboxService).saveOutboxEvent(typeCaptor.capture(), payloadCaptor.capture(), corrCaptor.capture());
+    assertThat(typeCaptor.getValue()).isEqualTo(expectedType);
+    assertThat(payloadCaptor.getValue()).contains("correlationId");
+    assertThat(corrCaptor.getValue()).isEqualTo(expectedCorrelationId);
+  }
 
     @Test
     @DisplayName("Should process outbox and send events to kafka")
@@ -123,11 +125,12 @@ class KafkaEventProducerTest {
         when(streamBridge.send(eq("fundsAddedEventProducer-out-0"), org.mockito.ArgumentMatchers.any())).thenReturn(true);
         when(streamBridge.send(eq("fundsWithdrawnEventProducer-out-0"), org.mockito.ArgumentMatchers.any())).thenReturn(false);
 
-        // when
-        producer.processOutbox();
+    // when
+    OutboxWorker worker = new OutboxWorker(outboxService, streamBridge);
+    worker.processOutbox();
 
-        // then
-        verify(outboxService).markEventAsSent(e1);
-        verify(outboxService, never()).markEventAsSent(e2);
-    }
+    // then
+    verify(outboxService).markEventAsSent(e1);
+    verify(outboxService, never()).markEventAsSent(e2);
+  }
 }

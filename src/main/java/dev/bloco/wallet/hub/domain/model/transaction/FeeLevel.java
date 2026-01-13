@@ -6,7 +6,7 @@ package dev.bloco.wallet.hub.domain.model.transaction;
  */
 public enum FeeLevel {
     /**
-     * Slow confirmation, lowest cost.
+     * Slow confirmation, the lowest cost.
      * Suitable for non-urgent transactions.
      */
     SLOW,

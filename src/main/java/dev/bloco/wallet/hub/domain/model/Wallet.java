@@ -131,11 +131,13 @@ public class Wallet extends AggregateRoot {
    *                                  or the wallet has insufficient balance.
    */
   public void withdrawFunds(BigDecimal amount) {
-    if (amount.compareTo(BigDecimal.ZERO) > 0 && this.balance.compareTo(amount) >= 0) {
-      this.balance = this.balance.subtract(amount);
-    } else {
-      throw new IllegalArgumentException("Insufficient balance or invalid amount");
+    if (amount.compareTo(BigDecimal.ZERO) <= 0) {
+      throw new IllegalArgumentException("Amount must be greater than zero");
     }
+    if (this.balance.compareTo(amount) < 0) {
+      throw new IllegalArgumentException("Insufficient balance");
+    }
+    this.balance = this.balance.subtract(amount);
   }
 
   /**

@@ -23,7 +23,7 @@ import lombok.extern.slf4j.Slf4j;
 /**
  * KafkaEventProducer is responsible for producing domain events related to wallet operations
  * and sending them to Kafka through spring-cloud StreamBridge with W3C Trace Context propagation.
- * 
+ *
  * <p>Events are stored in an outbox for reliable delivery and subsequently sent in batches
  * with trace context injected as CloudEvents 1.0 extensions.</p>
  *
@@ -71,7 +71,7 @@ public class KafkaEventProducer implements EventProducer {
    * @param tracePropagator the CloudEvent trace propagator for W3C Trace Context injection
    */
     @Autowired
-    public KafkaEventProducer(OutboxService outboxService, StreamBridge streamBridge, 
+    public KafkaEventProducer(OutboxService outboxService, StreamBridge streamBridge,
                               ObjectMapper objectMapper, CloudEventTracePropagator tracePropagator) {
         this.outboxService = outboxService;
         this.streamBridge = streamBridge;
@@ -144,11 +144,32 @@ public class KafkaEventProducer implements EventProducer {
     private void saveEventToOutbox(String eventType, Object event) {
         try {
             var payload = objectMapper.writeValueAsString(event);
-            outboxService.saveOutboxEvent(eventType, payload, null);
+            String correlationId = extractCorrelationId(event);
+            outboxService.saveOutboxEvent(eventType, payload, correlationId);
         } catch (JsonProcessingException e) {
             log.error("Failed to serialize event", e);
             throw new RuntimeException("Failed to serialize event", e);
         }
+    }
+
+    private String extractCorrelationId(Object event) {
+        try {
+            if (event instanceof dev.bloco.wallet.hub.domain.event.common.DomainEvent de && de.getCorrelationId() != null) {
+                return de.getCorrelationId().toString();
+            }
+            if (event instanceof FundsAddedEvent fa) {
+                return fa.correlationId();
+            }
+            if (event instanceof FundsWithdrawnEvent fw) {
+                return fw.correlationId();
+            }
+            if (event instanceof FundsTransferredEvent ft) {
+                return ft.correlationId();
+            }
+        } catch (Exception ignored) {
+            // ignore and return null
+        }
+        return null;
     }
 
   /**
@@ -182,7 +203,7 @@ public class KafkaEventProducer implements EventProducer {
   @Scheduled(fixedRate = 5000)
     public void processOutbox() {
         var unsentEvents = outboxService.getUnsentEvents();
-        
+
         unsentEvents.forEach(event -> {
             try {
                 // Wrap as CloudEvent 1.0
@@ -193,14 +214,14 @@ public class KafkaEventProducer implements EventProducer {
                         .withDataContentType("application/json")
                         .withData(event.getPayload().getBytes())
                         .build();
-                
+
                 // Inject W3C Trace Context 1.0 via CloudEvents extensions
                 CloudEvent enrichedEvent = tracePropagator.injectTraceContext(cloudEvent);
-                
+
                 // Send to Kafka with appropriate channel binding
                 String channel = event.getEventType() + "-out-0";
                 boolean sent = streamBridge.send(channel, enrichedEvent);
-                
+
                 if (sent) {
                     outboxService.markEventAsSent(event);
                     log.debug("Sent CloudEvent with trace context [type={}, id={}, channel={}]",
@@ -209,7 +230,7 @@ public class KafkaEventProducer implements EventProducer {
                     log.warn("Failed to send CloudEvent [type={}, id={}], will retry",
                             event.getEventType(), event.getId());
                 }
-                
+
             } catch (Exception e) {
                 log.error("Error processing outbox event [type={}, id={}]: {}",
                          event.getEventType(), event.getId(), e.getMessage(), e);

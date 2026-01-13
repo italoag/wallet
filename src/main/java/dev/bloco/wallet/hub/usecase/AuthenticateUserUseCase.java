@@ -42,7 +42,7 @@ public record AuthenticateUserUseCase(
      * @param correlationId a unique identifier used to trace this operation
      * @return authentication result with session information
      * @throws IllegalArgumentException if credentials are invalid
-     * @throws IllegalStateException if account is locked or inactive
+     * @throws IllegalStateException if an account is locked or inactive
      */
     public AuthenticationResult authenticate(String email, String password, String ipAddress, 
                                            String userAgent, String correlationId) {
@@ -54,11 +54,11 @@ public record AuthenticateUserUseCase(
             throw new IllegalArgumentException("Password must be provided");
         }
 
-        // Find user by email
+        // Find the user by email
         User user = userRepository.findByEmail(email)
                 .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
 
-        // Check if account is locked
+        // Check if an account is locked
         if (user.isLocked()) {
             throw new IllegalStateException("Account is temporarily locked due to failed login attempts");
         }
@@ -70,7 +70,7 @@ public record AuthenticateUserUseCase(
             throw new IllegalArgumentException("Invalid email or password");
         }
 
-        // Check if user is active
+        // Check if the user is active
         user.validateOperationAllowed();
 
         // Record successful login
@@ -166,7 +166,7 @@ public record AuthenticateUserUseCase(
         sessionRepository.invalidateAllUserSessions(userId);
     }
 
-    private UserSession createSession(UUID userId, String ipAddress, String userAgent) {
+    UserSession createSession(UUID userId, String ipAddress, String userAgent) {
         String sessionToken = generateSessionToken();
         Instant expiresAt = Instant.now().plusSeconds(24 * 60 * 60); // 24 hours
 
@@ -184,7 +184,7 @@ public record AuthenticateUserUseCase(
         return Base64.getUrlEncoder().withoutPadding().encodeToString(token);
     }
 
-    private boolean verifyPassword(String password, String hashedPassword) {
+    boolean verifyPassword(String password, String hashedPassword) {
         try {
             byte[] combined = Base64.getDecoder().decode(hashedPassword);
             

@@ -21,7 +21,7 @@ import java.util.UUID;
  * - Email verification token is generated
  * <p/>
  * Publishes:
- * - UserCreatedEvent when user is successfully created
+ * - UserCreatedEvent when a user is successfully created
  */
 public record CreateUserUseCase(UserRepository userRepository, DomainEventPublisher eventPublisher) {
 
@@ -37,13 +37,13 @@ public record CreateUserUseCase(UserRepository userRepository, DomainEventPublis
      * @throws IllegalStateException if email already exists
      */
     public User createUser(String name, String email, String password, String correlationId) {
-        // Validate inputs
-        validateInputs(name, email, password);
-
-        // Check if email already exists
+        // Check if email already exists first (before validation)
         if (userRepository.existsByEmail(email)) {
             throw new IllegalStateException("Email already exists: " + email);
         }
+
+        // Validate inputs
+        validateInputs(name, email, password);
 
         // Hash the password
         String passwordHash = hashPassword(password);

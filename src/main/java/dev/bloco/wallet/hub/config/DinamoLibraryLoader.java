@@ -5,8 +5,8 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.function.Consumer;
 import lombok.extern.slf4j.Slf4j;
-import org.aspectj.lang.annotation.Aspect;
-import org.aspectj.lang.annotation.Before;
+import org.springframework.boot.ApplicationArguments;
+import org.springframework.boot.ApplicationRunner;
 import org.springframework.stereotype.Component;
 
 /**
@@ -29,15 +29,16 @@ import org.springframework.stereotype.Component;
  * Libraries are loaded from platform-specific directories (`libs/windows` and `libs/linux`),
  * and the paths must exist for successful loading.
  */
-@Aspect
 @Component
 @Slf4j
-public class DinamoLibraryLoader {
+public class DinamoLibraryLoader implements ApplicationRunner {
 
     private static final Map<String, Consumer<String>> OS_LIBRARY_LOADER =
-            Map.of(
-                    "win", DinamoLibraryLoader::loadWindowsLibraries,
-                    "nix", DinamoLibraryLoader::loadLinuxLibraries);
+            java.util.Map.ofEntries(
+                    java.util.Map.entry("win", DinamoLibraryLoader::loadWindowsLibraries),
+                    java.util.Map.entry("linux", DinamoLibraryLoader::loadLinuxLibraries),
+                    java.util.Map.entry("nix", DinamoLibraryLoader::loadLinuxLibraries)
+            );
 
   /**
    * Loads platform-specific external native libraries based on the detected operating system.
@@ -59,16 +60,16 @@ public class DinamoLibraryLoader {
    * - If the libraries cannot be found or loaded for the determined platform, an error is logged.
    * - If the operating system is not recognized, an exception is thrown to notify unsupported platforms.
    */
-  @Before("execution(* dev.bloco.wallet.hub.WalletHubApplication.main(..))")
-    public void loadLibrariesBasedOnOS() {
+  @Override
+  public void run(ApplicationArguments args) {
         String osName = System.getProperty("os.name").toLowerCase();
         OS_LIBRARY_LOADER.entrySet().stream()
                 .filter(entry -> osName.contains(entry.getKey()))
                 .findFirst()
-                .orElseThrow(
-                        () -> new UnsupportedOperationException("Unsupported operating system: " + osName))
-                .getValue()
-                .accept(osName);
+                .ifPresentOrElse(
+                    e -> e.getValue().accept(osName),
+                    () -> log.info("No native libraries to load for OS: {}", osName)
+                );
     }
 
   /**
@@ -96,7 +97,7 @@ public class DinamoLibraryLoader {
    *               to identify a Linux operating system.
    */
   private static void loadLinuxLibraries(String osName) {
-        loadLibrary("libs/linux/liibtacndlib.so");
+        loadLibrary("libs/linux/libtacndlib.so");
         loadLibrary("libs/linux/libtacndjavalib.so");
         log.info("Linux Dinamo HSM libraries loaded successfully.");
     }
@@ -110,10 +111,15 @@ public class DinamoLibraryLoader {
    *             physical location of the library required for platform-specific native operations.
    */
   private static void loadLibrary(String path) {
-        if (Files.exists(Path.of(path))) {
-            System.load(path);
-        } else {
-            log.error("Library not found at path: {}", path);
+        try {
+            if (Files.exists(Path.of(path))) {
+                System.load(path);
+                log.debug("Loaded native library: {}", path);
+            } else {
+                log.info("Native library not found at path (skipping): {}", path);
+            }
+        } catch (UnsatisfiedLinkError | SecurityException ex) {
+            log.error("Failed to load native library at {}: {}", path, ex.getMessage());
         }
     }
 }

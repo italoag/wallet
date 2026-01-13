@@ -3,12 +3,24 @@ package dev.bloco.wallet.hub.domain.model.address;
 import dev.bloco.wallet.hub.domain.event.address.AddressCreatedEvent;
 import dev.bloco.wallet.hub.domain.event.address.AddressStatusChangedEvent;
 import dev.bloco.wallet.hub.domain.model.common.AggregateRoot;
+import lombok.EqualsAndHashCode;
+import lombok.Getter;
 
 import java.util.UUID;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
+/**
+ * Represents a blockchain address associated with a wallet and network.
+ * This address contains a unique public key, account information,
+ * and associated transactions, balances, and owned contracts.
+ * It also maintains its type, status, and derivation path metadata.
+ *<p/>
+ *This class extends from {@code AggregateRoot} and thus supports domain event tracking.
+ */
+@Getter
+@EqualsAndHashCode(callSuper = true)
 public class Address extends AggregateRoot {
     private final UUID walletId;
     private final UUID networkId;
@@ -21,6 +33,19 @@ public class Address extends AggregateRoot {
     private final Set<UUID> tokenBalanceIds = new HashSet<>();
     private final Set<UUID> ownedContractIds = new HashSet<>();
 
+  /**
+   * Creates a new Address instance with the provided parameters and registers an
+   * AddressCreatedEvent for tracking the creation of the address.
+   *
+   * @param id the unique identifier of the address
+   * @param walletId the identifier of the wallet associated with this address
+   * @param networkId the identifier of the network to which this address belongs
+   * @param publicKey the public key associated with this address
+   * @param accountAddress the account address representation of this address
+   * @param type the type of the address (e.g., EXTERNAL, INTERNAL, CONTRACT)
+   * @param derivationPath the derivation path used to generate this address
+   * @return a new Address instance with the specified parameters
+   */
     public static Address create(
             UUID id,
             UUID walletId,
@@ -37,14 +62,25 @@ public class Address extends AggregateRoot {
         return address;
     }
 
-    private Address(
-            UUID id,
-            UUID walletId,
-            UUID networkId,
-            PublicKey publicKey,
-            AccountAddress accountAddress,
-            AddressType type,
-            String derivationPath) {
+  /**
+   * Constructs a new Address instance with the specified properties.
+   *
+   * @param id the unique identifier of the address
+   * @param walletId the identifier of the wallet associated with this address
+   * @param networkId the identifier of the network to which this address belongs
+   * @param publicKey the public key associated with this address
+   * @param accountAddress the account address representation of the address
+   * @param type the type of the address (e.g., EXTERNAL, INTERNAL, CONTRACT)
+   * @param derivationPath the derivation path used to generate this address
+   */
+    public Address(
+        UUID id,
+        UUID walletId,
+        UUID networkId,
+        PublicKey publicKey,
+        AccountAddress accountAddress,
+        AddressType type,
+        String derivationPath) {
         super(id);
         this.walletId = walletId;
         this.networkId = networkId;
@@ -55,35 +91,7 @@ public class Address extends AggregateRoot {
         this.status = AddressStatus.ACTIVE;
     }
 
-    public UUID getWalletId() {
-        return walletId;
-    }
-
-    public UUID getNetworkId() {
-        return networkId;
-    }
-
-    public PublicKey getPublicKey() {
-        return publicKey;
-    }
-
-    public AccountAddress getAccountAddress() {
-        return accountAddress;
-    }
-
-    public AddressType getType() {
-        return type;
-    }
-
-    public String getDerivationPath() {
-        return derivationPath;
-    }
-
-    public AddressStatus getStatus() {
-        return status;
-    }
-
-    public Set<UUID> getTransactionIds() {
+  public Set<UUID> getTransactionIds() {
         return Collections.unmodifiableSet(transactionIds);
     }
 

@@ -21,6 +21,8 @@ spring:
     show-sql: true
     database-platform: org.hibernate.dialect.H2Dialect
   cloud:
+    function:
+      definition: walletCreatedEventConsumerFunction;fundsAddedEventConsumerFunction;fundsWithdrawnEventConsumerFunction;fundsTransferredEventConsumerFunction
     stream:
       bindings:
         walletCreatedEventProducer-out-0:
@@ -30,6 +32,14 @@ spring:
         fundsWithdrawnEventProducer-out-0:
           destination: funds-withdrawn-topic
         fundsTransferredEventProducer-out-0:
+          destination: funds-transferred-topic
+        walletCreatedEventConsumerFunction-in-0:
+          destination: wallet-created-topic
+        fundsAddedEventConsumerFunction-in-0:
+          destination: funds-added-topic
+        fundsWithdrawnEventConsumerFunction-in-0:
+          destination: funds-withdrawn-topic
+        fundsTransferredEventConsumerFunction-in-0:
           destination: funds-transferred-topic
       kafka:
         binder:

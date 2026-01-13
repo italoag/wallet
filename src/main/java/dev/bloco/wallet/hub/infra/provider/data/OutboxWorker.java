@@ -46,11 +46,17 @@ public class OutboxWorker {
 
     private final OutboxService outboxService;
     private final StreamBridge streamBridge;
+    private final io.micrometer.core.instrument.MeterRegistry meterRegistry;
 
     @Autowired
     public OutboxWorker(OutboxService outboxService, StreamBridge streamBridge) {
+        this(outboxService, streamBridge, null);
+    }
+
+    public OutboxWorker(OutboxService outboxService, StreamBridge streamBridge, io.micrometer.core.instrument.MeterRegistry meterRegistry) {
         this.outboxService = outboxService;
         this.streamBridge = streamBridge;
+        this.meterRegistry = meterRegistry;
     }
 
   /**
@@ -58,8 +64,8 @@ public class OutboxWorker {
    *<p/>
    * The method retrieves all unsent events from the outbox using {@code outboxService.getUnsentEvents()}.
    * For each event, the corresponding payload is sent to the messaging channel using
-   * {@code streamBridge.send()}, where the channel name is dynamically constructed
-   * by appending "-out-0" to the event's type. If the send operation is successful,
+   * {@code streamBridge.send()}, where the channel name is resolved from a centralized
+   * mapping of event types to binding names. If the send operation is successful,
    * the event is marked as sent using {@code outboxService.markEventAsSent()} to ensure
    * that it is not processed again in future iterations.
    *<p/>
@@ -85,9 +91,21 @@ public class OutboxWorker {
   @Scheduled(fixedRate = 5000)
     public void processOutbox() {
         for (OutboxEvent event : outboxService.getUnsentEvents()) {
-            boolean success = streamBridge.send(event.getEventType() + "-out-0", event.getPayload());
+            String eventType = event.getEventType();
+            java.util.Optional<String> bindingOpt = dev.bloco.wallet.hub.infra.adapter.event.producer.EventBindings.bindingForEventType(eventType);
+            if (bindingOpt.isEmpty()) {
+                org.slf4j.LoggerFactory.getLogger(OutboxWorker.class).warn("Unknown event type '{}', skipping outbox id={}", eventType, event.getId());
+                if (meterRegistry != null) meterRegistry.counter("outbox.unknown.type", "eventType", eventType).increment();
+                continue;
+            }
+            String binding = bindingOpt.get();
+            boolean success = streamBridge.send(binding, event.getPayload());
             if (success) {
                 outboxService.markEventAsSent(event);
+                if (meterRegistry != null) meterRegistry.counter("outbox.sent", "binding", binding).increment();
+            } else {
+                org.slf4j.LoggerFactory.getLogger(OutboxWorker.class).warn("Failed to send outbox id={} to binding {}", event.getId(), binding);
+                if (meterRegistry != null) meterRegistry.counter("outbox.send.failed", "binding", binding).increment();
             }
         }
     }

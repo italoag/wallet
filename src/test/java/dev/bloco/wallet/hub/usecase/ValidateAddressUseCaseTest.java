@@ -3,6 +3,7 @@ package dev.bloco.wallet.hub.usecase;
 import dev.bloco.wallet.hub.domain.gateway.NetworkRepository;
 import dev.bloco.wallet.hub.domain.model.network.Network;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -18,6 +19,7 @@ import static org.mockito.Mockito.*;
  * Unit tests for ValidateAddressUseCase.
  * Tests address validation functionality for different formats and networks.
  */
+@DisplayName("Validate Address Use Case Tests")
 @ExtendWith(MockitoExtension.class)
 class ValidateAddressUseCaseTest {
 
@@ -38,6 +40,7 @@ class ValidateAddressUseCaseTest {
     }
 
     @Test
+    @DisplayName("validateAddress should return valid for valid address")
     void validateAddress_shouldReturnValid_forEthereumAddress() {
         // Arrange
         String ethereumAddress = "0x742dB5C8A5d8c837e95C5fc73D3DCFFF84C8b742";
@@ -56,6 +59,7 @@ class ValidateAddressUseCaseTest {
     }
 
     @Test
+    @DisplayName("validateAddress should return valid for valid address")
     void validateAddress_shouldReturnValid_forBitcoinLegacyAddress() {
         // Arrange
         String bitcoinAddress = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa";
@@ -74,6 +78,7 @@ class ValidateAddressUseCaseTest {
     }
 
     @Test
+    @DisplayName("validateAddress should return invalid for invalid address")
     void validateAddress_shouldReturnInvalid_forEmptyAddress() {
         // Act & Assert
         IllegalArgumentException exception = assertThrows(
@@ -85,6 +90,7 @@ class ValidateAddressUseCaseTest {
     }
 
     @Test
+    @DisplayName("validateAddress should return invalid for invalid address")
     void validateAddress_shouldReturnInvalid_forNullAddress() {
         // Act & Assert
         IllegalArgumentException exception = assertThrows(
@@ -96,6 +102,7 @@ class ValidateAddressUseCaseTest {
     }
 
     @Test
+    @DisplayName("validateAddress should work without network")
     void validateAddress_shouldWorkWithoutNetwork_whenNetworkIdIsNull() {
         // Arrange
         String ethereumAddress = "0x742dB5C8A5d8c837e95C5fc73D3DCFFF84C8b742";
@@ -113,6 +120,7 @@ class ValidateAddressUseCaseTest {
     }
 
     @Test
+    @DisplayName("validateAddress should return incompatible when address not compatible with network")
     void validateAddress_shouldReturnIncompatible_whenAddressNotCompatibleWithNetwork() {
         // Arrange
         String bitcoinAddress = "1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa"; // Bitcoin address
@@ -130,6 +138,7 @@ class ValidateAddressUseCaseTest {
     }
 
     @Test
+    @DisplayName("validateAddresses should validate multiple addresses")
     void validateAddresses_shouldValidateMultipleAddresses() {
         // Arrange
         String[] addresses = {
@@ -163,6 +172,7 @@ class ValidateAddressUseCaseTest {
     }
 
     @Test
+    @DisplayName("validateAddresses should return empty array for empty input")
     void validateAddresses_shouldReturnEmpty_forNullInput() {
         // Act
         ValidateAddressUseCase.AddressValidationResult[] results =

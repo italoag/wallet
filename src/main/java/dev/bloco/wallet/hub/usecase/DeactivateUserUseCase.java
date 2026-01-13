@@ -18,7 +18,7 @@ import java.util.UUID;
  * - Deactivation reason should be provided for audit
  * <p/>
  * Publishes:
- * - UserStatusChangedEvent when user is successfully deactivated
+ * - UserStatusChangedEvent when a user is successfully deactivated
  */
 public record DeactivateUserUseCase(
     UserRepository userRepository,

@@ -30,7 +30,7 @@ public record DeleteWalletUseCase(WalletRepository walletRepository, DomainEvent
      * @param reason the reason for deleting the wallet
      * @param correlationId a unique identifier used to trace this operation
      * @return the deleted wallet instance
-     * @throws IllegalArgumentException if wallet not found or reason is blank
+     * @throws IllegalArgumentException if wallet not found or the reason is blank
      * @throws IllegalStateException if wallet already deleted or has non-zero balance
      */
     public Wallet deleteWallet(UUID walletId, String reason, String correlationId) {
