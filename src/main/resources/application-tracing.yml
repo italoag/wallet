@@ -28,19 +28,12 @@ management:
   # OTLP 1.0 HTTP/protobuf export to Grafana Tempo
   opentelemetry.tracing.export.otlp.compression: gzip
 
-  # OpenTelemetry OTLP configuration (for Tempo/Jaeger)
-  # OTLP 1.0 HTTP/protobuf export to Grafana Tempo
   opentelemetry.tracing.export.otlp.endpoint: http://tempo:4318/v1/traces
 
-  # OpenTelemetry OTLP configuration (for Tempo/Jaeger)
-  # OTLP 1.0 HTTP/protobuf export to Grafana Tempo
   opentelemetry.tracing.export.otlp.headers:
     # Optional: Add API keys or custom headers
     # X-API-Key: ${TEMPO_API_KEY:}
     X-Scope-OrgID: wallet-hub
-
-  # OpenTelemetry OTLP configuration (for Tempo/Jaeger)
-  # OTLP 1.0 HTTP/protobuf export to Grafana Tempo
   opentelemetry.tracing.export.otlp.timeout: 10s
 
   # Zipkin backend configuration (primary for development)
