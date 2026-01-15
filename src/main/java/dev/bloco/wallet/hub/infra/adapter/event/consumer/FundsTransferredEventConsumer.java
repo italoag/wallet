@@ -11,7 +11,6 @@ import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.statemachine.StateMachine;
 import reactor.core.publisher.Mono;
 
-import org.springframework.stereotype.Component;
 import java.util.function.Consumer;
 
 /**
