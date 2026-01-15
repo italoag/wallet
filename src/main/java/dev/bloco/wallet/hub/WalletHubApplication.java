@@ -1,8 +1,11 @@
 package dev.bloco.wallet.hub;
 
 import org.springframework.boot.SpringApplication;
+import org.springframework.boot.WebApplicationType;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.domain.EntityScan;
+import org.springframework.boot.persistence.autoconfigure.EntityScan;
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories;
+import org.springframework.statemachine.boot.autoconfigure.StateMachineJpaRepositoriesAutoConfiguration;
 
 /**
  * Entry point for the WalletHub application.
@@ -21,7 +24,14 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
  * {@code main} - The main method which invokes the {@code SpringApplication.run()} method
  * to bootstrap the WalletHub application.
  */
-@SpringBootApplication
+@SpringBootApplication(exclude = {
+        // Excluded because spring-statemachine 4.0.1 references old Spring Boot 3.x autoconfigure class
+        StateMachineJpaRepositoriesAutoConfiguration.class
+})
+@EnableJpaRepositories(basePackages = {
+        "dev.bloco.wallet.hub.infra.provider.data.repository",
+        "org.springframework.statemachine.data.jpa"
+})
 @EntityScan(basePackages = {
         "dev.bloco.wallet.hub.infra.provider.data.entity",
         "dev.bloco.wallet.hub.infra.provider.data",
@@ -30,7 +40,10 @@ import org.springframework.boot.autoconfigure.domain.EntityScan;
 public class WalletHubApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(WalletHubApplication.class, args);
+        SpringApplication application = new SpringApplication(WalletHubApplication.class);
+        application.setWebApplicationType(WebApplicationType.REACTIVE);
+        application.setAllowBeanDefinitionOverriding(true);
+        application.run(args);
     }
 
 }

@@ -1,7 +1,6 @@
 package dev.bloco.wallet.hub.infra.provider.data;
 
 import dev.bloco.wallet.hub.infra.provider.data.repository.OutboxRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -34,7 +33,6 @@ public class OutboxService {
 
     private final OutboxRepository outboxRepository;
 
-    @Autowired
     public OutboxService(OutboxRepository outboxRepository) {
         this.outboxRepository = outboxRepository;
     }

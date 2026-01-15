@@ -133,7 +133,7 @@ public class TwoFactorAuth {
         String[] codes = new String[10]; // Generate 10 backup codes
         
         for (int i = 0; i < codes.length; i++) {
-            codes[i] = String.format("%08d", random.nextInt(100000000));
+            codes[i] = "%08d".formatted(random.nextInt(100000000));
         }
         
         return codes;

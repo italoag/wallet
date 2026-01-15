@@ -1,0 +1,46 @@
+# Global test configuration - applies to all tests
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
+  # Default H2 datasource for tests that don't use Testcontainers
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    driver-class-name: org.h2.Driver
+    username: sa
+    password:
+    dbcp2:
+      driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    database-platform: org.hibernate.dialect.H2Dialect
+
+# Test configuration for integration tests
+
+management:
+  tracing:
+    export.enabled: true
+    sampling:
+      probability: 1.0
+
+tracing:
+  features:
+    api: true
+    database: true
+    kafka: true
+    stateMachine: true
+    externalApi: true
+    reactive: true
+    useCase: true
+
+
+logging:
+  level:
+    dev.bloco.wallet: DEBUG
+    org.testcontainers: INFO

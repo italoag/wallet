@@ -1,13 +1,15 @@
 package dev.bloco.wallet.hub.infra.provider.data.config;
 
-import dev.bloco.wallet.hub.infra.provider.data.repository.StateMachineRepository;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.statemachine.config.EnableStateMachine;
 import org.springframework.statemachine.config.StateMachineConfigurerAdapter;
 import org.springframework.statemachine.config.builders.StateMachineConfigurationConfigurer;
 import org.springframework.statemachine.config.builders.StateMachineStateConfigurer;
 import org.springframework.statemachine.config.builders.StateMachineTransitionConfigurer;
 import org.springframework.statemachine.data.jpa.JpaPersistingStateMachineInterceptor;
+
+import dev.bloco.wallet.hub.infra.provider.data.repository.StateMachineRepository;
 
 /**
  * Configuration class for the Saga State Machine.
@@ -28,6 +30,7 @@ import org.springframework.statemachine.data.jpa.JpaPersistingStateMachineInterc
  */
 @Configuration
 @EnableStateMachine
+@Profile("saga")
 public class SagaStateMachineConfig extends StateMachineConfigurerAdapter<SagaStates, SagaEvents> {
 
     private final StateMachineRepository stateMachineRepository;

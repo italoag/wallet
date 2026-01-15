@@ -31,13 +31,13 @@ class FundsWithdrawnEventConsumerTest {
         stateMachine = mock(StateMachine.class);
         doReturn(Flux.empty()).when(stateMachine)
                 .sendEvent(org.mockito.ArgumentMatchers.<reactor.core.publisher.Mono<org.springframework.messaging.Message<SagaEvents>>>any());
-        consumerConfig = new FundsWithdrawnEventConsumer(stateMachine);
+        consumerConfig = new FundsWithdrawnEventConsumer();
     }
 
     @Test
     @DisplayName("Should send FundsWithdrawn event to state machine")
     void fundsWithdrawnEventConsumerFunction_withCorrelationId_sendsFundsWithdrawn() {
-        Consumer<Message<FundsWithdrawnEvent>> fn = consumerConfig.fundsWithdrawnEventConsumerFunction();
+        Consumer<Message<FundsWithdrawnEvent>> fn = consumerConfig.fundsWithdrawnEventConsumerFunction(stateMachine);
         var event = FundsWithdrawnEvent.builder()
                 .walletId(UUID.randomUUID())
                 .amount(new BigDecimal("7.77"))
@@ -57,7 +57,7 @@ class FundsWithdrawnEventConsumerTest {
     @Test
     @DisplayName("Should send SagaFailed event to state machine when correlationId is null")
     void fundsWithdrawnEventConsumerFunction_withoutCorrelationId_sendsSagaFailed() {
-        Consumer<Message<FundsWithdrawnEvent>> fn = consumerConfig.fundsWithdrawnEventConsumerFunction();
+        Consumer<Message<FundsWithdrawnEvent>> fn = consumerConfig.fundsWithdrawnEventConsumerFunction(stateMachine);
         var event = FundsWithdrawnEvent.builder()
                 .walletId(UUID.randomUUID())
                 .amount(new BigDecimal("7.77"))

@@ -33,12 +33,14 @@ import org.mapstruct.Mappings;
 @Mapper(componentModel = "spring")
 public interface UserMapper {
 
-    @Mappings({
-            @Mapping(target = "id", source = "id"),
-            @Mapping(target = "name", source = "name"),
-            @Mapping(target = "email", source = "email")
-    })
-    User toDomain(UserEntity entity);
+    default User toDomain(UserEntity entity) {
+        if (entity == null) return null;
+        return User.rehydrate(
+                entity.getId(),
+                entity.getName(),
+                entity.getEmail()
+        );
+    }
 
     @Mappings({
             @Mapping(target = "id", source = "id"),

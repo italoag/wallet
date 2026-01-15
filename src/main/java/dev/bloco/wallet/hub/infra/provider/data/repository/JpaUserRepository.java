@@ -5,7 +5,6 @@ import dev.bloco.wallet.hub.domain.model.user.UserStatus;
 import dev.bloco.wallet.hub.domain.gateway.UserRepository;
 import dev.bloco.wallet.hub.infra.provider.data.entity.UserEntity;
 import dev.bloco.wallet.hub.infra.provider.mapper.UserMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -38,7 +37,6 @@ public class JpaUserRepository implements UserRepository {
     private final SpringDataUserRepository springDataUserRepository;
     private final UserMapper userMapper;
 
-    @Autowired
     public JpaUserRepository(SpringDataUserRepository springDataUserRepository, UserMapper userMapper) {
         this.springDataUserRepository = springDataUserRepository;
         this.userMapper = userMapper;

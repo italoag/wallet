@@ -14,6 +14,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * to persist state changes via StateMachineRepository.
  */
 @org.springframework.test.context.junit.jupiter.SpringJUnitConfig(classes = {SagaStateMachineConfig.class, StateMachineJpaIntegrationTest.MockBeans.class})
+@org.springframework.test.context.ActiveProfiles("saga")
 @DisplayName("StateMachine JPA Integration Test")
 class StateMachineJpaIntegrationTest {
 

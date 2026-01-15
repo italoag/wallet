@@ -1,6 +1,7 @@
 package dev.bloco.wallet.hub.infra.provider.data.config;
 
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Profile;
 import org.springframework.statemachine.config.EnableStateMachine;
 import org.springframework.statemachine.config.StateMachineConfigurerAdapter;
 import org.springframework.statemachine.config.builders.StateMachineStateConfigurer;
@@ -31,8 +32,8 @@ import org.springframework.statemachine.config.builders.StateMachineTransitionCo
  * - Any state can transition to the `FAILED` end state upon the `SAGA_FAILED` event.
  */
 @Configuration
-@org.springframework.context.annotation.Profile("standard-saga-disabled")
-@Deprecated
+@EnableStateMachine
+@Profile("!saga")
 public class StandardSagaStateMachineConfig extends StateMachineConfigurerAdapter<SagaStates, SagaEvents> {
 
   /**

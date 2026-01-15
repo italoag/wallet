@@ -1,13 +1,20 @@
 package dev.bloco.wallet.hub.infra.provider.data.entity;
 
-import dev.bloco.wallet.hub.domain.model.transaction.TransactionStatus;
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
-
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.UUID;
+
+import dev.bloco.wallet.hub.domain.model.transaction.TransactionStatus;
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.Id;
+import jakarta.persistence.Lob;
+import jakarta.persistence.Table;
+import lombok.Getter;
+import lombok.Setter;
 
 /**
  * Represents a blockchain transaction persisted in the database.
@@ -35,7 +42,7 @@ public class TransactionEntity {
     @Column(nullable = false)
     private String toAddress;
 
-    @Column(nullable = false)
+    @Column(name = "\"value\"", nullable = false)
     private BigDecimal value;
 
     private BigDecimal gasPrice;

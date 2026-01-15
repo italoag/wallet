@@ -11,7 +11,9 @@ Estas instruções orientam o GitHub Copilot para gerar código alinhado às pr�
 - Mensageria/Eventos: Spring Cloud Stream com Kafka (binders Kafka/Kafka Streams) e CloudEvents
 - Persistência: JPA (H2/PostgreSQL), R2DBC (H2/Postgres), Redis (reativo), MongoDB (reativo)
 - Orquestração de Saga: Spring Statemachine (com persistência JPA)
-- Observabilidade: Actuator, Micrometer (Prometheus/OTLP), Tracing (Brave)
+- Observabilidade: Actuator, Micrometer (Prometheus/OTLP), Tracing (OpenTelemetry), Micrometer Tracing
+- Maquina de Estados: Spring Statemachine para coordenação de transações distribuídas
+- Resiliência: Resilience4j (Circuit Breaker)
 - Configuração externa/Segurança: Spring Cloud Config, Spring Security + OAuth2 Client, Vault (opcional)
 - AI/Extras: Spring AI starters (presentes no POM, uso opcional)
 
@@ -136,6 +138,7 @@ src/
 - Executar app (perfil default com H2): ./mvnw spring-boot:run
 - Infra local opcional via Docker Compose (Mongo, Postgres, Redis): docker compose up -d
 - Kafka binder: brokers em localhost:9092 (ajuste ao usar broker local)
+- Nunca tente utilizar o comando timeout no MacOS, pois ele não existe por padrão.
 
 
 ## Prompts de Exemplo (alinhados ao projeto)

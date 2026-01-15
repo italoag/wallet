@@ -106,10 +106,10 @@ public class Network extends AggregateRoot {
     }
 
     public String getTransactionExplorerUrl(String txHash) {
-        return String.format("%s/tx/%s", this.explorerUrl, txHash);
+        return "%s/tx/%s".formatted(this.explorerUrl, txHash);
     }
 
     public String getAddressExplorerUrl(String address) {
-        return String.format("%s/address/%s", this.explorerUrl, address);
+        return "%s/address/%s".formatted(this.explorerUrl, address);
     }
 }

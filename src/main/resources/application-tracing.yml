@@ -1,0 +1,90 @@
+# Tracing Configuration Profile
+# Enable with: spring.profiles.active=tracing or spring.profiles.include=tracing
+
+spring:
+  application:
+    name: wallet-hub
+
+management:
+  tracing:
+    sampling:
+      probability: 0.1  # 10% sampling rate (production default)
+    export.enabled: true  # Multi-tenant header (if needed)
+
+  # Actuator endpoints for tracing metrics
+  endpoints:
+    web:
+      exposure:
+        include: health,metrics,info,tracing
+        
+  metrics:
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+    tags:
+      application: ${spring.application.name}
+
+  # OpenTelemetry OTLP configuration (for Tempo/Jaeger)
+  # OTLP 1.0 HTTP/protobuf export to Grafana Tempo
+  opentelemetry.tracing.export.otlp.compression: gzip
+
+  opentelemetry.tracing.export.otlp.endpoint: http://tempo:4318/v1/traces
+
+  opentelemetry.tracing.export.otlp.headers:
+    # Optional: Add API keys or custom headers
+    # X-API-Key: ${TEMPO_API_KEY:}
+    X-Scope-OrgID: wallet-hub
+  opentelemetry.tracing.export.otlp.timeout: 10s
+
+  # Zipkin backend configuration (primary for development)
+  tracing.export.zipkin.connect-timeout: 5s
+
+  # Zipkin backend configuration (primary for development)
+  tracing.export.zipkin.endpoint: http://localhost:9411/api/v2/spans
+
+  # Zipkin backend configuration (primary for development)
+  tracing.export.zipkin.read-timeout: 10s
+      
+# Logging configuration for tracing
+logging:
+  pattern:
+    level: '%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]'
+  level:
+    dev.bloco.wallet.hub.infra.adapter.tracing: DEBUG
+    io.micrometer.tracing: DEBUG
+
+# Custom tracing configuration
+tracing:
+  # Multi-backend export configuration
+  backends:
+    primary: tempo      # Primary backend: tempo (OTLP) or zipkin
+    fallback: zipkin    # Fallback backend: zipkin or otlp
+    
+  # Circuit breaker for resilient export
+  resilience:
+    circuit-breaker:
+      enabled: true     # Enable circuit breaker for resilient export
+      failure-threshold: 5
+      wait-duration-in-open-state: 60s
+      ring-buffer-size-in-closed-state: 100
+      
+  # Component-level feature flags (FR-016)
+  # Runtime control via: POST /actuator/refresh
+  features:
+    database: true       # JPA and R2DBC query tracing
+    kafka: true          # Event producer/consumer tracing
+    state-machine: true  # State machine transition tracing
+    external-api: true   # HTTP client tracing
+    reactive: true       # Reactive pipeline tracing
+    use-case: true       # Use case execution tracing
+    
+  # Sampling configuration
+  sampling:
+    always-sample-events:
+      - WALLET_CREATED
+      - WALLET_CLOSED
+      - LARGE_TRANSFER
+      - TRANSACTION_FAILED
+      - SAGA_COMPENSATION
+    slow-transaction-threshold-ms: 500
+    slow-query-threshold-ms: 50

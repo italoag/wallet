@@ -14,7 +14,7 @@ import java.util.UUID;
  * It also publishes a TransactionCreatedEvent for downstream processing.
  */
 public record CreateTransactionUseCase(TransactionRepository transactionRepository,
-                                       DomainEventPublisher eventPublisher) {
+                                    DomainEventPublisher eventPublisher) {
 
     /**
      * Creates a transaction, persists it and publishes a TransactionCreatedEvent.
