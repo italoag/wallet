@@ -1,26 +1,21 @@
 package dev.bloco.wallet.hub.infra.adapter.tracing;
 
 import java.math.BigDecimal;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
+import org.testcontainers.junit.jupiter.Testcontainers;
 
+import dev.bloco.wallet.hub.infra.adapter.tracing.integration.BaseIntegrationTest;
 import dev.bloco.wallet.hub.usecase.AddFundsUseCase;
-import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
 import io.micrometer.tracing.exporter.FinishedSpan;
-import io.micrometer.tracing.test.simple.SimpleTracer;
-import io.micrometer.tracing.test.simple.SpansAssert;
 
 /**
  * Integration tests for end-to-end distributed tracing.
@@ -35,49 +30,30 @@ import io.micrometer.tracing.test.simple.SpansAssert;
  *   <li>Error trace propagation</li>
  * </ul>
  * 
- * <p>Note: These tests use {@link SimpleTracer} in-memory tracer.
+ * <p>Note: These tests use in-memory tracer for assertions.
  * Full integration with Tempo requires Docker Compose setup.</p>
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.main.web-application-type=none")
-@ActiveProfiles("tracing")
+@Testcontainers
 @TestPropertySource(properties = {
         "management.tracing.sampling.probability=1.0",
-        "tracing.features.use-case=true",
+        "tracing.features.use-case=false",
         "tracing.features.database=true",
         "tracing.features.kafka=true"
 })
-@Disabled("Requires full Spring ApplicationContext with infrastructure: Postgres, Kafka, Tempo. Run with: docker compose up")
-class EndToEndTracingIntegrationTest {
-
-    @Autowired(required = false)
-    private Tracer tracer;
-
-    @Autowired(required = false)
-    private ObservationRegistry observationRegistry;
+@DisplayName("End-to-end distributed tracing integration test")
+class EndToEndTracingIntegrationTest extends BaseIntegrationTest {
 
     @Autowired(required = false)
     private AddFundsUseCase addFundsUseCase;
 
-    @BeforeEach
-    void setUp() {
-        if (tracer instanceof SimpleTracer simpleTracer) {
-            simpleTracer.getSpans().clear();
-        }
-    }
-
     @Test
+    @DisplayName("Should create end-to-end trace for add funds use case")
     void shouldCreateEndToEndTraceForAddFunds() {
-        // Given: Tracing is available
-        if (tracer == null) {
-            System.out.println("Tracer not available, skipping integration test");
-            return;
-        }
-
         UUID walletId = UUID.randomUUID();
         BigDecimal amount = new BigDecimal("100.00");
 
         // When: Execute use case
-        Span parentSpan = tracer.nextSpan().name("test-parent").start();
+        Span parentSpan = createTestSpan("test-parent");
         try (Tracer.SpanInScope scope = tracer.withSpan(parentSpan)) {
             // In real scenario, this would be called from a controller
             // addFundsUseCase.execute(walletId, amount);
@@ -90,26 +66,20 @@ class EndToEndTracingIntegrationTest {
         }
 
         // Then: Verify span was created
-        if (tracer instanceof SimpleTracer simpleTracer) {
-            List<FinishedSpan> spans = new ArrayList<>(simpleTracer.getSpans());
-            assertThat(spans).isNotEmpty();
-            
-            // Verify parent span
-            FinishedSpan finishedSpan = spans.get(0);
-            assertThat(finishedSpan.getName()).isEqualTo("test-parent");
-        }
+        waitForSpans(1, 1000);
+        List<FinishedSpan> spans = getSpans();
+        assertThat(spans).isNotEmpty();
+        
+        // Verify parent span
+        FinishedSpan finishedSpan = spans.get(0);
+        assertThat(finishedSpan.getName()).isEqualTo("test-parent");
     }
 
     @Test
+    @DisplayName("Should propagate trace context across layers")
     void shouldPropagateTraceContextAcrossLayers() {
-        // Given: Tracing is available
-        if (tracer == null) {
-            System.out.println("Tracer not available, skipping integration test");
-            return;
-        }
-
         // When: Create parent span
-        Span parentSpan = tracer.nextSpan().name("parent").start();
+        Span parentSpan = createTestSpan("parent");
         String parentTraceId = parentSpan.context().traceId();
         
         try (Tracer.SpanInScope scope = tracer.withSpan(parentSpan)) {
@@ -126,41 +96,30 @@ class EndToEndTracingIntegrationTest {
     }
 
     @Test
+    @DisplayName( "Should capture span attributes")
     void shouldCaptureSpanAttributes() {
-        // Given: Tracing is available
-        if (tracer == null) {
-            System.out.println("Tracer not available, skipping integration test");
-            return;
-        }
-
         // When: Create span with attributes
-        Span span = tracer.nextSpan().name("test-span").start();
+        Span span = createTestSpan("test-span");
         span.tag("wallet.id.hash", "abc123");
         span.tag("operation.name", "add_funds");
         span.tag("status", "success");
         span.end();
 
         // Then: Verify attributes in finished span
-        if (tracer instanceof SimpleTracer simpleTracer) {
-            List<FinishedSpan> spans = new ArrayList<>(simpleTracer.getSpans());
-            assertThat(spans).hasSize(1);
-            FinishedSpan finishedSpan = spans.get(0);
-            assertThat(finishedSpan.getTags()).containsEntry("wallet.id.hash", "abc123");
-            assertThat(finishedSpan.getTags()).containsEntry("operation.name", "add_funds");
-            assertThat(finishedSpan.getTags()).containsEntry("status", "success");
-        }
+        waitForSpans(1, 1000);
+        List<FinishedSpan> spans = getSpans();
+        assertThat(spans).hasSize(1);
+        FinishedSpan finishedSpan = spans.get(0);
+        assertThat(finishedSpan.getTags()).containsEntry("wallet.id.hash", "abc123");
+        assertThat(finishedSpan.getTags()).containsEntry("operation.name", "add_funds");
+        assertThat(finishedSpan.getTags()).containsEntry("status", "success");
     }
 
     @Test
+    @DisplayName("Should capture error spans")
     void shouldCaptureErrorSpans() {
-        // Given: Tracing is available
-        if (tracer == null) {
-            System.out.println("Tracer not available, skipping integration test");
-            return;
-        }
-
         // When: Create span with error
-        Span span = tracer.nextSpan().name("error-span").start();
+        Span span = createTestSpan("error-span");
         Exception error = new RuntimeException("Test error");
         span.error(error);
         span.tag("error", "true");
@@ -168,53 +127,39 @@ class EndToEndTracingIntegrationTest {
         span.end();
 
         // Then: Verify error in finished span
-        if (tracer instanceof SimpleTracer simpleTracer) {
-            List<FinishedSpan> spans = new ArrayList<>(simpleTracer.getSpans());
-            assertThat(spans).hasSize(1);
-            FinishedSpan finishedSpan = spans.get(0);
-            assertThat(finishedSpan.getTags()).containsEntry("error", "true");
-            assertThat(finishedSpan.getTags()).containsEntry("error.type", "RuntimeException");
-        }
+        waitForSpans(1, 1000);
+        List<FinishedSpan> spans = getSpans();
+        assertThat(spans).hasSize(1);
+        FinishedSpan finishedSpan = spans.getFirst();
+        assertThat(finishedSpan.getTags()).containsEntry("error", "true");
+        assertThat(finishedSpan.getTags()).containsEntry("error.type", "RuntimeException");
     }
 
     @Test
+    @DisplayName( "Should measure span duration")
     void shouldMeasureSpanDuration() throws InterruptedException {
-        // Given: Tracing is available
-        if (tracer == null) {
-            System.out.println("Tracer not available, skipping integration test");
-            return;
-        }
-
         // When: Create span with delay
-        Span span = tracer.nextSpan().name("timed-span").start();
+        Span span = createTestSpan("timed-span");
         Thread.sleep(10); // Simulate work
         span.end();
 
         // Then: Verify duration is captured
-        if (tracer instanceof SimpleTracer simpleTracer) {
-            List<FinishedSpan> spans = new ArrayList<>(simpleTracer.getSpans());
-            assertThat(spans).hasSize(1);
-            FinishedSpan finishedSpan = spans.get(0);
-            // Duration should be > 0 (measured in microseconds or nanoseconds)
-            assertThat(finishedSpan.getStartTimestamp()).isBefore(finishedSpan.getEndTimestamp());
-        }
+        waitForSpans(1, 1000);
+        List<FinishedSpan> spans = getSpans();
+        assertThat(spans).hasSize(1);
+        FinishedSpan finishedSpan = spans.getFirst();
+        // Duration should be > 0 (measured in microseconds or nanoseconds)
+        assertThat(finishedSpan.getStartTimestamp()).isBefore(finishedSpan.getEndTimestamp());
     }
 
     @Test
+    @DisplayName("Should create span hierarchy")
     void shouldCreateSpanHierarchy() {
-        // Given: Tracing is available
-        if (tracer == null) {
-            System.out.println("Tracer not available, skipping integration test");
-            return;
-        }
-
         // When: Create parent-child-grandchild hierarchy
-        Span parent = tracer.nextSpan().name("parent").start();
-        String parentSpanId = parent.context().spanId();
+        Span parent = createTestSpan("parent");
         
         try (Tracer.SpanInScope parentScope = tracer.withSpan(parent)) {
             Span child = tracer.nextSpan().name("child").start();
-            String childSpanId = child.context().spanId();
             
             try (Tracer.SpanInScope childScope = tracer.withSpan(child)) {
                 Span grandchild = tracer.nextSpan().name("grandchild").start();
@@ -227,34 +172,33 @@ class EndToEndTracingIntegrationTest {
         }
 
         // Then: Verify hierarchy
-        if (tracer instanceof SimpleTracer simpleTracer) {
-            assertThat(simpleTracer.getSpans()).hasSize(3);
-            
-            // Use SpansAssert for hierarchy verification
-            SpansAssert.assertThat(simpleTracer.getSpans())
-                    .hasASpanWithName("parent")
-                    .hasASpanWithName("child")
-                    .hasASpanWithName("grandchild");
-        }
+        waitForSpans(3, 1000);
+        List<FinishedSpan> spans = getSpans();
+        assertThat(spans).hasSize(3);
+        
+        FinishedSpan parentFinished = findSpan(spans, s -> s.getName().equals("parent"));
+        FinishedSpan childFinished = findSpan(spans, s -> s.getName().equals("child"));
+        FinishedSpan grandchildFinished = findSpan(spans, s -> s.getName().equals("grandchild"));
+        
+        assertThat(parentFinished).isNotNull();
+        assertThat(childFinished).isNotNull();
+        assertThat(grandchildFinished).isNotNull();
+        
+        assertSpanHierarchy(parentFinished, childFinished);
+        assertSpanHierarchy(childFinished, grandchildFinished);
     }
 
     @Test
+    @DisplayName("Should handle sampling configuration")
     void shouldHandleSamplingConfiguration() {
-        // Given: Tracing is available with 100% sampling
-        if (tracer == null) {
-            System.out.println("Tracer not available, skipping integration test");
-            return;
-        }
-
         // When: Create multiple spans
         for (int i = 0; i < 5; i++) {
-            Span span = tracer.nextSpan().name("span-" + i).start();
+            Span span = createTestSpan("span-" + i);
             span.end();
         }
 
         // Then: All spans should be sampled (sampling=1.0 in test properties)
-        if (tracer instanceof SimpleTracer simpleTracer) {
-            assertThat(simpleTracer.getSpans()).hasSize(5);
-        }
+        waitForSpans(5, 1000);
+        assertThat(getSpans()).hasSize(5);
     }
 }
