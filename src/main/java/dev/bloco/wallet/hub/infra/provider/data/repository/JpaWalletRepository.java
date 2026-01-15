@@ -5,7 +5,6 @@ import dev.bloco.wallet.hub.domain.model.Wallet;
 import dev.bloco.wallet.hub.domain.model.wallet.WalletStatus;
 import dev.bloco.wallet.hub.infra.provider.data.entity.WalletEntity;
 import dev.bloco.wallet.hub.infra.provider.mapper.WalletMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -39,7 +38,6 @@ public class JpaWalletRepository implements WalletRepository {
     private final SpringDataWalletRepository springDataWalletRepository;
     private final WalletMapper walletMapper;
 
-    @Autowired
     public JpaWalletRepository(SpringDataWalletRepository springDataWalletRepository, WalletMapper walletMapper) {
         this.springDataWalletRepository = springDataWalletRepository;
         this.walletMapper = walletMapper;

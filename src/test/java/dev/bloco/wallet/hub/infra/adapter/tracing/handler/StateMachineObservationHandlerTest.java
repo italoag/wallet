@@ -29,6 +29,7 @@ import io.micrometer.tracing.Tracer;
  * Verifies state transition tracking, compensation detection, and lifecycle events.
  */
 @ExtendWith(MockitoExtension.class)
+@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class StateMachineObservationHandlerTest {
 
     @Mock
@@ -65,17 +66,16 @@ class StateMachineObservationHandlerTest {
 
     @BeforeEach
     void setUp() {
-        when(featureFlags.isStateMachine()).thenReturn(true);
         handler = new StateMachineObservationHandler(tracer, spanAttributeBuilder, featureFlags);
+    }
 
-        // Setup default span behavior
+    private void setupSpansAndMachine() {
+        when(featureFlags.isStateMachine()).thenReturn(true);
         when(tracer.nextSpan()).thenReturn(span);
         when(span.name(anyString())).thenReturn(span);
         when(span.start()).thenReturn(span);
         when(span.tag(anyString(), anyString())).thenReturn(span);
         when(span.event(anyString())).thenReturn(span);
-
-        // Setup state machine ID
         when(stateMachine.getId()).thenReturn(MACHINE_ID);
         when(stateMachine.getUuid()).thenReturn(MACHINE_UUID);
     }
@@ -83,6 +83,7 @@ class StateMachineObservationHandlerTest {
     @Test
     void transitionStartedShouldCreateSpanWithAttributes() {
         // Given
+        setupSpansAndMachine();
         when(transition.getSource()).thenReturn(sourceState);
         when(transition.getTarget()).thenReturn(targetState);
         when(transition.getTrigger()).thenReturn(trigger);
@@ -108,6 +109,7 @@ class StateMachineObservationHandlerTest {
     @Test
     void transitionStartedShouldDetectCompensationFlow() {
         // Given - transition to FAILED state (compensation)
+        setupSpansAndMachine();
         when(transition.getSource()).thenReturn(sourceState);
         when(transition.getTarget()).thenReturn(targetState);
         when(transition.getTrigger()).thenReturn(trigger);
@@ -126,6 +128,7 @@ class StateMachineObservationHandlerTest {
     @Test
     void transitionEndedShouldCompleteSpanWithDuration() throws InterruptedException {
         // Given - first start a transition
+        setupSpansAndMachine();
         when(transition.getSource()).thenReturn(sourceState);
         when(transition.getTarget()).thenReturn(targetState);
         when(transition.getTrigger()).thenReturn(trigger);
@@ -150,6 +153,7 @@ class StateMachineObservationHandlerTest {
     @Test
     void transitionEndedShouldDetectSlowTransition() {
         // Given - simulate slow transition by manually setting start time in the past
+        setupSpansAndMachine();
         when(transition.getSource()).thenReturn(sourceState);
         when(transition.getTarget()).thenReturn(targetState);
         when(sourceState.getId()).thenReturn(SagaStates.INITIAL);
@@ -157,10 +161,6 @@ class StateMachineObservationHandlerTest {
 
         // Start transition
         handler.transitionStarted(transition, stateMachine);
-
-        // Manually inject old start time to simulate slow transition (>5s)
-        // Note: This is a limitation of the current implementation - we can't easily mock System.nanoTime()
-        // In a real scenario, we'd need to refactor to inject a Clock or TimeProvider
 
         // When
         handler.transitionEnded(transition, stateMachine);
@@ -173,6 +173,7 @@ class StateMachineObservationHandlerTest {
     @Test
     void stateChangedShouldAddSpanEvent() {
         // Given - first start a transition to create an active span
+        setupSpansAndMachine();
         when(transition.getSource()).thenReturn(sourceState);
         when(transition.getTarget()).thenReturn(targetState);
         when(sourceState.getId()).thenReturn(SagaStates.WALLET_CREATED);
@@ -190,6 +191,7 @@ class StateMachineObservationHandlerTest {
     @Test
     void extendedStateChangedShouldTrackGuardEvaluation() {
         // Given - first start a transition
+        setupSpansAndMachine();
         when(transition.getSource()).thenReturn(sourceState);
         when(transition.getTarget()).thenReturn(targetState);
         when(sourceState.getId()).thenReturn(SagaStates.INITIAL);
@@ -208,6 +210,7 @@ class StateMachineObservationHandlerTest {
     @Test
     void extendedStateChangedShouldTrackActionExecution() {
         // Given - first start a transition
+        setupSpansAndMachine();
         when(transition.getSource()).thenReturn(sourceState);
         when(transition.getTarget()).thenReturn(targetState);
         when(sourceState.getId()).thenReturn(SagaStates.WALLET_CREATED);
@@ -225,6 +228,7 @@ class StateMachineObservationHandlerTest {
     @Test
     void stateMachineErrorShouldMarkSpanAsError() {
         // Given - first start a transition
+        setupSpansAndMachine();
         when(transition.getSource()).thenReturn(sourceState);
         when(transition.getTarget()).thenReturn(targetState);
         when(sourceState.getId()).thenReturn(SagaStates.FUNDS_ADDED);
@@ -251,9 +255,6 @@ class StateMachineObservationHandlerTest {
         StateMachineObservationHandler disabledHandler = 
             new StateMachineObservationHandler(tracer, spanAttributeBuilder, featureFlags);
 
-        when(transition.getSource()).thenReturn(sourceState);
-        when(transition.getTarget()).thenReturn(targetState);
-
         // When
         disabledHandler.transitionStarted(transition, stateMachine);
 
@@ -264,6 +265,7 @@ class StateMachineObservationHandlerTest {
     @Test
     void shouldHandleMissingEventGracefully() {
         // Given - transition without trigger/event
+        setupSpansAndMachine();
         when(transition.getSource()).thenReturn(sourceState);
         when(transition.getTarget()).thenReturn(targetState);
         when(transition.getTrigger()).thenReturn(null);
@@ -281,6 +283,7 @@ class StateMachineObservationHandlerTest {
     @Test
     void shouldHandleNullStatesGracefully() {
         // Given
+        setupSpansAndMachine();
         when(transition.getSource()).thenReturn(null);
         when(transition.getTarget()).thenReturn(null);
 
@@ -293,6 +296,7 @@ class StateMachineObservationHandlerTest {
     @Test
     void shouldUseUuidWhenMachineIdIsNull() {
         // Given
+        setupSpansAndMachine();
         when(stateMachine.getId()).thenReturn(null);
         when(transition.getSource()).thenReturn(sourceState);
         when(transition.getTarget()).thenReturn(targetState);

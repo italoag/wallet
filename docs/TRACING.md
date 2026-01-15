@@ -27,7 +27,7 @@ Wallet Hub implements distributed tracing using Micrometer Tracing (backed by Br
 
 ## Span Attributes Schema
 
-Complete reference for all span attributes emitted by Wallet Hub. See [contracts/span-attributes-schema.yaml](../specs/001-observability-tracing/contracts/span-attributes-schema.yaml) for the full schema.
+Complete reference for all span attributes emitted by Wallet Hub. See [contracts/span-attributes-schema.yaml](../specs/001-observability-tracing/contracts/span-attributes-schema.yaml.md) for the full schema.
 
 ### Database Operations
 

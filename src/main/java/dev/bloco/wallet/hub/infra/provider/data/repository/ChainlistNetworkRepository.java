@@ -1,8 +1,7 @@
 package dev.bloco.wallet.hub.infra.provider.data.repository;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 import dev.bloco.wallet.hub.domain.gateway.NetworkRepository;
 import dev.bloco.wallet.hub.domain.model.network.Network;
 import dev.bloco.wallet.hub.domain.model.network.NetworkStatus;
@@ -30,6 +29,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
+import tools.jackson.core.JacksonException;
 
 /**
  * {@link NetworkRepository} implementation that retrieves network metadata dynamically from
@@ -192,7 +192,7 @@ public class ChainlistNetworkRepository implements NetworkRepository {
                                 mapToNetwork(node).ifPresent(networks::add);
                             }
                             return networks;
-                        } catch (JsonProcessingException ex) {
+                        } catch (JacksonException ex) {
                             LOGGER.error("Failed to parse Chainlist response", ex);
                             return List.<Network>of();
                         }
@@ -220,13 +220,13 @@ public class ChainlistNetworkRepository implements NetworkRepository {
     }
 
     private Optional<Network> mapToNetwork(JsonNode node) {
-        String name = node.path("name").asText(null);
+        String name = node.path("name").asString(null);
         JsonNode chainIdNode = node.path("chainId");
         if (!StringUtils.hasText(name) || chainIdNode.isMissingNode()) {
             return Optional.empty();
         }
 
-        String chainId = chainIdNode.asText();
+        String chainId = chainIdNode.asString();
         String rpcUrl = extractRpcUrl(node.path("rpc"));
         if (rpcUrl == null) {
             rpcUrl = "https://chainlist.org/chain/" + chainId; // fallback URL
@@ -249,8 +249,8 @@ public class ChainlistNetworkRepository implements NetworkRepository {
 
         for (JsonNode entry : rpcNode) {
             JsonNode urlNode = entry.has("url") ? entry.get("url") : entry;
-            if (urlNode != null && urlNode.isTextual()) {
-                String candidate = urlNode.asText();
+            if (urlNode != null && urlNode.isString()) {
+                String candidate = urlNode.asString();
                 if (candidate.startsWith("http://") || candidate.startsWith("https://")) {
                     return candidate;
                 }
@@ -267,8 +267,8 @@ public class ChainlistNetworkRepository implements NetworkRepository {
 
         for (JsonNode explorer : explorersNode) {
             JsonNode urlNode = explorer.get("url");
-            if (urlNode != null && urlNode.isTextual()) {
-                String url = urlNode.asText();
+            if (urlNode != null && urlNode.isString()) {
+                String url = urlNode.asString();
                 if (url.startsWith("http://") || url.startsWith("https://")) {
                     return Optional.of(url);
                 }

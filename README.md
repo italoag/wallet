@@ -195,7 +195,7 @@ curl -X POST http://localhost:8080/actuator/refresh
 ### Documentation
 
 - **Complete guide:** [docs/TRACING.md](docs/TRACING.md) - Feature flags, troubleshooting, performance tuning
-- **Span attributes schema:** [specs/001-observability-tracing/contracts/span-attributes-schema.yaml](specs/001-observability-tracing/contracts/span-attributes-schema.yaml)
+- **Span attributes schema:** [specs/001-observability-tracing/contracts/span-attributes-schema.yaml](specs/001-observability-tracing/contracts/span-attributes-schema.yaml.md)
 - **Architecture:** [specs/001-observability-tracing/plan.md](specs/001-observability-tracing/plan.md)
 
 ## Changelog

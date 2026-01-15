@@ -99,7 +99,7 @@ import reactor.util.context.Context;
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 100)
 @RequiredArgsConstructor
-@ConditionalOnProperty(value = "management.tracing.enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(value = "management.tracing.enabled", havingValue = "true", matchIfMissing = true)
 public class WebFluxTracingFilter implements WebFilter {
 
     private final ObservationRegistry observationRegistry;
@@ -116,7 +116,7 @@ public class WebFluxTracingFilter implements WebFilter {
     public Mono<Void> filter(ServerWebExchange exchange, WebFilterChain chain) {
         String method = exchange.getRequest().getMethod().name();
         String path = exchange.getRequest().getPath().value();
-        String observationName = String.format("http.server.%s %s", method, path);
+        String observationName = "http.server.%s %s".formatted(method, path);
 
         // Create observation for this HTTP request
         Observation observation = Observation.createNotStarted(observationName, observationRegistry)

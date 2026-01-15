@@ -2,13 +2,11 @@ package dev.bloco.wallet.hub.infra.adapter.event.producer;
 
 import java.net.URI;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 import dev.bloco.wallet.hub.domain.event.wallet.FundsAddedEvent;
 import dev.bloco.wallet.hub.domain.event.wallet.FundsTransferredEvent;
@@ -19,6 +17,7 @@ import dev.bloco.wallet.hub.infra.provider.data.OutboxService;
 import io.cloudevents.CloudEvent;
 import io.cloudevents.core.builder.CloudEventBuilder;
 import lombok.extern.slf4j.Slf4j;
+import tools.jackson.core.JacksonException;
 
 /**
  * KafkaEventProducer is responsible for producing domain events related to wallet operations
@@ -70,13 +69,11 @@ public class KafkaEventProducer implements EventProducer {
    * @param objectMapper the Jackson object mapper used for converting event objects to JSON
    * @param tracePropagator the CloudEvent trace propagator for W3C Trace Context injection
    */
-    @Autowired
     public KafkaEventProducer(OutboxService outboxService, StreamBridge streamBridge,
                               ObjectMapper objectMapper, CloudEventTracePropagator tracePropagator) {
         this.outboxService = outboxService;
         this.streamBridge = streamBridge;
-        // Ensure Java Time (Instant, etc.) is supported during serialization in tests and non-Spring contexts
-        objectMapper.findAndRegisterModules();
+        // In Jackson 3, ObjectMapper is immutable and Spring Boot auto-configures modules via SPI
         this.objectMapper = objectMapper;
         this.tracePropagator = tracePropagator;
     }
@@ -146,7 +143,7 @@ public class KafkaEventProducer implements EventProducer {
             var payload = objectMapper.writeValueAsString(event);
             String correlationId = extractCorrelationId(event);
             outboxService.saveOutboxEvent(eventType, payload, correlationId);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             log.error("Failed to serialize event", e);
             throw new RuntimeException("Failed to serialize event", e);
         }

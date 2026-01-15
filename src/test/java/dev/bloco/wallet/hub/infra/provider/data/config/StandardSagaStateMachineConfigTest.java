@@ -9,7 +9,7 @@ import reactor.core.publisher.Mono;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-@SpringJUnitConfig(classes = {SagaStateMachineConfig.class, StandardSagaStateMachineConfigTest.MockBeans.class})
+@SpringJUnitConfig(classes = {StandardSagaStateMachineConfig.class, StandardSagaStateMachineConfigTest.MockBeans.class})
 @org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 @DisplayName("Saga State Machine Config Tests (former standard config)")
 class StandardSagaStateMachineConfigTest {

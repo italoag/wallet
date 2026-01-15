@@ -4,7 +4,7 @@ import java.net.URI;
 
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.boot.web.reactive.function.client.WebClientCustomizer;
+import org.springframework.boot.webclient.WebClientCustomizer;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.ClientRequest;
 import org.springframework.web.reactive.function.client.ClientResponse;
@@ -138,7 +138,7 @@ public class WebClientTracingCustomizer implements WebClientCustomizer {
 
             // Create CLIENT span for outbound request
             Span span = tracer.nextSpan()
-                             .name(String.format("HTTP %s", request.method().name()))
+                             .name("HTTP %s".formatted(request.method().name()))
                              .start();
 
             try {

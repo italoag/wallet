@@ -223,7 +223,7 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Component
 @ConditionalOnClass(CloudEvent.class)
-@ConditionalOnProperty(value = "management.tracing.enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(value = "management.tracing.enabled", havingValue = "true", matchIfMissing = true)
 public class CloudEventTracePropagator {
 
     /**
@@ -331,7 +331,7 @@ public class CloudEventTracePropagator {
         String traceId = context.traceId();
         String spanId = context.spanId();
         String flags = context.sampled() != null && context.sampled() ? SAMPLED_FLAG : NOT_SAMPLED_FLAG;
-        String traceparent = String.format("%s-%s-%s-%s", W3C_VERSION, traceId, spanId, flags);
+        String traceparent = "%s-%s-%s-%s".formatted(W3C_VERSION, traceId, spanId, flags);
 
         // Note: Brave bridge doesn't expose tracestate directly, so we only inject traceparent
         // Also inject send timestamp for consumer lag calculation

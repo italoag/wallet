@@ -5,22 +5,27 @@ import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Predicate;
 
+import com.redis.testcontainers.RedisContainer;
+import dev.bloco.wallet.hub.config.TestGatewayConfig;
+import dev.bloco.wallet.hub.config.TestJpaConfiguration;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.exporter.FinishedSpan;
+import io.micrometer.tracing.test.simple.SimpleTracer;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 import org.testcontainers.containers.GenericContainer;
-import org.testcontainers.containers.KafkaContainer;
-import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.grafana.LgtmStackContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.kafka.ConfluentKafkaContainer;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
-
-import io.micrometer.tracing.Span;
-import io.micrometer.tracing.exporter.FinishedSpan;
 
 /**
  * Base class for integration tests with testcontainers infrastructure.
@@ -56,12 +61,16 @@ import io.micrometer.tracing.exporter.FinishedSpan;
  * }
  * }</pre>
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
 @Testcontainers
 @ActiveProfiles("test")
+@Import({TestJpaConfiguration.class, TracingTestConfig.class, TestGatewayConfig.class})
 @TestPropertySource(properties = {
-    "management.tracing.enabled=true",
+    "spring.main.web-application-type=none",
+    "spring.cloud.config.enabled=false",
+    "spring.cloud.config.import-check.enabled=false",
     "management.tracing.sampling.probability=1.0",
+    "tracing.features.use-case=false",
     "tracing.features.api=true",
     "tracing.features.database=true",
     "tracing.features.kafka=true",
@@ -75,7 +84,7 @@ public abstract class BaseIntegrationTest {
      * PostgreSQL container for JPA and R2DBC integration tests.
      */
     @Container
-    protected static final PostgreSQLContainer<?> POSTGRES_CONTAINER = new PostgreSQLContainer<>(
+    protected static final PostgreSQLContainer POSTGRES_CONTAINER = new PostgreSQLContainer(
             DockerImageName.parse("postgres:16-alpine"))
             .withDatabaseName("wallet_test")
             .withUsername("test")
@@ -84,19 +93,28 @@ public abstract class BaseIntegrationTest {
 
     /**
      * Kafka container for event streaming integration tests.
+     * Testcontainers 2.x provides ConfluentKafkaContainer for Confluent images.
      */
     @Container
-    protected static final KafkaContainer KAFKA_CONTAINER = new KafkaContainer(
-            DockerImageName.parse("confluentinc/cp-kafka:7.6.0"))
+    protected static final ConfluentKafkaContainer KAFKA_CONTAINER = new ConfluentKafkaContainer(
+            DockerImageName.parse("confluentinc/cp-kafka:latest"))
             .withReuse(true);
 
     /**
      * Redis container for reactive caching integration tests.
      */
     @Container
-    protected static final GenericContainer<?> REDIS_CONTAINER = new GenericContainer<>(
-            DockerImageName.parse("redis:7-alpine"))
-            .withExposedPorts(6379)
+    protected static final RedisContainer REDIS_CONTAINER = new RedisContainer(
+            RedisContainer.DEFAULT_IMAGE_NAME.withTag(RedisContainer.DEFAULT_TAG))
+            .withReuse(true);
+
+    /**
+     * Grafana LGTM stack container for tracing backend.
+     */
+    @Container
+    protected static final LgtmStackContainer LGTM_CONTAINER = new LgtmStackContainer(
+            DockerImageName.parse("grafana/otel-lgtm:latest"))
+            .withStartupTimeout(java.time.Duration.ofMinutes(2))
             .withReuse(true);
 
     /**
@@ -104,8 +122,15 @@ public abstract class BaseIntegrationTest {
      */
     protected static final Queue<FinishedSpan> SPAN_QUEUE = new ConcurrentLinkedQueue<>();
 
+    public static void addSpan(FinishedSpan span) {
+        SPAN_QUEUE.offer(span);
+    }
+
     @Autowired
     protected io.micrometer.tracing.Tracer tracer;
+
+    @Autowired
+    protected SimpleTracer simpleTracer;
 
     /**
      * Configure dynamic properties for testcontainers.
@@ -131,7 +156,11 @@ public abstract class BaseIntegrationTest {
         
         // Redis configuration
         registry.add("spring.data.redis.host", REDIS_CONTAINER::getHost);
-        registry.add("spring.data.redis.port", () -> REDIS_CONTAINER.getFirstMappedPort());
+        registry.add("spring.data.redis.port", REDIS_CONTAINER::getFirstMappedPort);
+
+        // OTLP configuration for tracing and metrics (disabled for tests to avoid external dependencies)
+        registry.add("management.otlp.tracing.enabled", () -> "true");
+        registry.add("management.otlp.metrics.export.enabled", () -> "true");
         
         // Enable all tracing features for tests
         registry.add("tracing.features.api", () -> "true");
@@ -142,8 +171,10 @@ public abstract class BaseIntegrationTest {
         registry.add("tracing.features.reactive", () -> "true");
         
         // Use in-memory span exporter for tests
-        registry.add("management.tracing.enabled", () -> "true");
         registry.add("management.tracing.sampling.probability", () -> "1.0");
+
+        // LGTM OTLP and HTTP endpoints
+        registry.add("management.otlp.tracing.endpoint", () -> String.format("http://%s:%d/v1/traces", LGTM_CONTAINER.getHost(), LGTM_CONTAINER.getMappedPort(4317)));
     }
 
     @BeforeEach
@@ -157,6 +188,9 @@ public abstract class BaseIntegrationTest {
      * @return list of finished spans
      */
     protected List<FinishedSpan> getSpans() {
+        if (simpleTracer != null) {
+            return List.copyOf(simpleTracer.getSpans());
+        }
         return List.copyOf(SPAN_QUEUE);
     }
 
@@ -164,11 +198,14 @@ public abstract class BaseIntegrationTest {
      * Clear all collected spans.
      */
     protected void clearSpans() {
+        if (simpleTracer != null) {
+            simpleTracer.getSpans().clear();
+        }
         SPAN_QUEUE.clear();
     }
 
     /**
-     * Find first span matching predicate.
+     * Find the first span matching predicate.
      * 
      * @param spans list of spans to search
      * @param predicate matching condition
@@ -204,7 +241,8 @@ public abstract class BaseIntegrationTest {
     protected boolean waitForSpans(int expectedCount, long timeoutMs) {
         long start = System.currentTimeMillis();
         while (System.currentTimeMillis() - start < timeoutMs) {
-            if (SPAN_QUEUE.size() >= expectedCount) {
+            int currentCount = simpleTracer != null ? simpleTracer.getSpans().size() : SPAN_QUEUE.size();
+            if (currentCount >= expectedCount) {
                 return true;
             }
             try {
@@ -254,7 +292,7 @@ public abstract class BaseIntegrationTest {
     }
 
     /**
-     * Assert span contains specific tag value.
+     * Assert span contains a specific tag value.
      * 
      * @param span span to check
      * @param tag tag name

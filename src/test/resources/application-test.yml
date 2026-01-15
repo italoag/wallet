@@ -2,7 +2,7 @@
 
 management:
   tracing:
-    enabled: true
+    export.enabled: true
     sampling:
       probability: 1.0
 
@@ -19,6 +19,12 @@ tracing:
 spring:
   main:
     allow-bean-definition-overriding: true
+
+  cloud:
+    config:
+      enabled: false
+      import-check:
+        enabled: false
   
   # TestContainers will override these dynamically
   datasource:

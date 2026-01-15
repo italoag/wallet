@@ -99,7 +99,7 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Configuration
-@ConditionalOnProperty(value = "management.tracing.enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(value = "management.tracing.enabled", havingValue = "true", matchIfMissing = true)
 public class TracingConfiguration {
 
     @Value("${tracing.backends.primary:tempo}")
@@ -108,10 +108,10 @@ public class TracingConfiguration {
     @Value("${tracing.backends.fallback:zipkin}")
     private String fallbackBackend;
 
-    @Value("${management.zipkin.tracing.endpoint:#{null}}")
+    @Value("${management.tracing.export.zipkin.endpoint:#{null}}")
     private String zipkinEndpoint;
 
-    @Value("${management.otlp.tracing.endpoint:#{null}}")
+    @Value("${management.opentelemetry.tracing.export.otlp.endpoint:#{null}}")
     private String otlpEndpoint;
 
     @Value("${tracing.resilience.circuit-breaker.failure-threshold:5}")
@@ -363,7 +363,7 @@ public class TracingConfiguration {
             warnings.forEach(warning -> log.warn("  - {}", warning));
         }
 
-        String summary = String.format("Multi-backend export configured: %s",
+        String summary = "Multi-backend export configured: %s".formatted(
                 String.join(", ", configuredBackends));
         
         log.info(summary);
@@ -505,11 +505,10 @@ public class TracingConfiguration {
      * </ul>
      *
      * @param featureFlags the feature flags configuration bean
-     * @return the initialized feature flags (for bean dependency)
+     * @return a status message indicating initialization completed
      */
     @Bean
-    @ConditionalOnProperty(value = "management.tracing.enabled", havingValue = "true", matchIfMissing = false)
-    public TracingFeatureFlags tracingFeatureFlagsInitializer(TracingFeatureFlags featureFlags) {
+    public String tracingFeatureFlagsInitializer(TracingFeatureFlags featureFlags) {
         featureFlags.logConfiguration();
         
         // Log refresh endpoint information
@@ -518,7 +517,7 @@ public class TracingConfiguration {
                 featureFlags.getEnabledComponents(),
                 featureFlags.getDisabledComponents());
         
-        return featureFlags;
+        return "TracingFeatureFlags initialized";
     }
 
     /**

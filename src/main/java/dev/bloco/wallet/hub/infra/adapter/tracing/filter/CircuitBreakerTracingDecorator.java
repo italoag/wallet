@@ -138,10 +138,9 @@ public class CircuitBreakerTracingDecorator {
 
                         // Add state transition event
                         String eventName = getEventName(event.getStateTransition().getToState());
-                        String eventMessage = String.format(
-                            "Circuit breaker state transition: %s → %s",
-                            event.getStateTransition().getFromState(),
-                            event.getStateTransition().getToState()
+                        String eventMessage = "Circuit breaker state transition: %s → %s".formatted(
+                                event.getStateTransition().getFromState(),
+                                event.getStateTransition().getToState()
                         );
                         currentSpan.event(eventName + ": " + eventMessage);
 
@@ -201,8 +200,8 @@ public class CircuitBreakerTracingDecorator {
             // Add current state and metrics as span attributes
             currentSpan.tag("cb.name", cbName);
             currentSpan.tag("cb.state", circuitBreaker.getState().name());
-            currentSpan.tag("cb.failure_rate", String.format("%.2f", metrics.getFailureRate()));
-            currentSpan.tag("cb.slow_call_rate", String.format("%.2f", metrics.getSlowCallRate()));
+            currentSpan.tag("cb.failure_rate", "%.2f".formatted(metrics.getFailureRate()));
+            currentSpan.tag("cb.slow_call_rate", "%.2f".formatted(metrics.getSlowCallRate()));
 
         } catch (Exception e) {
             log.error("Error adding circuit breaker metrics to span [cb={}]: {}", 

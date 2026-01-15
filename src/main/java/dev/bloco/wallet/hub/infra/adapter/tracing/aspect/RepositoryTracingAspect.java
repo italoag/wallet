@@ -117,7 +117,7 @@ public class RepositoryTracingAspect {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         String className = signature.getDeclaringType().getSimpleName();
         String methodName = signature.getName();
-        String observationName = String.format("repository.%s.%s", className, methodName);
+        String observationName = "repository.%s.%s".formatted(className, methodName);
 
         Observation observation = Observation.createNotStarted(observationName, observationRegistry)
                 .contextualName(className + "." + methodName)
@@ -195,7 +195,7 @@ public class RepositoryTracingAspect {
 
         String className = signature.getDeclaringType().getSimpleName();
         String methodName = signature.getName();
-        String observationName = String.format("transaction.%s.%s", className, methodName);
+        String observationName = "transaction.%s.%s".formatted(className, methodName);
 
         Observation observation = Observation.createNotStarted(observationName, observationRegistry)
                 .contextualName("transaction:" + className + "." + methodName)
@@ -364,11 +364,11 @@ public class RepositoryTracingAspect {
         String operation = deriveOperationType(methodName);
         
         if (methodName.contains("ById")) {
-            return String.format("%s ... WHERE id = ?", operation);
+            return "%s ... WHERE id = ?".formatted(operation);
         } else if (methodName.contains("By")) {
             // Extract field name pattern
             String field = extractFieldFromMethodName(methodName);
-            return String.format("%s ... WHERE %s = ?", operation, field);
+            return "%s ... WHERE %s = ?".formatted(operation, field);
         } else if (methodName.equals("findAll")) {
             return "SELECT ... FROM table";
         } else if (methodName.equals("save")) {

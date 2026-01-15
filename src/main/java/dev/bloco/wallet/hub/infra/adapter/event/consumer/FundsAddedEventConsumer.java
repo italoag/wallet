@@ -31,21 +31,6 @@ import java.util.function.Consumer;
 @Slf4j
 public class FundsAddedEventConsumer {
 
-    private final StateMachine<SagaStates, SagaEvents> stateMachine;
-
-  /**
-   * Constructs a FundsAddedEventConsumer instance.
-   *<p/>
-   * This constructor initializes the {@code FundsAddedEventConsumer} with a state machine,
-   * used for managing the state transitions of the saga process when funds are added to a wallet.
-   *
-   * @param stateMachine the state machine instance responsible for tracking and transitioning
-   *                      between various states of the saga process
-   */
-  public FundsAddedEventConsumer(StateMachine<SagaStates, SagaEvents> stateMachine) {
-        this.stateMachine = stateMachine;
-    }
-
   /**
    * Creates a consumer function for handling FundsAddedEvent messages.
    *<p/>
@@ -60,7 +45,7 @@ public class FundsAddedEventConsumer {
    * @return a Consumer function that processes messages containing FundsAddedEvent data
    */
   @Bean
-    public Consumer<Message<FundsAddedEvent>> fundsAddedEventConsumerFunction() {
+    public Consumer<Message<FundsAddedEvent>> fundsAddedEventConsumerFunction(StateMachine<SagaStates, SagaEvents> stateMachine) {
         return message -> {
             var event = message.getPayload();
             String corr = event.correlationId();

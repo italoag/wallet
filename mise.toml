@@ -1,2 +1,2 @@
 [tools]
-java = "liberica-javafx-24"
+java = "corretto-25"

@@ -23,7 +23,20 @@ import io.micrometer.tracing.Tracer;
  *   <li>Feature flag check: &lt;1μs per check</li>
  * </ul>
  */
-@SpringBootTest
+@SpringBootTest(properties = "spring.main.web-application-type=none")
+@org.springframework.test.context.TestPropertySource(properties = {
+    "spring.datasource.url=jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1",
+    "spring.datasource.driver-class-name=org.h2.Driver",
+    "spring.datasource.username=sa",
+    "spring.datasource.password=",
+    "spring.jpa.hibernate.ddl-auto=create-drop",
+    "spring.jpa.database-platform=org.hibernate.dialect.H2Dialect",
+    "spring.cloud.config.enabled=false",
+    "spring.cloud.config.import-check.enabled=false",
+    "tracing.features.use-case=false",
+    "app.usecases.enabled=false"
+})
+@org.springframework.context.annotation.Import(dev.bloco.wallet.hub.config.TestJpaConfiguration.class)
 @DisplayName("Tracing Performance Tests")
 class TracingPerformanceTest {
 

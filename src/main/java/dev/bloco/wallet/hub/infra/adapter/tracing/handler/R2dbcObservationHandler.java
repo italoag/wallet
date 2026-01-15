@@ -142,7 +142,7 @@ public class R2dbcObservationHandler implements ObservationHandler<Observation.C
                 
                 context.addLowCardinalityKeyValue(
                         KeyValue.of("db.connection.acquisition_time_ms",
-                        String.format("%.2f", acquisitionTimeMs))
+                                "%.2f".formatted(acquisitionTimeMs))
                 );
             }
 
@@ -257,7 +257,7 @@ public class R2dbcObservationHandler implements ObservationHandler<Observation.C
                     double utilization = (metrics.acquiredSize() * 100.0) / maxSize;
                     context.addLowCardinalityKeyValue(
                             KeyValue.of("db.connection_pool.utilization_percent",
-                            String.format("%.1f", utilization))
+                                    "%.1f".formatted(utilization))
                     );
                 }
             }

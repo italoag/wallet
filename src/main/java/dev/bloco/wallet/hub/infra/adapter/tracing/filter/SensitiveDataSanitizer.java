@@ -54,6 +54,11 @@ public class SensitiveDataSanitizer {
         "\\b[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\\b"
     );
 
+    // JWT token pattern (header.payload.signature)
+    private static final Pattern JWT_PATTERN = Pattern.compile(
+        "\\bey[A-Za-z0-9-_=]+\\.[A-Za-z0-9-_=]+\\.?[A-Za-z0-9-_.+/=]*\\b"
+    );
+
     // SQL sanitization patterns
     private static final Pattern SQL_STRING_LITERAL = Pattern.compile("'[^']*'");
     private static final Pattern SQL_NUMBER_LITERAL = Pattern.compile("=\\s*\\d+");
@@ -178,6 +183,12 @@ public class SensitiveDataSanitizer {
         
         // Mask credit card numbers
         sanitized = CREDIT_CARD_PATTERN.matcher(sanitized).replaceAll("****-****-****-****");
+
+        // Mask JWT tokens
+        sanitized = JWT_PATTERN.matcher(sanitized).replaceAll("***");
+
+        // Mask Authorization headers (Bearer, Basic, etc)
+        sanitized = sanitized.replaceAll("(?i)(Bearer|Basic|Digest|HOBA|Mutual|AWS4-HMAC-SHA256)\\s+\\S+", "$1 ***");
         
         return sanitized;
     }

@@ -27,10 +27,9 @@ import io.micrometer.tracing.test.simple.SimpleTracer;
  *   <li>Connection pool metrics</li>
  * </ul>
  */
-@SpringBootTest
+@SpringBootTest(properties = "spring.main.web-application-type=none")
 @ActiveProfiles("tracing")
 @TestPropertySource(properties = {
-        "management.tracing.enabled=true",
         "management.tracing.sampling.probability=1.0",
         "tracing.features.database=true",
         "tracing.sampling.slow-query-threshold-ms=50"

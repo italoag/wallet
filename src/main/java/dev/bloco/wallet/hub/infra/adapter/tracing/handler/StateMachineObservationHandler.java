@@ -145,9 +145,9 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
             SagaEvents event = transition.getTrigger() != null ? transition.getTrigger().getEvent() : null;
 
             // Create new span for transition
-            Span span = tracer.nextSpan().name(String.format("State Transition: %s → %s", 
-                                                             getStateName(sourceState),
-                                                             getStateName(targetState)));
+            Span span = tracer.nextSpan().name("State Transition: %s → %s".formatted(
+                    getStateName(sourceState),
+                    getStateName(targetState)));
             span.start();
 
             // Add state machine attributes
@@ -246,7 +246,7 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
             Span span = activeSpans.get(machineId);
 
             if (span != null) {
-                span.event(String.format("state.changed: %s → %s", getStateName(from), getStateName(to)));
+                span.event("state.changed: %s → %s".formatted(getStateName(from), getStateName(to)));
                 log.debug("State changed [machineId={}, from={}, to={}]", machineId, getStateName(from), getStateName(to));
             }
 
@@ -274,14 +274,14 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
             if (span != null && key != null) {
                 // Track guard evaluations
                 if (key.toString().startsWith("guard.")) {
-                    span.event(String.format("guard.evaluated: %s = %s", key, value));
+                    span.event("guard.evaluated: %s = %s".formatted(key, value));
                     span.tag(key.toString(), String.valueOf(value));
                     log.debug("Guard evaluated [machineId={}, guard={}, result={}]", machineId, key, value);
                 }
 
                 // Track action executions
                 if (key.toString().startsWith("action.")) {
-                    span.event(String.format("action.executed: %s", key));
+                    span.event("action.executed: %s".formatted(key));
                     log.debug("Action executed [machineId={}, action={}]", machineId, key);
                 }
             }

@@ -17,6 +17,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.verify;
 
 @SpringJUnitConfig(classes = {SagaStateMachineConfig.class, SagaStateMachineConfigTest.MockBeans.class})
+@org.springframework.test.context.ActiveProfiles("saga")
 @org.springframework.test.annotation.DirtiesContext(classMode = org.springframework.test.annotation.DirtiesContext.ClassMode.BEFORE_EACH_TEST_METHOD)
 @DisplayName("Saga State Machine Config (with JPA persistence) Tests")
 class SagaStateMachineConfigTest {

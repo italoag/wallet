@@ -5,7 +5,7 @@ import dev.bloco.wallet.hub.infra.provider.data.config.SagaEvents;
 import dev.bloco.wallet.hub.infra.provider.data.config.SagaStates;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.statemachine.StateMachine;
@@ -25,24 +25,9 @@ import java.util.function.Consumer;
  * This class is configured to provide a bean of type Consumer<Message<FundsWithdrawnEvent>>,
  * which receives and processes the FundsWithdrawnEvent messages.
  */
-@Configuration
+@Component
 @Slf4j
 public class FundsWithdrawnEventConsumer {
-
-    private final StateMachine<SagaStates, SagaEvents> stateMachine;
-
-    /**
-     * Constructs a FundsWithdrawnEventConsumer instance.
-     *<p/>
-     * This constructor initializes the {@code FundsWithdrawnEventConsumer} with a state machine
-     * used for managing the state transitions of the saga process when funds are withdrawn from a wallet.
-     *
-     * @param stateMachine the state machine instance responsible for tracking and transitioning
-     *                     between various states of the saga process
-     */
-    public FundsWithdrawnEventConsumer(StateMachine<SagaStates, SagaEvents> stateMachine) {
-        this.stateMachine = stateMachine;
-    }
 
     /**
      * Creates a consumer function for handling FundsWithdrawnEvent messages.
@@ -58,7 +43,7 @@ public class FundsWithdrawnEventConsumer {
      * @return a Consumer function that processes messages containing FundsWithdrawnEvent data
      */
     @Bean
-    public Consumer<Message<FundsWithdrawnEvent>> fundsWithdrawnEventConsumerFunction() {
+    public Consumer<Message<FundsWithdrawnEvent>> fundsWithdrawnEventConsumerFunction(StateMachine<SagaStates, SagaEvents> stateMachine) {
         return message -> {
             var event = message.getPayload();
             if (event.correlationId() != null) {

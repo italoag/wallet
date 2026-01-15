@@ -86,7 +86,7 @@ import java.util.Map;
 @Slf4j
 @Component
 @RequiredArgsConstructor
-@ConditionalOnProperty(value = "management.tracing.enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(value = "management.tracing.enabled", havingValue = "true", matchIfMissing = true)
 public class SpanAttributeBuilder {
 
     private final SensitiveDataSanitizer sanitizer;

@@ -145,7 +145,7 @@ import java.util.Set;
  */
 @Slf4j
 @Configuration
-@ConditionalOnProperty(value = "management.tracing.enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(value = "management.tracing.enabled", havingValue = "true", matchIfMissing = true)
 public class SamplingConfiguration {
 
     /**

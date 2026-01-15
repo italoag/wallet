@@ -12,6 +12,7 @@ import dev.bloco.wallet.hub.domain.gateway.UserSessionRepository;
 import dev.bloco.wallet.hub.domain.gateway.TransactionFeeRepository;
 import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
 import dev.bloco.wallet.hub.usecase.*;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -43,7 +44,8 @@ import org.springframework.context.annotation.Configuration;
  *    - Use case for checking the balance of a specific wallet. It retrieves the current wallet balance
  *      based on the wallet ID.
  */
-@Configuration
+@Configuration(proxyBeanMethods = false)
+@ConditionalOnProperty(value = "app.usecases.enabled", havingValue = "true", matchIfMissing = true)
 public class UseCaseConfig {
 
   /**

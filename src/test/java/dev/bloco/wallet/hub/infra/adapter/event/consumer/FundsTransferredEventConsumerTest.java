@@ -31,13 +31,13 @@ class FundsTransferredEventConsumerTest {
         stateMachine = mock(StateMachine.class);
         doReturn(Flux.empty()).when(stateMachine)
                 .sendEvent(org.mockito.ArgumentMatchers.<reactor.core.publisher.Mono<org.springframework.messaging.Message<SagaEvents>>>any());
-        consumerConfig = new FundsTransferredEventConsumer(stateMachine);
+        consumerConfig = new FundsTransferredEventConsumer();
     }
 
     @Test
     @DisplayName("Should send Funds Transferred event to state machine")
     void fundsTransferredEventConsumerFunction_sendsFundsTransferredWithCorrelationId() {
-        Consumer<Message<FundsTransferredEvent>> fn = consumerConfig.fundsTransferredEventConsumerFunction();
+        Consumer<Message<FundsTransferredEvent>> fn = consumerConfig.fundsTransferredEventConsumerFunction(stateMachine);
         var event = FundsTransferredEvent.builder()
                 .fromWalletId(UUID.randomUUID())
                 .toWalletId(UUID.randomUUID())

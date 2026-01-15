@@ -140,7 +140,7 @@ public class UseCaseTracingAspect {
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         String className = signature.getDeclaringType().getSimpleName();
         String methodName = signature.getName();
-        String observationName = String.format("usecase.%s.%s", className, methodName);
+        String observationName = "usecase.%s.%s".formatted(className, methodName);
 
         Observation observation = Observation.createNotStarted(observationName, observationRegistry)
                 .contextualName(className + "." + methodName)

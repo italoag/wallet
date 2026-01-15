@@ -343,7 +343,7 @@ Hooks.onOperatorDebug();
 
 **Development**:
 - Review [data-model.md](data-model.md) for trace entity structure
-- Read [span-attributes-schema.yaml](contracts/span-attributes-schema.yaml) for attribute conventions
+- Read [span-attributes-schema.yaml](contracts/span-attributes-schema.yaml.md) for attribute conventions
 - Implement custom instrumentation for use cases (Phase 2 tasks)
 
 **Production**:

@@ -1,7 +1,6 @@
 package dev.bloco.wallet.hub.infra.adapter.event;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import dev.bloco.wallet.hub.domain.event.wallet.WalletCreatedEvent;
 import dev.bloco.wallet.hub.infra.provider.data.OutboxEvent;
 import dev.bloco.wallet.hub.infra.provider.data.repository.OutboxRepository;
@@ -9,6 +8,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import tools.jackson.core.JacksonException;
 
 import java.util.UUID;
 
@@ -49,10 +49,10 @@ class OutboxEventPublisherTest {
 
   @Test
   @DisplayName("Should throw when serialization fails")
-  void publish_onSerializationError_throwsRuntimeException() throws JsonProcessingException {
+  void publish_onSerializationError_throwsRuntimeException() throws JacksonException {
     // given
     var badMapper = mock(ObjectMapper.class);
-    when(badMapper.writeValueAsString(any())).thenThrow(new JsonProcessingException("boom") {
+    when(badMapper.writeValueAsString(any())).thenThrow(new JacksonException("boom") {
     });
     var failingPublisher = new OutboxEventPublisher(outboxRepository, badMapper);
 

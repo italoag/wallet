@@ -38,10 +38,9 @@ import io.micrometer.tracing.test.simple.SpansAssert;
  * <p>Note: These tests use {@link SimpleTracer} in-memory tracer.
  * Full integration with Tempo requires Docker Compose setup.</p>
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE, properties = "spring.main.web-application-type=none")
 @ActiveProfiles("tracing")
 @TestPropertySource(properties = {
-        "management.tracing.enabled=true",
         "management.tracing.sampling.probability=1.0",
         "tracing.features.use-case=true",
         "tracing.features.database=true",

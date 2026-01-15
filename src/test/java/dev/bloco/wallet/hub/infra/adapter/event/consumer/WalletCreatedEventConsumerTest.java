@@ -49,13 +49,13 @@ class WalletCreatedEventConsumerTest {
         
         doReturn(Flux.empty()).when(stateMachine)
                 .sendEvent(org.mockito.ArgumentMatchers.<reactor.core.publisher.Mono<org.springframework.messaging.Message<SagaEvents>>>any());
-        consumerConfig = new WalletCreatedEventConsumer(stateMachine, tracePropagator);
+        consumerConfig = new WalletCreatedEventConsumer();
     }
 
     @Test
     @DisplayName("Should send WalletCreated event to state machine")
     void walletCreatedEventConsumerFunction_withCorrelationId_sendsWalletCreated() throws Exception {
-        Consumer<Message<CloudEvent>> fn = consumerConfig.walletCreatedEventConsumerFunction();
+        Consumer<Message<CloudEvent>> fn = consumerConfig.walletCreatedEventConsumerFunction(stateMachine, tracePropagator);
         UUID corrId = UUID.randomUUID();
         var event = new WalletCreatedEvent(UUID.randomUUID(), corrId);
         
@@ -81,7 +81,7 @@ class WalletCreatedEventConsumerTest {
     @Test
     @DisplayName("Should send SagaFailed event to state machine when correlationId is null")
     void walletCreatedEventConsumerFunction_withoutCorrelationId_sendsSagaFailed() throws Exception {
-        Consumer<Message<CloudEvent>> fn = consumerConfig.walletCreatedEventConsumerFunction();
+        Consumer<Message<CloudEvent>> fn = consumerConfig.walletCreatedEventConsumerFunction(stateMachine, tracePropagator);
         var event = new WalletCreatedEvent(UUID.randomUUID(), null);
         
         CloudEvent cloudEvent = CloudEventBuilder.v1()

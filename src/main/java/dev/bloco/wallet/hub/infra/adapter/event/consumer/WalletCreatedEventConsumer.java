@@ -6,7 +6,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.statemachine.StateMachine;
-import org.springframework.stereotype.Component;
+import org.springframework.context.annotation.Configuration;
 
 import dev.bloco.wallet.hub.domain.event.wallet.WalletCreatedEvent;
 import dev.bloco.wallet.hub.infra.adapter.tracing.propagation.CloudEventTracePropagator;
@@ -35,36 +35,13 @@ import reactor.core.publisher.Mono;
  *   <li>Missing correlation ID → SAGA_FAILED state</li>
  * </ul>
  */
-@Component
+@Configuration
 @Slf4j
 public class WalletCreatedEventConsumer {
 
-    private final StateMachine<SagaStates, SagaEvents> stateMachine;
-    private final CloudEventTracePropagator tracePropagator;
-
-    public WalletCreatedEventConsumer(StateMachine<SagaStates, SagaEvents> stateMachine,
-                                      CloudEventTracePropagator tracePropagator) {
-        this.stateMachine = stateMachine;
-        this.tracePropagator = tracePropagator;
-    }
-
-  /**
-   * Creates a consumer function for WalletCreatedEvent with W3C Trace Context extraction.
-   *
-   * <p>Processing flow:</p>
-   * <ol>
-   *   <li>Receive CloudEvent message from Kafka</li>
-   *   <li>Extract W3C Trace Context and create CONSUMER span</li>
-   *   <li>Parse WalletCreatedEvent payload</li>
-   *   <li>Validate correlation ID</li>
-   *   <li>Send appropriate saga event to state machine</li>
-   *   <li>Finish span (success or error)</li>
-   * </ol>
-   *
-   * @return Consumer function for CloudEvent messages containing WalletCreatedEvent
-   */
-  @Bean
-    public Consumer<Message<CloudEvent>> walletCreatedEventConsumerFunction() {
+    @Bean
+    public Consumer<Message<CloudEvent>> walletCreatedEventConsumerFunction(StateMachine<SagaStates, SagaEvents> stateMachine,
+                                                                             CloudEventTracePropagator tracePropagator) {
         return message -> {
             CloudEvent cloudEvent = message.getPayload();
             Span span = null;
@@ -122,10 +99,10 @@ public class WalletCreatedEventConsumer {
      * Legacy consumer function for Message<WalletCreatedEvent> (non-CloudEvent).
      * This maintains backward compatibility until all producers send CloudEvents.
      *
-     * @deprecated Use {@link #walletCreatedEventConsumerFunction()} with CloudEvent once producers are updated
+     * @deprecated Use {@link #walletCreatedEventConsumerFunction(StateMachine, CloudEventTracePropagator)} with CloudEvent once producers are updated
      */
     @Deprecated(since = "1.1.0", forRemoval = true)
-    public void processLegacyWalletCreatedEvent(Message<WalletCreatedEvent> message) {
+    public void processLegacyWalletCreatedEvent(Message<WalletCreatedEvent> message, StateMachine<SagaStates, SagaEvents> stateMachine) {
         var event = message.getPayload();
         if (event.getCorrelationId() != null) {
             var stateMachineMessage = MessageBuilder.withPayload(SagaEvents.WALLET_CREATED)

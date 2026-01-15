@@ -1,5 +1,6 @@
 package dev.bloco.wallet.hub.infra.adapter.tracing.handler;
 
+import org.jspecify.annotations.NonNull;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.kafka.annotation.KafkaListener;
@@ -125,7 +126,7 @@ public class KafkaConsumerObservationHandler implements ObservationHandler<Obser
      * @return true if context contains Kafka consumer information
      */
     @Override
-    public boolean supportsContext(Observation.Context context) {
+    public boolean supportsContext(Observation.@NonNull Context context) {
         // Check if feature is enabled
         if (!featureFlags.isKafka()) {
             return false;
@@ -148,6 +149,9 @@ public class KafkaConsumerObservationHandler implements ObservationHandler<Obser
      */
     @Override
     public void onStart(Observation.Context context) {
+        if (!featureFlags.isKafka()) {
+            return;
+        }
         try {
             // Add base messaging attributes
             context.addLowCardinalityKeyValue(KeyValue.of("messaging.system", "kafka"));
@@ -162,14 +166,14 @@ public class KafkaConsumerObservationHandler implements ObservationHandler<Obser
             }
 
             // Add partition and offset if available
-            Integer partition = (Integer) context.get("kafka.partition");
-            if (partition != null) {
-                context.addLowCardinalityKeyValue(KeyValue.of("messaging.kafka.partition", String.valueOf(partition)));
+            Object partitionObj = context.get("kafka.partition");
+            if (partitionObj != null) {
+                context.addLowCardinalityKeyValue(KeyValue.of("messaging.kafka.partition", String.valueOf(partitionObj)));
             }
 
-            Long offset = (Long) context.get("kafka.offset");
-            if (offset != null) {
-                context.addLowCardinalityKeyValue(KeyValue.of("messaging.kafka.offset", String.valueOf(offset)));
+            Object offsetObj = context.get("kafka.offset");
+            if (offsetObj != null) {
+                context.addLowCardinalityKeyValue(KeyValue.of("messaging.kafka.offset", String.valueOf(offsetObj)));
             }
 
             // Add consumer group if available
@@ -185,7 +189,7 @@ public class KafkaConsumerObservationHandler implements ObservationHandler<Obser
             context.put("processing.start", System.currentTimeMillis());
             
             log.debug("Started CONSUMER span for Kafka receive [topic={}, partition={}, offset={}, group={}]", 
-                      topic, partition, offset, consumerGroup);
+                      topic, partitionObj, offsetObj, consumerGroup);
 
         } catch (Exception e) {
             log.error("Error in KafkaConsumerObservationHandler.onStart: {}", e.getMessage(), e);
@@ -208,6 +212,9 @@ public class KafkaConsumerObservationHandler implements ObservationHandler<Obser
      */
     @Override
     public void onStop(Observation.Context context) {
+        if (!featureFlags.isKafka()) {
+            return;
+        }
         try {
             // Calculate deserialization duration
             Long deserializationStart = (Long) context.get("deserialization.start");
@@ -244,11 +251,8 @@ public class KafkaConsumerObservationHandler implements ObservationHandler<Obser
             context.addLowCardinalityKeyValue(KeyValue.of("status", "success"));
 
             String topic = (String) context.get("kafka.topic");
-            Integer partition = (Integer) context.get("kafka.partition");
-            Long offset = (Long) context.get("kafka.offset");
-            
             log.debug("Completed CONSUMER span for Kafka receive [topic={}, partition={}, offset={}, consumerLag={}ms]", 
-                      topic, partition, offset, consumerLag != null ? consumerLag : "unknown");
+                      topic, context.get("kafka.partition"), context.get("kafka.offset"), consumerLag != null ? consumerLag : "unknown");
 
         } catch (Exception e) {
             log.error("Error in KafkaConsumerObservationHandler.onStop: {}", e.getMessage(), e);
@@ -264,6 +268,9 @@ public class KafkaConsumerObservationHandler implements ObservationHandler<Obser
      */
     @Override
     public void onError(Observation.Context context) {
+        if (!featureFlags.isKafka()) {
+            return;
+        }
         try {
             Throwable error = context.getError();
             
@@ -271,12 +278,8 @@ public class KafkaConsumerObservationHandler implements ObservationHandler<Obser
                 context.addLowCardinalityKeyValue(KeyValue.of("error.type", error.getClass().getSimpleName()));
                 context.addLowCardinalityKeyValue(KeyValue.of("status", "error"));
                 
-                String topic = (String) context.get("kafka.topic");
-                Integer partition = (Integer) context.get("kafka.partition");
-                Long offset = (Long) context.get("kafka.offset");
-                
                 log.warn("CONSUMER span failed for Kafka receive [topic={}, partition={}, offset={}, error={}]", 
-                         topic, partition, offset, error.getMessage());
+                         context.get("kafka.topic"), context.get("kafka.partition"), context.get("kafka.offset"), error.getMessage());
             }
 
         } catch (Exception e) {

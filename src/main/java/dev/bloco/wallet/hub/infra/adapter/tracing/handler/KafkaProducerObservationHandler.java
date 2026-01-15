@@ -128,6 +128,9 @@ public class KafkaProducerObservationHandler implements ObservationHandler<Obser
      */
     @Override
     public void onStart(Observation.Context context) {
+        if (!featureFlags.isKafka()) {
+            return;
+        }
         try {
             // Add base messaging attributes
             context.addLowCardinalityKeyValue(KeyValue.of("messaging.system", "kafka"));
@@ -166,6 +169,9 @@ public class KafkaProducerObservationHandler implements ObservationHandler<Obser
      */
     @Override
     public void onStop(Observation.Context context) {
+        if (!featureFlags.isKafka()) {
+            return;
+        }
         try {
             // Calculate serialization duration
             Long serializationStart = (Long) context.get("serialization.start");
@@ -176,14 +182,14 @@ public class KafkaProducerObservationHandler implements ObservationHandler<Obser
             }
 
             // Add partition and offset if available (from send result)
-            Integer partition = (Integer) context.get("kafka.partition");
-            if (partition != null) {
-                context.addLowCardinalityKeyValue(KeyValue.of("messaging.kafka.partition", String.valueOf(partition)));
+            Object partitionObj = context.get("kafka.partition");
+            if (partitionObj != null) {
+                context.addLowCardinalityKeyValue(KeyValue.of("messaging.kafka.partition", String.valueOf(partitionObj)));
             }
 
-            Long offset = (Long) context.get("kafka.offset");
-            if (offset != null) {
-                context.addLowCardinalityKeyValue(KeyValue.of("messaging.kafka.offset", String.valueOf(offset)));
+            Object offsetObj = context.get("kafka.offset");
+            if (offsetObj != null) {
+                context.addLowCardinalityKeyValue(KeyValue.of("messaging.kafka.offset", String.valueOf(offsetObj)));
             }
 
             // Add message ID if available (CloudEvent ID)
@@ -197,7 +203,7 @@ public class KafkaProducerObservationHandler implements ObservationHandler<Obser
 
             String topic = (String) context.get("kafka.topic");
             log.debug("Completed PRODUCER span for Kafka publish [topic={}, partition={}, offset={}]", 
-                      topic, partition, offset);
+                      topic, partitionObj, offsetObj);
 
         } catch (Exception e) {
             log.error("Error in KafkaProducerObservationHandler.onStop: {}", e.getMessage(), e);
@@ -213,6 +219,9 @@ public class KafkaProducerObservationHandler implements ObservationHandler<Obser
      */
     @Override
     public void onError(Observation.Context context) {
+        if (!featureFlags.isKafka()) {
+            return;
+        }
         try {
             Throwable error = context.getError();
             

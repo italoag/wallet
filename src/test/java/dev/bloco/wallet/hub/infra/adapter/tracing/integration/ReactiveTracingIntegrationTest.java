@@ -1,22 +1,24 @@
 package dev.bloco.wallet.hub.infra.adapter.tracing.integration;
 
-import java.time.Duration;
-import java.util.List;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.test.context.TestPropertySource;
-
 import dev.bloco.wallet.hub.infra.adapter.tracing.decorator.TracedReactiveStringRedisTemplate;
 import dev.bloco.wallet.hub.infra.adapter.tracing.propagation.ReactiveContextPropagator;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.exporter.FinishedSpan;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.context.TestPropertySource;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Hooks;
 import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.test.StepVerifier;
+
+import java.time.Duration;
+import java.util.List;
+
+import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Integration tests for reactive pipeline tracing (User Story 6).
@@ -25,10 +27,17 @@ import reactor.test.StepVerifier;
  * pipelines, including scheduler transitions, parallel streams, and Redis operations.</p>
  */
 @TestPropertySource(properties = {
-    "tracing.features.reactive=true"
+    "tracing.features.reactive=true",
+    "spring.main.allow-bean-definition-overriding=true"
+
 })
 @DisplayName("Reactive Pipeline Tracing Integration Tests")
 class ReactiveTracingIntegrationTest extends BaseIntegrationTest {
+
+    @BeforeAll
+    static void enableContextPropagation() {
+        Hooks.enableAutomaticContextPropagation();
+    }
 
     @Autowired
     private ReactiveContextPropagator contextPropagator;
@@ -39,6 +48,8 @@ class ReactiveTracingIntegrationTest extends BaseIntegrationTest {
     @Test
     @DisplayName("T133: Should maintain trace context across multiple reactive operators")
     void shouldMaintainTraceContextAcrossOperators() {
+
+        assertThat(contextPropagator).withFailMessage("contextPropagator bean was not loaded").isNotNull();
         // Arrange
         Span rootSpan = createTestSpan("reactive.pipeline");
 

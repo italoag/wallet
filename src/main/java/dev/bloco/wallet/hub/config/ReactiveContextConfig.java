@@ -149,7 +149,7 @@ import reactor.core.publisher.Mono;
 @Slf4j
 @Configuration
 @ConditionalOnClass(Mono.class)
-@ConditionalOnProperty(value = "management.tracing.enabled", havingValue = "true", matchIfMissing = false)
+@ConditionalOnProperty(value = "management.tracing.enabled", havingValue = "true", matchIfMissing = true)
 public class ReactiveContextConfig {
 
     static {

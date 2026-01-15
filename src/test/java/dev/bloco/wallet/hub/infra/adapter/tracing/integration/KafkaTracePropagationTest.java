@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -46,7 +47,7 @@ class KafkaTracePropagationTest extends BaseIntegrationTest {
         producerSpan.tag("messaging.message_id", walletId.toString());
         
         // Simulate CloudEvent with W3C traceparent extension
-        String traceparent = String.format("00-%s-%s-01", traceId, spanId);
+        String traceparent = "00-%s-%s-01".formatted(traceId, spanId);
         producerSpan.tag("cloudevents.traceparent", traceparent);
         producerSpan.tag("cloudevents.type", "dev.bloco.wallet.funds-added");
         
@@ -57,7 +58,7 @@ class KafkaTracePropagationTest extends BaseIntegrationTest {
         List<FinishedSpan> spans = getSpans();
         
         assertThat(spans).hasSize(1);
-        FinishedSpan span = spans.get(0);
+        FinishedSpan span = spans.getFirst();
         
         // Verify messaging tags
         assertSpanHasTags(span, 
@@ -70,8 +71,8 @@ class KafkaTracePropagationTest extends BaseIntegrationTest {
         assertSpanTagEquals(span, "messaging.operation", "publish");
         
         // Verify traceparent format (00-{32-hex-trace-id}-{16-hex-span-id}-01)
-        String capturedTraceparent = span.getTags().get("cloudevents.traceparent");
-        assertThat(capturedTraceparent)
+        String capturedTraceParent = span.getTags().get("cloudevents.traceparent");
+        assertThat(capturedTraceParent)
             .matches("^00-[0-9a-f]{32}-[0-9a-f]{16}-01$");
     }
 
@@ -90,12 +91,12 @@ class KafkaTracePropagationTest extends BaseIntegrationTest {
         producerSpan.tag("messaging.system", "kafka");
         producerSpan.tag("messaging.operation", "publish");
         producerSpan.tag("messaging.destination", "funds-added-topic");
-        String traceparent = String.format("00-%s-%s-01", traceId, producerSpanId);
+        String traceparent = "00-%s-%s-01".formatted(traceId, producerSpanId);
         producerSpan.tag("cloudevents.traceparent", traceparent);
         producerSpan.end();
         
         // Simulate consumer span (should be child of producer)
-        var consumerSpan = tracer.nextSpan(producerSpan).name("kafka.receive").start();
+        var consumerSpan = Objects.requireNonNull(tracer.nextSpan(producerSpan)).name("kafka.receive").start();
         consumerSpan.tag("messaging.system", "kafka");
         consumerSpan.tag("messaging.operation", "receive");
         consumerSpan.tag("messaging.destination", "funds-added-topic");
@@ -137,7 +138,7 @@ class KafkaTracePropagationTest extends BaseIntegrationTest {
         long receiveTime = System.currentTimeMillis();
         long lagMs = receiveTime - sendTime;
         
-        // Create consumer span with lag metric
+        // Create consumer span with a lag metric
         var consumerSpan = createTestSpan("kafka.receive");
         consumerSpan.tag("messaging.system", "kafka");
         consumerSpan.tag("messaging.destination", "funds-added-topic");
@@ -152,9 +153,9 @@ class KafkaTracePropagationTest extends BaseIntegrationTest {
         List<FinishedSpan> spans = getSpans();
         
         assertThat(spans).hasSize(1);
-        FinishedSpan span = spans.get(0);
+        FinishedSpan span = spans.getFirst();
         
-        // Verify lag is captured and within expected range (4-6 seconds)
+        // Verify lag is captured and within a expected range (4-6 seconds)
         String lagStr = span.getTags().get("messaging.consumer_lag_ms");
         assertThat(lagStr).isNotNull();
         
@@ -175,21 +176,21 @@ class KafkaTracePropagationTest extends BaseIntegrationTest {
         var receiveSpan = createTestSpan("kafka.receive");
         receiveSpan.tag("messaging.system", "kafka");
         receiveSpan.tag("messaging.destination", "funds-added-topic");
-        receiveSpan.tag("cloudevents.traceparent", String.format("00-%s-%s-01", traceId, generateSpanId()));
+        receiveSpan.tag("cloudevents.traceparent", "00-%s-%s-01".formatted(traceId, generateSpanId()));
         receiveSpan.end();
         
         // Step 2: Process event (business logic)
-        var processSpan = tracer.nextSpan(receiveSpan).name("process.funds-added").start();
+        var processSpan = Objects.requireNonNull(tracer.nextSpan(receiveSpan)).name("process.funds-added").start();
         processSpan.tag("wallet.id", walletId.toString());
         processSpan.tag("event.type", "FundsAdded");
         processSpan.end();
         
         // Step 3: Publish cascading FundsTransferred event
-        var publishSpan = tracer.nextSpan(processSpan).name("kafka.send").start();
+        var publishSpan = Objects.requireNonNull(tracer.nextSpan(processSpan)).name("kafka.send").start();
         publishSpan.tag("messaging.system", "kafka");
         publishSpan.tag("messaging.destination", "funds-transferred-topic");
         publishSpan.tag("messaging.operation", "publish");
-        publishSpan.tag("cloudevents.traceparent", String.format("00-%s-%s-01", traceId, generateSpanId()));
+        publishSpan.tag("cloudevents.traceparent", "00-%s-%s-01".formatted(traceId, generateSpanId()));
         publishSpan.tag("event.cascade", "true");
         publishSpan.end();
         
@@ -199,7 +200,7 @@ class KafkaTracePropagationTest extends BaseIntegrationTest {
         
         assertThat(spans).hasSizeGreaterThanOrEqualTo(3);
         
-        // Verify all spans share same trace ID
+        // Verify all spans share the same trace ID
         FinishedSpan receive = findSpan(spans, s -> "kafka.receive".equals(s.getName()));
         FinishedSpan process = findSpan(spans, s -> s.getName().contains("process"));
         FinishedSpan publish = findSpan(spans, s -> "kafka.send".equals(s.getName()));
@@ -227,7 +228,7 @@ class KafkaTracePropagationTest extends BaseIntegrationTest {
         
         clearSpans();
         
-        // Simulate Kafka message with CloudEvents headers
+        // Simulate a Kafka message with CloudEvents headers
         var span = createTestSpan("kafka.send");
         span.tag("messaging.system", "kafka");
         span.tag("messaging.destination", "wallet-created-topic");
@@ -237,7 +238,7 @@ class KafkaTracePropagationTest extends BaseIntegrationTest {
         span.tag("messaging.header.ce_type", "dev.bloco.wallet.wallet-created");
         span.tag("messaging.header.ce_source", "/wallet-hub");
         span.tag("messaging.header.ce_id", UUID.randomUUID().toString());
-        span.tag("messaging.header.ce_traceparent", String.format("00-%s-%s-01", traceId, spanId));
+        span.tag("messaging.header.ce_traceparent", "00-%s-%s-01".formatted(traceId, spanId));
         span.tag("messaging.header.ce_tracestate", "congo=t61rcWkgMzE");
         
         span.end();
@@ -247,7 +248,7 @@ class KafkaTracePropagationTest extends BaseIntegrationTest {
         List<FinishedSpan> spans = getSpans();
         
         assertThat(spans).hasSize(1);
-        FinishedSpan capturedSpan = spans.get(0);
+        FinishedSpan capturedSpan = spans.getFirst();
         
         // Verify CloudEvents headers
         assertSpanHasTags(capturedSpan,
@@ -258,9 +259,9 @@ class KafkaTracePropagationTest extends BaseIntegrationTest {
         assertSpanTagEquals(capturedSpan, "messaging.header.ce_specversion", "1.0");
         assertSpanTagEquals(capturedSpan, "messaging.header.ce_type", "dev.bloco.wallet.wallet-created");
         
-        // Verify traceparent in header
-        String traceparentHeader = capturedSpan.getTags().get("messaging.header.ce_traceparent");
-        assertThat(traceparentHeader).matches("^00-[0-9a-f]{32}-[0-9a-f]{16}-01$");
+        // Verify traceparent in the header
+        String traceParentHeader = capturedSpan.getTags().get("messaging.header.ce_traceparent");
+        assertThat(traceParentHeader).matches("^00-[0-9a-f]{32}-[0-9a-f]{16}-01$");
     }
     
     // Helper methods

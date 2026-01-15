@@ -5,12 +5,13 @@ import dev.bloco.wallet.hub.infra.provider.data.config.SagaEvents;
 import dev.bloco.wallet.hub.infra.provider.data.config.SagaStates;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.stereotype.Component;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.statemachine.StateMachine;
 import reactor.core.publisher.Mono;
 
+import org.springframework.stereotype.Component;
 import java.util.function.Consumer;
 
 /**
@@ -25,25 +26,9 @@ import java.util.function.Consumer;
  * FundsTransferredEventConsumer provides a bean of type
  * Consumer<Message<FundsTransferredEvent>>, which manages the processing of incoming event messages.
  */
-@Configuration
+@Component
 @Slf4j
 public class FundsTransferredEventConsumer {
-
-    private final StateMachine<SagaStates, SagaEvents> stateMachine;
-
-    /**
-     * Constructs a FundsTransferredEventConsumer instance.
-     *<p/>
-     * This constructor initializes the {@code FundsTransferredEventConsumer} with a state machine,
-     * which is used to manage the state transitions of the saga process when funds are transferred
-     * between wallets within the system.
-     *
-     * @param stateMachine the state machine instance responsible for handling and transitioning
-     *                      between different states of the saga related to fund transfers
-     */
-    public FundsTransferredEventConsumer(StateMachine<SagaStates, SagaEvents> stateMachine) {
-        this.stateMachine = stateMachine;
-    }
 
     /**
      * Creates a consumer function for handling FundsTransferredEvent messages.
@@ -59,7 +44,7 @@ public class FundsTransferredEventConsumer {
      * @return a Consumer function that processes messages containing FundsTransferredEvent data
      */
     @Bean
-    public Consumer<Message<FundsTransferredEvent>> fundsTransferredEventConsumerFunction() {
+    public Consumer<Message<FundsTransferredEvent>> fundsTransferredEventConsumerFunction(StateMachine<SagaStates, SagaEvents> stateMachine) {
         return message -> {
             var event = message.getPayload();
             var stateMachineMessage = MessageBuilder.withPayload(SagaEvents.FUNDS_TRANSFERRED)

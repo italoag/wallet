@@ -13,7 +13,7 @@ import java.util.UUID;
  * and publish a TransactionStatusChangedEvent with the failure reason.
  */
 public record FailTransactionUseCase(TransactionRepository transactionRepository,
-                                     DomainEventPublisher eventPublisher) {
+                                  DomainEventPublisher eventPublisher) {
 
     /**
      * Fails a transaction and publishes a status changed event with reason.

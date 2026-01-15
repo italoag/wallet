@@ -58,9 +58,10 @@ public class CloudEventUtils {
 
     private static byte[] toJsonBytes(Object data) {
         try {
-            // Use Jackson if available on classpath
-            com.fasterxml.jackson.databind.ObjectMapper om = new com.fasterxml.jackson.databind.ObjectMapper();
-            om.findAndRegisterModules();
+            // Use Jackson 3 with builder pattern - modules are auto-discovered via SPI
+            tools.jackson.databind.json.JsonMapper om = tools.jackson.databind.json.JsonMapper.builder()
+                    .findAndAddModules()
+                    .build();
             return om.writeValueAsBytes(data);
         } catch (Exception ex) {
             // Fallback to toString() if serialization fails to avoid hard failures

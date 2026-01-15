@@ -5,7 +5,6 @@ import dev.bloco.wallet.hub.domain.model.transaction.Transaction;
 import dev.bloco.wallet.hub.domain.model.transaction.TransactionStatus;
 import dev.bloco.wallet.hub.infra.provider.data.entity.TransactionEntity;
 import dev.bloco.wallet.hub.infra.provider.mapper.TransactionMapper;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Repository;
 
 import java.time.Instant;
@@ -47,7 +46,6 @@ public class JpaTransactionRepository implements TransactionRepository {
     private final SpringDataTransactionRepository springDataTransactionRepository;
     private final TransactionMapper transactionMapper;
 
-    @Autowired
     public JpaTransactionRepository(SpringDataTransactionRepository springDataTransactionRepository, TransactionMapper transactionMapper) {
         this.springDataTransactionRepository = springDataTransactionRepository;
         this.transactionMapper = transactionMapper;

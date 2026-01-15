@@ -13,7 +13,7 @@ import java.util.UUID;
  * and publish a TransactionConfirmedEvent.
  */
 public record ConfirmTransactionUseCase(TransactionRepository transactionRepository,
-                                        DomainEventPublisher eventPublisher) {
+                                     DomainEventPublisher eventPublisher) {
 
     /**
      * Confirms a transaction and publishes a confirmation event.

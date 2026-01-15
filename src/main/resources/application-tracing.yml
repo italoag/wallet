@@ -9,27 +9,8 @@ management:
   tracing:
     sampling:
       probability: 0.1  # 10% sampling rate (production default)
-    enabled: true
-    
-  # Zipkin backend configuration (primary for development)
-  zipkin:
-    tracing:
-      endpoint: http://localhost:9411/api/v2/spans
-      connect-timeout: 5s
-      read-timeout: 10s
-      
-  # OpenTelemetry OTLP configuration (for Tempo/Jaeger)
-  # OTLP 1.0 HTTP/protobuf export to Grafana Tempo
-  otlp:
-    tracing:
-      endpoint: http://tempo:4318/v1/traces  # Tempo OTLP endpoint
-      timeout: 10s
-      compression: gzip
-      headers:
-        # Optional: Add API keys or custom headers
-        # X-API-Key: ${TEMPO_API_KEY:}
-        X-Scope-OrgID: wallet-hub  # Multi-tenant header (if needed)
-      
+    export.enabled: true  # Multi-tenant header (if needed)
+
   # Actuator endpoints for tracing metrics
   endpoints:
     web:
@@ -42,6 +23,34 @@ management:
         http.server.requests: true
     tags:
       application: ${spring.application.name}
+
+  # OpenTelemetry OTLP configuration (for Tempo/Jaeger)
+  # OTLP 1.0 HTTP/protobuf export to Grafana Tempo
+  opentelemetry.tracing.export.otlp.compression: gzip
+
+  # OpenTelemetry OTLP configuration (for Tempo/Jaeger)
+  # OTLP 1.0 HTTP/protobuf export to Grafana Tempo
+  opentelemetry.tracing.export.otlp.endpoint: http://tempo:4318/v1/traces
+
+  # OpenTelemetry OTLP configuration (for Tempo/Jaeger)
+  # OTLP 1.0 HTTP/protobuf export to Grafana Tempo
+  opentelemetry.tracing.export.otlp.headers:
+    # Optional: Add API keys or custom headers
+    # X-API-Key: ${TEMPO_API_KEY:}
+    X-Scope-OrgID: wallet-hub
+
+  # OpenTelemetry OTLP configuration (for Tempo/Jaeger)
+  # OTLP 1.0 HTTP/protobuf export to Grafana Tempo
+  opentelemetry.tracing.export.otlp.timeout: 10s
+
+  # Zipkin backend configuration (primary for development)
+  tracing.export.zipkin.connect-timeout: 5s
+
+  # Zipkin backend configuration (primary for development)
+  tracing.export.zipkin.endpoint: http://localhost:9411/api/v2/spans
+
+  # Zipkin backend configuration (primary for development)
+  tracing.export.zipkin.read-timeout: 10s
       
 # Logging configuration for tracing
 logging:
