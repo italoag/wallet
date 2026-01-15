@@ -6,7 +6,7 @@ Auto-generated from all feature plans. Last updated: 2025-12-15
 
 ### Core Stack
 - **Language**: Java 24 (maven.compiler.release 24)
-- **Framework**: Spring Boot 3.5.5, Spring Cloud 2025.0.x
+- **Framework**: Spring Boot 4.0.1, Spring Cloud 2025.1.x
 - **Reactive**: Project Reactor, WebFlux, R2DBC, Reactive Redis/MongoDB
 - **Messaging**: Spring Cloud Stream + Kafka (functional bindings + CloudEvents)
 - **Persistence**: JPA (H2/PostgreSQL), R2DBC (reactive)
