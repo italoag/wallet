@@ -11,7 +11,7 @@ import java.util.UUID;
 @Getter
 @Entity
 @Table(name = "transaction_fees", indexes = {
-        @Index(name = "idx_network_id", columnList = "network_id"),
+        @Index(name = "idx_fees_network_id", columnList = "network_id"),
         @Index(name = "idx_timestamp", columnList = "timestamp")
 })
 public class TransactionFeeEntity {

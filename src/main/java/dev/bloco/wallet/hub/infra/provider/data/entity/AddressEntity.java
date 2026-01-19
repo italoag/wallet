@@ -18,8 +18,8 @@ import java.util.UUID;
 @Getter
 @Entity
 @Table(name = "addresses", indexes = {
-        @Index(name = "idx_wallet_id", columnList = "wallet_id"),
-        @Index(name = "idx_network_id", columnList = "network_id"),
+        @Index(name = "idx_addresses_wallet_id", columnList = "wallet_id"),
+        @Index(name = "idx_addresses_network_id", columnList = "network_id"),
         @Index(name = "idx_account_address", columnList = "account_address"),
         @Index(name = "idx_wallet_status", columnList = "wallet_id,status")
 })

@@ -7,9 +7,11 @@ import dev.bloco.wallet.hub.infra.provider.data.OutboxEvent;
 import dev.bloco.wallet.hub.infra.provider.data.repository.OutboxRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
+import org.springframework.boot.test.system.CapturedOutput;
+import org.springframework.boot.test.system.OutputCaptureExtension;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -17,6 +19,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(OutputCaptureExtension.class)
 @DisplayName("Outbox Event Publisher Tests")
 class OutboxEventPublisherTest {
 
@@ -50,16 +53,19 @@ class OutboxEventPublisherTest {
 
     @Test
     @DisplayName("Should throw when serialization fails")
-    void publish_onSerializationError_throwsRuntimeException() throws JsonProcessingException {
+    void publish_onSerializationError_throwsRuntimeException(CapturedOutput output) throws JsonProcessingException {
         // given
         var badMapper = mock(ObjectMapper.class);
-        when(badMapper.writeValueAsString(any())).thenThrow(new JsonProcessingException("boom") {});
+        when(badMapper.writeValueAsString(any())).thenThrow(new JsonProcessingException("boom") {
+        });
         var failingPublisher = new OutboxEventPublisher(outboxRepository, badMapper);
 
         // when/then
-        assertThatThrownBy(() -> failingPublisher.publish(new Object()))
+        var event = new Object();
+        assertThatThrownBy(() -> failingPublisher.publish(event))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("Failed to serialize event");
         verify(outboxRepository, never()).save(any());
+        assertThat(output.getOut()).contains("Failed to serialize event");
     }
 }

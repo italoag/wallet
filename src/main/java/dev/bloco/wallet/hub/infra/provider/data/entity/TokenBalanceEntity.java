@@ -12,7 +12,7 @@ import java.util.UUID;
 @Entity
 @Table(name = "token_balances", indexes = {
         @Index(name = "idx_address_id", columnList = "address_id"),
-        @Index(name = "idx_token_id", columnList = "token_id"),
+        @Index(name = "idx_balances_token_id", columnList = "token_id"),
         @Index(name = "idx_address_token", columnList = "address_id,token_id", unique = true)
 })
 public class TokenBalanceEntity {

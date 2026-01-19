@@ -14,7 +14,7 @@ import java.util.UUID;
 @Getter
 @Entity
 @Table(name = "tokens", indexes = {
-        @Index(name = "idx_network_id", columnList = "network_id"),
+        @Index(name = "idx_tokens_network_id", columnList = "network_id"),
         @Index(name = "idx_contract_address", columnList = "contract_address"),
         @Index(name = "idx_symbol", columnList = "symbol"),
         @Index(name = "idx_type", columnList = "type")

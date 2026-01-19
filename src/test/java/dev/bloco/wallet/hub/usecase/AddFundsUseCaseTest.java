@@ -70,7 +70,8 @@ class AddFundsUseCaseTest {
         UUID walletId = UUID.randomUUID();
         when(walletRepository.findById(walletId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.addFunds(walletId, new BigDecimal("1.00"), "c"))
+        BigDecimal amount = new BigDecimal("1.00");
+        assertThatThrownBy(() -> useCase.addFunds(walletId, amount, "c"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Wallet not found");
 
@@ -91,7 +92,8 @@ class AddFundsUseCaseTest {
         Wallet wallet = new Wallet(UUID.randomUUID(), "Test", "");
         when(walletRepository.findById(walletId)).thenReturn(Optional.of(wallet));
 
-        assertThatThrownBy(() -> useCase.addFunds(walletId, new BigDecimal("-1"), "c"))
+        BigDecimal amount = new BigDecimal("-1");
+        assertThatThrownBy(() -> useCase.addFunds(walletId, amount, "c"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("greater than zero");
 

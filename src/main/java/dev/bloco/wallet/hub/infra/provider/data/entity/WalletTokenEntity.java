@@ -10,8 +10,8 @@ import java.util.UUID;
 @Getter
 @Entity
 @Table(name = "wallet_tokens", indexes = {
-        @Index(name = "idx_wallet_id", columnList = "wallet_id"),
-        @Index(name = "idx_token_id", columnList = "token_id"),
+        @Index(name = "idx_wallet_tokens_wallet_id", columnList = "wallet_id"),
+        @Index(name = "idx_wallet_tokens_token_id", columnList = "token_id"),
         @Index(name = "idx_wallet_token", columnList = "wallet_id,token_id", unique = true)
 })
 public class WalletTokenEntity {

@@ -22,6 +22,7 @@ import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
+import org.testcontainers.containers.wait.strategy.Wait;
 
 import java.time.Duration;
 
@@ -71,17 +72,22 @@ public abstract class BaseIntegrationTest {
             DockerImageName.parse("postgres:16-alpine"))
             .withDatabaseName("wallet_test")
             .withUsername("test")
-            .withPassword("test");
+            .withPassword("test")
+            .withStartupTimeout(Duration.ofMinutes(2))
+            .waitingFor(Wait.forListeningPort());
 
     @Container
     @SuppressWarnings("resource")
     static final ConfluentKafkaContainer KAFKA = new ConfluentKafkaContainer(
-            DockerImageName.parse("confluentinc/cp-kafka:latest"));
+            DockerImageName.parse("confluentinc/cp-kafka:latest"))
+            .withStartupTimeout(Duration.ofMinutes(3));
 
     @Container
     @SuppressWarnings("resource")
     static final RedisContainer REDIS = new RedisContainer(
-            RedisContainer.DEFAULT_IMAGE_NAME.withTag(RedisContainer.DEFAULT_TAG));
+            RedisContainer.DEFAULT_IMAGE_NAME.withTag(RedisContainer.DEFAULT_TAG))
+            .withStartupTimeout(Duration.ofMinutes(2))
+            .waitingFor(Wait.forListeningPort());
 
     @Container
     @SuppressWarnings("resource")

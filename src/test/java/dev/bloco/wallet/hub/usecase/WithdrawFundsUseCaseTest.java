@@ -26,7 +26,8 @@ class WithdrawFundsUseCaseTest {
         WalletRepository walletRepository = mock(WalletRepository.class);
         TransactionRepository transactionRepository = mock(TransactionRepository.class);
         DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-        WithdrawFundsUseCase useCase = new WithdrawFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+        WithdrawFundsUseCase useCase = new WithdrawFundsUseCase(walletRepository, transactionRepository,
+                eventPublisher);
 
         UUID walletId = UUID.randomUUID();
         Wallet wallet = new Wallet(UUID.randomUUID(), "Test", "");
@@ -59,12 +60,14 @@ class WithdrawFundsUseCaseTest {
         WalletRepository walletRepository = mock(WalletRepository.class);
         TransactionRepository transactionRepository = mock(TransactionRepository.class);
         DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-        WithdrawFundsUseCase useCase = new WithdrawFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+        WithdrawFundsUseCase useCase = new WithdrawFundsUseCase(walletRepository, transactionRepository,
+                eventPublisher);
 
         UUID walletId = UUID.randomUUID();
         when(walletRepository.findById(walletId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.withdrawFunds(walletId, new BigDecimal("1.00"), "c"))
+        BigDecimal amount = new BigDecimal("1.00");
+        assertThatThrownBy(() -> useCase.withdrawFunds(walletId, amount, "c"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Wallet not found");
 
@@ -79,14 +82,16 @@ class WithdrawFundsUseCaseTest {
         WalletRepository walletRepository = mock(WalletRepository.class);
         TransactionRepository transactionRepository = mock(TransactionRepository.class);
         DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-        WithdrawFundsUseCase useCase = new WithdrawFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+        WithdrawFundsUseCase useCase = new WithdrawFundsUseCase(walletRepository, transactionRepository,
+                eventPublisher);
 
         UUID walletId = UUID.randomUUID();
         Wallet wallet = new Wallet(UUID.randomUUID(), "Test", "");
         wallet.addFunds(new BigDecimal("10.00"));
         when(walletRepository.findById(walletId)).thenReturn(Optional.of(wallet));
 
-        assertThatThrownBy(() -> useCase.withdrawFunds(walletId, new BigDecimal("20.00"), "c"))
+        BigDecimal amount = new BigDecimal("20.00");
+        assertThatThrownBy(() -> useCase.withdrawFunds(walletId, amount, "c"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Insufficient");
 

@@ -26,7 +26,8 @@ class TransferFundsUseCaseTest {
         WalletRepository walletRepository = mock(WalletRepository.class);
         TransactionRepository transactionRepository = mock(TransactionRepository.class);
         DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-        TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+        TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, transactionRepository,
+                eventPublisher);
 
         UUID fromId = UUID.randomUUID();
         UUID toId = UUID.randomUUID();
@@ -69,13 +70,15 @@ class TransferFundsUseCaseTest {
         WalletRepository walletRepository = mock(WalletRepository.class);
         TransactionRepository transactionRepository = mock(TransactionRepository.class);
         DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-        TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+        TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, transactionRepository,
+                eventPublisher);
 
         UUID fromId = UUID.randomUUID();
         UUID toId = UUID.randomUUID();
         when(walletRepository.findById(fromId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.transferFunds(fromId, toId, new BigDecimal("1.00"), "c"))
+        BigDecimal amount = new BigDecimal("1.00");
+        assertThatThrownBy(() -> useCase.transferFunds(fromId, toId, amount, "c"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("From Wallet not found");
 
@@ -90,14 +93,16 @@ class TransferFundsUseCaseTest {
         WalletRepository walletRepository = mock(WalletRepository.class);
         TransactionRepository transactionRepository = mock(TransactionRepository.class);
         DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-        TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+        TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, transactionRepository,
+                eventPublisher);
 
         UUID fromId = UUID.randomUUID();
         UUID toId = UUID.randomUUID();
         when(walletRepository.findById(fromId)).thenReturn(Optional.of(new Wallet(UUID.randomUUID(), "From", "")));
         when(walletRepository.findById(toId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.transferFunds(fromId, toId, new BigDecimal("1.00"), "c"))
+        BigDecimal amount = new BigDecimal("1.00");
+        assertThatThrownBy(() -> useCase.transferFunds(fromId, toId, amount, "c"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("To Wallet not found");
 
@@ -112,7 +117,8 @@ class TransferFundsUseCaseTest {
         WalletRepository walletRepository = mock(WalletRepository.class);
         TransactionRepository transactionRepository = mock(TransactionRepository.class);
         DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-        TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+        TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, transactionRepository,
+                eventPublisher);
 
         UUID fromId = UUID.randomUUID();
         UUID toId = UUID.randomUUID();
@@ -122,7 +128,8 @@ class TransferFundsUseCaseTest {
         when(walletRepository.findById(fromId)).thenReturn(Optional.of(from));
         when(walletRepository.findById(toId)).thenReturn(Optional.of(to));
 
-        assertThatThrownBy(() -> useCase.transferFunds(fromId, toId, new BigDecimal("10.00"), "c"))
+        BigDecimal amount = new BigDecimal("10.00");
+        assertThatThrownBy(() -> useCase.transferFunds(fromId, toId, amount, "c"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Insufficient");
 

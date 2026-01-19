@@ -37,10 +37,12 @@ class WalletTest {
     void addFundsInvalid() {
         Wallet wallet = new Wallet(UUID.randomUUID(), "Test", "");
 
-        assertThatThrownBy(() -> wallet.addFunds(BigDecimal.ZERO))
+        BigDecimal zero = BigDecimal.ZERO;
+        assertThatThrownBy(() -> wallet.addFunds(zero))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("greater than zero");
-        assertThatThrownBy(() -> wallet.addFunds(new BigDecimal("-1")))
+        BigDecimal negative = new BigDecimal("-1");
+        assertThatThrownBy(() -> wallet.addFunds(negative))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("greater than zero");
     }
@@ -62,13 +64,16 @@ class WalletTest {
         Wallet wallet = new Wallet(UUID.randomUUID(), "Test", "");
         wallet.addFunds(new BigDecimal("10.00"));
 
-        assertThatThrownBy(() -> wallet.withdrawFunds(BigDecimal.ZERO))
+        BigDecimal zero = BigDecimal.ZERO;
+        assertThatThrownBy(() -> wallet.withdrawFunds(zero))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Insufficient balance or invalid amount");
-        assertThatThrownBy(() -> wallet.withdrawFunds(new BigDecimal("-1")))
+        BigDecimal negative = new BigDecimal("-1");
+        assertThatThrownBy(() -> wallet.withdrawFunds(negative))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Insufficient balance or invalid amount");
-        assertThatThrownBy(() -> wallet.withdrawFunds(new BigDecimal("20")))
+        BigDecimal twenty = new BigDecimal("20");
+        assertThatThrownBy(() -> wallet.withdrawFunds(twenty))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Insufficient balance or invalid amount");
     }

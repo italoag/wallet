@@ -18,13 +18,15 @@ import io.micrometer.tracing.test.simple.SimpleTracer;
 /**
  * Integration tests for database operation tracing.
  * 
- * <p>Tests verify:</p>
+ * <p>
+ * Tests verify:
+ * </p>
  * <ul>
- *   <li>JPA transaction span creation and grouping</li>
- *   <li>R2DBC reactive query tracing with context propagation</li>
- *   <li>Slow query detection and tagging</li>
- *   <li>Transaction attributes (isolation level, status)</li>
- *   <li>Connection pool metrics</li>
+ * <li>JPA transaction span creation and grouping</li>
+ * <li>R2DBC reactive query tracing with context propagation</li>
+ * <li>Slow query detection and tagging</li>
+ * <li>Transaction attributes (isolation level, status)</li>
+ * <li>Connection pool metrics</li>
  * </ul>
  */
 @SpringBootTest
@@ -85,18 +87,18 @@ class DatabaseTracingIntegrationTest {
         // When: Execute multiple queries in transaction
         Span txSpan = tracer.nextSpan().name("transaction").start();
         String txTraceId = txSpan.context().traceId();
-        
+
         try (Tracer.SpanInScope txScope = tracer.withSpan(txSpan)) {
             // Query 1
             Span query1 = tracer.nextSpan().name("query1").start();
             String q1TraceId = query1.context().traceId();
             query1.end();
-            
+
             // Query 2
             Span query2 = tracer.nextSpan().name("query2").start();
             String q2TraceId = query2.context().traceId();
             query2.end();
-            
+
             // Then: All should have same trace ID
             assertThat(q1TraceId).isEqualTo(txTraceId);
             assertThat(q2TraceId).isEqualTo(txTraceId);
@@ -121,7 +123,8 @@ class DatabaseTracingIntegrationTest {
         span.tag("tx.status", "COMMITTED");
         span.end();
 
-        // Then: Attributes should be captured (verified in real integration with repository)
+        // Then: Attributes should be captured (verified in real integration with
+        // repository)
         if (tracer instanceof SimpleTracer simpleTracer) {
             assertThat(simpleTracer.getSpans()).hasSize(1);
         }
@@ -158,13 +161,13 @@ class DatabaseTracingIntegrationTest {
         // When: Create parent span and reactive child span
         Span parent = tracer.nextSpan().name("parent").start();
         String parentTraceId = parent.context().traceId();
-        
+
         try (Tracer.SpanInScope scope = tracer.withSpan(parent)) {
             // Simulate reactive query
             Span reactiveSpan = tracer.nextSpan().name("r2dbc.reactive").start();
             String reactiveTraceId = reactiveSpan.context().traceId();
             reactiveSpan.end();
-            
+
             // Then: Reactive span should have same trace ID
             assertThat(reactiveTraceId).isEqualTo(parentTraceId);
         } finally {
