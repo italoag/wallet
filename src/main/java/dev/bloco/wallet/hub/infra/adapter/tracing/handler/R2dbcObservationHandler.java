@@ -12,6 +12,7 @@ import io.micrometer.observation.ObservationHandler;
 import io.r2dbc.pool.ConnectionPool;
 import io.r2dbc.pool.PoolMetrics;
 import io.r2dbc.spi.Connection;
+import io.r2dbc.spi.ConnectionFactoryMetadata;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -177,16 +178,16 @@ public class R2dbcObservationHandler implements ObservationHandler<Observation.C
                                 String.format("%.2f", acquisitionTimeMs)));
             }
 
-            // Add database system
-            addDatabaseAttributes(context);
+            // Add database system and operation using builder
+            String dbSystem = determineDatabaseSystem();
+            String operation = deriveOperation(context.getName());
+            spanAttributeBuilder.addDatabaseAttributes(context, dbSystem, operation);
 
             // Add connection pool metrics
             addConnectionPoolMetrics(context);
 
-            // Mark as successful
-            context.addLowCardinalityKeyValue(KeyValue.of("status", "success"));
-
-            // Log removed
+            // Mark as successful using builder
+            spanAttributeBuilder.addSuccessStatus(context);
         } catch (Exception e) {
             // Log removed
         }
@@ -206,38 +207,10 @@ public class R2dbcObservationHandler implements ObservationHandler<Observation.C
 
         try {
             Throwable error = context.getError();
-            if (error != null) {
-                context.addLowCardinalityKeyValue(KeyValue.of(SpanAttributeBuilder.ERROR, "true"));
-                context.addLowCardinalityKeyValue(KeyValue.of(SpanAttributeBuilder.ERROR_TYPE,
-                        error.getClass().getSimpleName()));
-
-                String message = error.getMessage();
-                if (message != null) {
-                    context.addHighCardinalityKeyValue(KeyValue.of(SpanAttributeBuilder.ERROR_MESSAGE,
-                            truncate(message, 512)));
-                }
-
-                context.addLowCardinalityKeyValue(KeyValue.of("status", "error"));
-            }
+            // Add error attributes using builder (with automatic sanitization)
+            spanAttributeBuilder.addErrorAttributes(context, error);
         } catch (Exception e) {
             // Log removed
-        }
-    }
-
-    /**
-     * Adds database system and operation attributes.
-     *
-     * @param context the observation context
-     */
-    private void addDatabaseAttributes(Observation.Context context) {
-        // Determine database system from context or connection pool
-        String dbSystem = determineDatabaseSystem();
-        context.addLowCardinalityKeyValue(KeyValue.of(SpanAttributeBuilder.DB_SYSTEM, dbSystem));
-
-        // Try to derive operation from context name
-        String operation = deriveOperation(context.getName());
-        if (operation != null) {
-            context.addLowCardinalityKeyValue(KeyValue.of(SpanAttributeBuilder.DB_OPERATION, operation));
         }
     }
 
@@ -288,16 +261,26 @@ public class R2dbcObservationHandler implements ObservationHandler<Observation.C
         }
     }
 
-    /**
-     * Determines the database system from connection pool configuration.
-     *
-     * @return database system name
-     */
     private String determineDatabaseSystem() {
         // Try to determine from connection pool metadata
-        // For now, return a default value
-        // In production, this would inspect the R2DBC URL or connection factory
-        return "postgresql"; // TODO: Extract from ConnectionFactory
+        return connectionPool.map(pool -> {
+            try {
+                ConnectionFactoryMetadata metadata = pool.getMetadata();
+                String name = metadata.getName().toLowerCase();
+                if (name.contains("postgres")) {
+                    return "postgresql";
+                } else if (name.contains("h2")) {
+                    return "h2";
+                } else if (name.contains("mysql")) {
+                    return "mysql";
+                } else if (name.contains("oracle")) {
+                    return "oracle";
+                }
+                return name;
+            } catch (Exception e) {
+                return "postgresql";
+            }
+        }).orElse("postgresql");
     }
 
     /**
@@ -327,20 +310,4 @@ public class R2dbcObservationHandler implements ObservationHandler<Observation.C
         return null;
     }
 
-    /**
-     * Truncates a string to the specified length.
-     *
-     * @param value     the value to truncate
-     * @param maxLength maximum length
-     * @return truncated value
-     */
-    private String truncate(String value, int maxLength) {
-        if (value == null) {
-            return "";
-        }
-        if (value.length() <= maxLength) {
-            return value;
-        }
-        return value.substring(0, maxLength - 3) + "...";
-    }
 }

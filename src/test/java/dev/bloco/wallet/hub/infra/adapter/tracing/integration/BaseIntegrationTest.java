@@ -1,8 +1,7 @@
 package dev.bloco.wallet.hub.infra.adapter.tracing.integration;
 
+import java.util.Collections;
 import java.util.List;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Predicate;
 
 import com.redis.testcontainers.RedisContainer;
@@ -67,6 +66,7 @@ public abstract class BaseIntegrationTest {
     // ============= Testcontainers =============
 
     @Container
+    @SuppressWarnings("resource")
     static final PostgreSQLContainer POSTGRES = new PostgreSQLContainer(
             DockerImageName.parse("postgres:16-alpine"))
             .withDatabaseName("wallet_test")
@@ -74,27 +74,22 @@ public abstract class BaseIntegrationTest {
             .withPassword("test");
 
     @Container
+    @SuppressWarnings("resource")
     static final ConfluentKafkaContainer KAFKA = new ConfluentKafkaContainer(
             DockerImageName.parse("confluentinc/cp-kafka:latest"));
 
     @Container
+    @SuppressWarnings("resource")
     static final RedisContainer REDIS = new RedisContainer(
             RedisContainer.DEFAULT_IMAGE_NAME.withTag(RedisContainer.DEFAULT_TAG));
 
     @Container
+    @SuppressWarnings("resource")
     static final LgtmStackContainer LGTM = new LgtmStackContainer(
             DockerImageName.parse("grafana/otel-lgtm:latest"))
             .withStartupTimeout(Duration.ofMinutes(2));
 
     // ============= Span Collection =============
-
-    /**
-     * Legacy span queue - kept for backward compatibility.
-     * 
-     * @deprecated Use getSpans() which uses SimpleTracer directly.
-     */
-    @Deprecated
-    protected static final Queue<FinishedSpan> SPAN_QUEUE = new ConcurrentLinkedQueue<>();
 
     @Autowired(required = false)
     protected SimpleTracer simpleTracer;
@@ -165,14 +160,13 @@ public abstract class BaseIntegrationTest {
         if (simpleTracer != null) {
             simpleTracer.getSpans().clear();
         }
-        SPAN_QUEUE.clear();
     }
 
     protected List<FinishedSpan> getSpans() {
         if (simpleTracer != null) {
             return new java.util.ArrayList<>(simpleTracer.getSpans());
         }
-        return List.copyOf(SPAN_QUEUE);
+        return Collections.emptyList();
     }
 
     protected List<FinishedSpan> getSpansWithName(String name) {
@@ -194,7 +188,7 @@ public abstract class BaseIntegrationTest {
     protected void waitForSpans(int expectedCount, long timeoutMs) {
         long deadline = System.currentTimeMillis() + timeoutMs;
         try {
-            while (SPAN_QUEUE.size() < expectedCount && System.currentTimeMillis() < deadline) {
+            while (getSpans().size() < expectedCount && System.currentTimeMillis() < deadline) {
                 Thread.sleep(50);
             }
         } catch (InterruptedException e) {

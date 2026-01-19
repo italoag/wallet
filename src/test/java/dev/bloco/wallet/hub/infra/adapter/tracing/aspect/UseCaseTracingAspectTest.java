@@ -16,21 +16,24 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import dev.bloco.wallet.hub.infra.adapter.tracing.config.SpanAttributeBuilder;
 import dev.bloco.wallet.hub.infra.adapter.tracing.config.TracingFeatureFlags;
-import dev.bloco.wallet.hub.infra.adapter.tracing.filter.SensitiveDataSanitizer;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
-import io.micrometer.tracing.test.simple.SimpleTracer;
 
 /**
  * Unit tests for {@link UseCaseTracingAspect}.
  * 
- * <p>Tests verify:</p>
+ * <p>
+ * Tests verify:
+ * </p>
  * <ul>
- *   <li>Span creation for use case executions</li>
- *   <li>Identifier hashing (wallet.id, user.id)</li>
- *   <li>Transaction ID handling (included as-is)</li>
- *   <li>Error handling and exception details</li>
- *   <li>Feature flag behavior</li>
- *   <li>Span attribute correctness</li>
+ * <li>Span creation for use case executions</li>
+ * <li>Identifier hashing (wallet.id, user.id)</li>
+ * <li>Transaction ID handling (included as-is)</li>
+ * <li>Error handling and exception details</li>
+ * <li>Feature flag behavior</li>
+ * <li>Span attribute correctness</li>
  * </ul>
  */
 @ExtendWith(MockitoExtension.class)
@@ -46,24 +49,19 @@ class UseCaseTracingAspectTest {
     private TracingFeatureFlags featureFlags;
 
     @Mock
-    private SensitiveDataSanitizer sanitizer;
+    private SpanAttributeBuilder spanAttributeBuilder;
 
     private ObservationRegistry observationRegistry;
-    private SimpleTracer tracer;
-    private SpanAttributeBuilder spanAttributeBuilder;
     private UseCaseTracingAspect aspect;
 
     @BeforeEach
     void setUp() {
         observationRegistry = ObservationRegistry.create();
-        tracer = new SimpleTracer();
-        spanAttributeBuilder = new SpanAttributeBuilder(sanitizer);
-        
+
         aspect = new UseCaseTracingAspect(
                 observationRegistry,
                 spanAttributeBuilder,
-                featureFlags
-        );
+                featureFlags);
 
         // Default: feature flag enabled
         when(featureFlags.isUseCase()).thenReturn(true);
@@ -72,10 +70,10 @@ class UseCaseTracingAspectTest {
     @Test
     void shouldCreateSpanForUseCaseExecution() throws Throwable {
         // Given
-        when(signature.getDeclaringType()).thenReturn((Class) TestUseCase.class);
+        when(signature.getDeclaringType()).thenReturn((Class<?>) TestUseCase.class);
         when(signature.getName()).thenReturn("execute");
         when(joinPoint.getSignature()).thenReturn(signature);
-        when(joinPoint.getArgs()).thenReturn(new Object[]{});
+        when(joinPoint.getArgs()).thenReturn(new Object[] {});
         when(joinPoint.proceed()).thenReturn("success");
 
         // When
@@ -84,6 +82,8 @@ class UseCaseTracingAspectTest {
         // Then
         assertThat(result).isEqualTo("success");
         verify(joinPoint).proceed();
+        verify(spanAttributeBuilder).addUseCaseAttributes(any(Observation.class), eq("test"));
+        verify(spanAttributeBuilder).addSuccessStatus(any(Observation.class));
     }
 
     @Test
@@ -107,64 +107,63 @@ class UseCaseTracingAspectTest {
         UUID walletId = UUID.randomUUID();
         when(signature.getDeclaringType()).thenReturn((Class) TestUseCase.class);
         when(signature.getName()).thenReturn("execute");
-        when(signature.getParameterNames()).thenReturn(new String[]{"walletId"});
+        when(signature.getParameterNames()).thenReturn(new String[] { "walletId" });
         when(joinPoint.getSignature()).thenReturn(signature);
-        when(joinPoint.getArgs()).thenReturn(new Object[]{walletId});
+        when(joinPoint.getArgs()).thenReturn(new Object[] { walletId });
         when(joinPoint.proceed()).thenReturn("success");
 
         // When
-        Object result = aspect.traceUseCaseExecution(joinPoint);
+        aspect.traceUseCaseExecution(joinPoint);
 
         // Then
-        assertThat(result).isEqualTo("success");
-        // Note: Verification of hashed identifier would require access to observation
-        // In real scenario, this would be verified via integration test with actual tracer
+        verify(spanAttributeBuilder).addHashedIdentifier(any(Observation.class), eq("wallet.id.hash"),
+                eq(walletId.toString()));
     }
 
     @Test
     void shouldIncludeTransactionIdAsIs() throws Throwable {
         // Given
         UUID transactionId = UUID.randomUUID();
-        when(signature.getDeclaringType()).thenReturn((Class) TestUseCase.class);
+        when(signature.getDeclaringType()).thenReturn((Class<?>) TestUseCase.class);
         when(signature.getName()).thenReturn("execute");
-        when(signature.getParameterNames()).thenReturn(new String[]{"transactionId"});
+        when(signature.getParameterNames()).thenReturn(new String[] { "transactionId" });
         when(joinPoint.getSignature()).thenReturn(signature);
-        when(joinPoint.getArgs()).thenReturn(new Object[]{transactionId});
+        when(joinPoint.getArgs()).thenReturn(new Object[] { transactionId });
         when(joinPoint.proceed()).thenReturn("success");
 
         // When
-        Object result = aspect.traceUseCaseExecution(joinPoint);
+        aspect.traceUseCaseExecution(joinPoint);
 
         // Then
-        assertThat(result).isEqualTo("success");
-        // Transaction ID should be included as high-cardinality attribute (not hashed)
+        verify(spanAttributeBuilder).addIdentifier(any(Observation.class), eq(SpanAttributeBuilder.TRANSACTION_ID),
+                eq(transactionId.toString()));
     }
 
     @Test
     void shouldAddErrorAttributesOnException() throws Throwable {
         // Given
         RuntimeException exception = new RuntimeException("Test error");
-        when(signature.getDeclaringType()).thenReturn((Class) TestUseCase.class);
+        when(signature.getDeclaringType()).thenReturn((Class<?>) TestUseCase.class);
         when(signature.getName()).thenReturn("execute");
         when(joinPoint.getSignature()).thenReturn(signature);
-        when(joinPoint.getArgs()).thenReturn(new Object[]{});
+        when(joinPoint.getArgs()).thenReturn(new Object[] {});
         when(joinPoint.proceed()).thenThrow(exception);
 
         // When/Then
         assertThatThrownBy(() -> aspect.traceUseCaseExecution(joinPoint))
-                .isInstanceOf(RuntimeException.class)
-                .hasMessage("Test error");
+                .isInstanceOf(RuntimeException.class);
 
         verify(joinPoint).proceed();
+        verify(spanAttributeBuilder).addErrorAttributes(any(Observation.class), eq(exception));
     }
 
     @Test
     void shouldDeriveOperationNameFromClassName() throws Throwable {
         // Given
-        when(signature.getDeclaringType()).thenReturn((Class) AddFundsUseCase.class);
+        when(signature.getDeclaringType()).thenReturn((Class<?>) AddFundsUseCase.class);
         when(signature.getName()).thenReturn("execute");
         when(joinPoint.getSignature()).thenReturn(signature);
-        when(joinPoint.getArgs()).thenReturn(new Object[]{});
+        when(joinPoint.getArgs()).thenReturn(new Object[] {});
         when(joinPoint.proceed()).thenReturn("success");
 
         // When
@@ -178,10 +177,10 @@ class UseCaseTracingAspectTest {
     @Test
     void shouldHandleNullArguments() throws Throwable {
         // Given
-        when(signature.getDeclaringType()).thenReturn((Class) TestUseCase.class);
+        when(signature.getDeclaringType()).thenReturn((Class<?>) TestUseCase.class);
         when(signature.getName()).thenReturn("execute");
         when(joinPoint.getSignature()).thenReturn(signature);
-        when(joinPoint.getArgs()).thenReturn(new Object[]{null});
+        when(joinPoint.getArgs()).thenReturn(new Object[] { null });
         when(joinPoint.proceed()).thenReturn("success");
 
         // When
@@ -197,10 +196,10 @@ class UseCaseTracingAspectTest {
         // Given
         String errorWithUuid = "Failed to process wallet 550e8400-e29b-41d4-a716-446655440000";
         RuntimeException exception = new RuntimeException(errorWithUuid);
-        when(signature.getDeclaringType()).thenReturn((Class) TestUseCase.class);
+        when(signature.getDeclaringType()).thenReturn((Class<?>) TestUseCase.class);
         when(signature.getName()).thenReturn("execute");
         when(joinPoint.getSignature()).thenReturn(signature);
-        when(joinPoint.getArgs()).thenReturn(new Object[]{});
+        when(joinPoint.getArgs()).thenReturn(new Object[] {});
         when(joinPoint.proceed()).thenThrow(exception);
 
         // When/Then
@@ -219,11 +218,11 @@ class UseCaseTracingAspectTest {
         for (int i = 0; i < 20; i++) {
             exception.addSuppressed(new RuntimeException("Nested " + i));
         }
-        
-        when(signature.getDeclaringType()).thenReturn((Class) TestUseCase.class);
+
+        when(signature.getDeclaringType()).thenReturn((Class<?>) TestUseCase.class);
         when(signature.getName()).thenReturn("execute");
         when(joinPoint.getSignature()).thenReturn(signature);
-        when(joinPoint.getArgs()).thenReturn(new Object[]{});
+        when(joinPoint.getArgs()).thenReturn(new Object[] {});
         when(joinPoint.proceed()).thenThrow(exception);
 
         // When/Then

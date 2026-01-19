@@ -99,11 +99,13 @@ class StateMachineObservationHandlerTest {
         verify(tracer).nextSpan();
         verify(span).name("State Transition: WALLET_CREATED → FUNDS_ADDED");
         verify(span).start();
-        verify(span).tag("statemachine.id", MACHINE_ID);
-        verify(span).tag("statemachine.type", "saga");
-        verify(span).tag("statemachine.state.from", "WALLET_CREATED");
-        verify(span).tag("statemachine.state.to", "FUNDS_ADDED");
-        verify(span).tag("statemachine.event", "FUNDS_ADDED");
+        verify(spanAttributeBuilder).addStateMachineAttributes(
+                eq(span),
+                eq(MACHINE_ID),
+                eq("WALLET_CREATED"),
+                eq("FUNDS_ADDED"),
+                eq("FUNDS_ADDED"),
+                eq(false));
         verify(span).event("transition.started");
     }
 
@@ -121,8 +123,13 @@ class StateMachineObservationHandlerTest {
         handler.transitionStarted(transition, stateMachine);
 
         // Then
-        verify(span).tag("statemachine.compensation", "true");
-        verify(span).tag("statemachine.state.to", "FAILED");
+        verify(spanAttributeBuilder).addStateMachineAttributes(
+                eq(span),
+                eq(MACHINE_ID),
+                eq("FUNDS_ADDED"),
+                eq("FAILED"),
+                eq("SAGA_FAILED"),
+                eq(true));
     }
 
     @Test
@@ -145,6 +152,7 @@ class StateMachineObservationHandlerTest {
 
         // Then
         verify(span).tag(eq("statemachine.transition.duration_ms"), anyString());
+        verify(spanAttributeBuilder).addSuccessStatus(span);
         verify(span).event("transition.completed");
         verify(span).end();
     }
@@ -241,9 +249,7 @@ class StateMachineObservationHandlerTest {
         handler.stateMachineError(stateMachine, exception);
 
         // Then
-        verify(span).tag("error.type", "RuntimeException");
-        verify(span).tag("error.message", "Insufficient funds");
-        verify(span).tag("status", "error");
+        verify(spanAttributeBuilder).addErrorAttributes(span, exception);
         verify(span).event("statemachine.error");
     }
 
@@ -278,7 +284,13 @@ class StateMachineObservationHandlerTest {
 
         // Then - should still create span, just without event attribute
         verify(span).name("State Transition: INITIAL → WALLET_CREATED");
-        verify(span, never()).tag(eq("statemachine.event"), anyString());
+        verify(spanAttributeBuilder).addStateMachineAttributes(
+                eq(span),
+                eq(MACHINE_ID),
+                eq("INITIAL"),
+                eq("WALLET_CREATED"),
+                eq(null),
+                eq(false));
     }
 
     @Test
@@ -291,6 +303,13 @@ class StateMachineObservationHandlerTest {
         handler.transitionStarted(transition, stateMachine);
 
         verify(span).name("State Transition: UNKNOWN → UNKNOWN");
+        verify(spanAttributeBuilder).addStateMachineAttributes(
+                eq(span),
+                eq(MACHINE_ID),
+                eq("UNKNOWN"),
+                eq("UNKNOWN"),
+                eq(null),
+                eq(false));
     }
 
     @Test
@@ -306,6 +325,12 @@ class StateMachineObservationHandlerTest {
         handler.transitionStarted(transition, stateMachine);
 
         // Then - should use UUID instead
-        verify(span).tag("statemachine.id", MACHINE_UUID.toString());
+        verify(spanAttributeBuilder).addStateMachineAttributes(
+                eq(span),
+                eq(MACHINE_UUID.toString()),
+                eq("INITIAL"),
+                eq("WALLET_CREATED"),
+                eq(null),
+                eq(false));
     }
 }

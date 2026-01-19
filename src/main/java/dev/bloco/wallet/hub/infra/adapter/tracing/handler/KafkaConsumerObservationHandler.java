@@ -204,40 +204,19 @@ public class KafkaConsumerObservationHandler implements ObservationHandler<Obser
     @Override
     public void onStart(Observation.Context context) {
         try {
-            // Add base messaging attributes
-            context.addLowCardinalityKeyValue(KeyValue.of("messaging.system", "kafka"));
-            context.addLowCardinalityKeyValue(KeyValue.of("messaging.operation", "receive"));
-            context.addLowCardinalityKeyValue(KeyValue.of("span.kind", "CONSUMER"));
-
-            // Add destination information if available
+            // Extract context values
             String topic = (String) context.get("kafka.topic");
-            if (topic != null) {
-                context.addLowCardinalityKeyValue(KeyValue.of("messaging.destination.name", topic));
-                context.addLowCardinalityKeyValue(KeyValue.of("messaging.destination.kind", "topic"));
-            }
-
-            // Add partition and offset if available
-            Integer partition = (Integer) context.get("kafka.partition");
-            if (partition != null) {
-                context.addLowCardinalityKeyValue(KeyValue.of("messaging.kafka.partition", String.valueOf(partition)));
-            }
-
-            Long offset = (Long) context.get("kafka.offset");
-            if (offset != null) {
-                context.addLowCardinalityKeyValue(KeyValue.of("messaging.kafka.offset", String.valueOf(offset)));
-            }
-
-            // Add consumer group if available
             String consumerGroup = (String) context.get("kafka.consumer.group");
-            if (consumerGroup != null) {
-                context.addLowCardinalityKeyValue(KeyValue.of("messaging.kafka.consumer.group", consumerGroup));
-            }
+            Integer partition = (Integer) context.get("kafka.partition");
+            Long offset = (Long) context.get("kafka.offset");
+
+            // Add messaging attributes using builder (with automatic sanitization)
+            spanAttributeBuilder.addMessagingConsumerAttributes(context, topic, consumerGroup, partition, offset);
 
             // Record deserialization start timestamp for timing
             context.put("deserialization.start", System.nanoTime());
 
-            // Record processing start timestamp (used for consumer lag if sendtimestamp not
-            // available)
+            // Record processing start timestamp
             context.put("processing.start", System.currentTimeMillis());
         } catch (Exception e) {
             // Error in onStart
@@ -266,7 +245,7 @@ public class KafkaConsumerObservationHandler implements ObservationHandler<Obser
             // Calculate deserialization duration
             Long deserializationStart = (Long) context.get("deserialization.start");
             if (deserializationStart != null) {
-                long deserializationDuration = (System.nanoTime() - deserializationStart) / 1_000_000; // Convert to ms
+                long deserializationDuration = (System.nanoTime() - deserializationStart) / 1_000_000;
                 context.addLowCardinalityKeyValue(KeyValue.of("messaging.kafka.deserialization_time_ms",
                         String.valueOf(deserializationDuration)));
             }
@@ -279,27 +258,8 @@ public class KafkaConsumerObservationHandler implements ObservationHandler<Obser
                         String.valueOf(processingDuration)));
             }
 
-            // Add consumer lag if available (calculated by CloudEventTracePropagator)
-            // Note: Consumer lag is typically added by
-            // CloudEventTracePropagator.extractTraceContext()
-            // when it calculates: receiveTimestamp - sendTimestamp
-            // Here we just verify it's present and log if missing
-            String consumerLag = (String) context.get("messaging.consumer_lag_ms");
-            if (consumerLag == null) {
-            }
-
-            // Add message ID if available (CloudEvent ID)
-            String messageId = (String) context.get("message.id");
-            if (messageId != null) {
-                context.addHighCardinalityKeyValue(KeyValue.of("messaging.message.id", messageId));
-            }
-
             // Mark as successful processing
-            context.addLowCardinalityKeyValue(KeyValue.of("status", "success"));
-
-            String topic = (String) context.get("kafka.topic");
-            Integer partition = (Integer) context.get("kafka.partition");
-            Long offset = (Long) context.get("kafka.offset");
+            spanAttributeBuilder.addSuccessStatus(context);
         } catch (Exception e) {
             // Error in onStop
         }
@@ -318,16 +278,8 @@ public class KafkaConsumerObservationHandler implements ObservationHandler<Obser
     public void onError(Observation.Context context) {
         try {
             Throwable error = context.getError();
-
-            if (error != null) {
-                context.addLowCardinalityKeyValue(KeyValue.of("error.type", error.getClass().getSimpleName()));
-                context.addLowCardinalityKeyValue(KeyValue.of("status", "error"));
-
-                String topic = (String) context.get("kafka.topic");
-                Integer partition = (Integer) context.get("kafka.partition");
-                Long offset = (Long) context.get("kafka.offset");
-            }
-
+            // Add error attributes using builder (with automatic sanitization)
+            spanAttributeBuilder.addErrorAttributes(context, error);
         } catch (Exception e) {
             // Error in onError
         }

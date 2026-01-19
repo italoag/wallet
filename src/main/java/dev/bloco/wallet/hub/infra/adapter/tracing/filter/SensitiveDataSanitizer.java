@@ -336,4 +336,29 @@ public class SensitiveDataSanitizer {
         // Enforce maximum attribute length (per data-model.md: 1024 chars)
         return truncate(value, 1024);
     }
+
+    /**
+     * Hashes an identifier using SHA-256 and returns a URL-safe Base64 truncated
+     * string.
+     * Prevents user tracking across different traces while maintaining correlation
+     * within a trace.
+     *
+     * @param identifier the identifier to hash
+     * @return hashed identifier (truncated to 16 characters)
+     */
+    public String hashIdentifier(String identifier) {
+        if (identifier == null || identifier.isBlank()) {
+            return "null";
+        }
+
+        try {
+            java.security.MessageDigest digest = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] hash = digest.digest(identifier.getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            String base64 = java.util.Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
+            // Truncate to 16 characters (96 bits of entropy)
+            return base64.substring(0, Math.min(16, base64.length()));
+        } catch (Exception e) {
+            return "hash_error";
+        }
+    }
 }

@@ -32,7 +32,6 @@
         <spring-cloud.version>2025.0.0</spring-cloud.version>
         <spring-cloud-vault.version>4.3.0</spring-cloud-vault.version>
         <spring-vault.version>3.2.0</spring-vault.version>
-        <spring-ai.version>1.0.2</spring-ai.version>
         <spring-statemachine.version>4.0.1</spring-statemachine.version>
         <spring-boot.version>3.5.9</spring-boot.version>
         <mapstruct.version>1.6.3</mapstruct.version>

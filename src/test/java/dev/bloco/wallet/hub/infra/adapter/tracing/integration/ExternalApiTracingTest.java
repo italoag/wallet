@@ -5,10 +5,7 @@ import java.util.List;
 import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.web.client.TestRestTemplate;
 import org.springframework.test.context.TestPropertySource;
-import org.springframework.web.reactive.function.client.WebClient;
 import org.testcontainers.junit.jupiter.Testcontainers;
 
 import io.micrometer.tracing.exporter.FinishedSpan;
@@ -37,18 +34,10 @@ import io.micrometer.tracing.exporter.FinishedSpan;
 @DisplayName("External API Tracing Integration Tests")
 class ExternalApiTracingTest extends BaseIntegrationTest {
 
-    @Autowired(required = false)
-    private WebClient.Builder webClientBuilder;
-
-    @Autowired(required = false)
-    private TestRestTemplate restTemplate;
-
     @Test
     @DisplayName("T118: Should capture external HTTP call with sanitized URL, status, and duration")
     void shouldCaptureExternalHttpCallWithSanitizedUrlStatusAndDuration() {
         // Arrange
-        String baseUrl = "https://api.example.com";
-        String endpoint = "/users/123/profile?apiKey=secret123&userId=456";
         String sanitizedUrl = "https://api.example.com/users/123/profile?apiKey=***&userId=456";
 
         clearSpans();

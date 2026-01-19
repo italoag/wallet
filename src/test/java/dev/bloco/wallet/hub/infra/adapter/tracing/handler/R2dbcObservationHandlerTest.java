@@ -17,6 +17,7 @@ import io.micrometer.common.KeyValue;
 import io.micrometer.observation.Observation;
 import io.r2dbc.pool.ConnectionPool;
 import io.r2dbc.pool.PoolMetrics;
+import io.r2dbc.spi.ConnectionFactoryMetadata;
 
 /**
  * Unit tests for {@link R2dbcObservationHandler}.
@@ -44,6 +45,9 @@ class R2dbcObservationHandlerTest {
 
     @Mock
     private PoolMetrics poolMetrics;
+
+    @Mock
+    private ConnectionFactoryMetadata connectionFactoryMetadata;
 
     @Mock
     private SensitiveDataSanitizer sanitizer;
@@ -181,6 +185,8 @@ class R2dbcObservationHandlerTest {
         context.setName("r2dbc.query.select");
 
         when(connectionPool.getMetrics()).thenReturn(Optional.empty());
+        when(connectionPool.getMetadata()).thenReturn(connectionFactoryMetadata);
+        when(connectionFactoryMetadata.getName()).thenReturn("PostgreSQL");
 
         // When
         handler.onStop(context);
@@ -188,7 +194,7 @@ class R2dbcObservationHandlerTest {
         // Then
         KeyValue dbSystem = context.getLowCardinalityKeyValue(SpanAttributeBuilder.DB_SYSTEM);
         assertThat(dbSystem).isNotNull();
-        assertThat(dbSystem.getValue()).isNotNull();
+        assertThat(dbSystem.getValue()).isEqualTo("postgresql");
     }
 
     @Test
@@ -211,6 +217,10 @@ class R2dbcObservationHandlerTest {
     @Test
     void shouldAddErrorAttributesOnError() {
         // Given
+        // Configure sanitizer mock to return input unchanged
+        when(sanitizer.sanitizeExceptionMessage(org.mockito.ArgumentMatchers.anyString()))
+                .thenAnswer(invocation -> invocation.getArgument(0));
+
         Observation.Context context = new Observation.Context();
         context.setName("r2dbc.query");
         RuntimeException error = new RuntimeException("Connection timeout");

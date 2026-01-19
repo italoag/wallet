@@ -2,6 +2,9 @@ package dev.bloco.wallet.hub.infra.adapter.tracing.aspect;
 
 import java.lang.reflect.Method;
 import java.util.function.Supplier;
+import java.sql.Connection;
+import java.sql.DatabaseMetaData;
+import javax.sql.DataSource;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
@@ -13,7 +16,6 @@ import org.springframework.transaction.annotation.Transactional;
 
 import dev.bloco.wallet.hub.infra.adapter.tracing.config.SpanAttributeBuilder;
 import dev.bloco.wallet.hub.infra.adapter.tracing.config.TracingFeatureFlags;
-import dev.bloco.wallet.hub.infra.adapter.tracing.filter.SensitiveDataSanitizer;
 import dev.bloco.wallet.hub.infra.adapter.tracing.filter.SlowQueryDetector;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
@@ -125,9 +127,11 @@ public class RepositoryTracingAspect {
 
     private final ObservationRegistry observationRegistry;
     private final SpanAttributeBuilder spanAttributeBuilder;
-    private final SensitiveDataSanitizer sanitizer;
     private final TracingFeatureFlags featureFlags;
     private final SlowQueryDetector slowQueryDetector;
+    private final DataSource dataSource;
+
+    private String cachedDbSystem;
 
     /**
      * Intercepts repository method executions and wraps them in observation spans.
@@ -156,8 +160,14 @@ public class RepositoryTracingAspect {
         return observation.observe(() -> {
             final long startTime = System.currentTimeMillis();
             try {
-                // Add database attributes before execution
-                addDatabaseAttributes(observation, methodName);
+                // Determine database system and operation
+                String dbSystem = determineDbSystem();
+                String operation = deriveOperationType(methodName);
+                String tableName = deriveTableName(className, methodName);
+                String queryPattern = deriveQueryPattern(methodName);
+
+                // Add database attributes using builder
+                spanAttributeBuilder.addDatabaseAttributes(observation, dbSystem, operation, tableName, queryPattern);
 
                 // Execute the repository method
                 Object result = joinPoint.proceed();
@@ -166,18 +176,14 @@ public class RepositoryTracingAspect {
                 long duration = System.currentTimeMillis() - startTime;
                 slowQueryDetector.detectAndTag(observation, duration);
 
-                // Mark observation as successful
-                observation.lowCardinalityKeyValue("status", "success");
+                // Mark observation as successful using builder
+                spanAttributeBuilder.addSuccessStatus(observation);
 
                 return result;
 
             } catch (Throwable ex) {
-                // Add error attributes
-                addErrorAttributes(observation, ex);
-
-                // Mark observation as failed
-                observation.error(ex);
-                observation.lowCardinalityKeyValue("status", "error");
+                // Add error attributes using builder
+                spanAttributeBuilder.addErrorAttributes(observation, ex);
 
                 // Rethrow as RuntimeException if it's a checked exception
                 switch (ex) {
@@ -232,8 +238,13 @@ public class RepositoryTracingAspect {
             public Object get() {
                 final long startTime = System.currentTimeMillis();
                 try {
-                    // Add transaction attributes
-                    addTransactionAttributes(observation, transactional);
+                    // Add transaction attributes using builder
+                    spanAttributeBuilder.addTransactionAttributes(
+                            observation,
+                            transactional.isolation().name(),
+                            transactional.propagation().name(),
+                            transactional.readOnly(),
+                            transactional.timeout());
 
                     // Execute the transactional method
                     Object result = joinPoint.proceed();
@@ -242,7 +253,9 @@ public class RepositoryTracingAspect {
                     long duration = System.currentTimeMillis() - startTime;
                     observation.highCardinalityKeyValue("tx.duration_ms", String.valueOf(duration));
                     observation.lowCardinalityKeyValue("tx.status", "COMMITTED");
-                    observation.lowCardinalityKeyValue("status", "success");
+
+                    // Mark as success using builder
+                    spanAttributeBuilder.addSuccessStatus(observation);
 
                     return result;
 
@@ -250,10 +263,9 @@ public class RepositoryTracingAspect {
                     long duration = System.currentTimeMillis() - startTime;
                     observation.highCardinalityKeyValue("tx.duration_ms", String.valueOf(duration));
                     observation.lowCardinalityKeyValue("tx.status", "ROLLED_BACK");
-                    observation.lowCardinalityKeyValue("status", "error");
-                    observation.error(ex);
 
-                    addErrorAttributes(observation, ex);
+                    // Add error attributes and mark as failed using builder
+                    spanAttributeBuilder.addErrorAttributes(observation, ex);
 
                     // Rethrow as RuntimeException if it's a checked exception
                     switch (ex) {
@@ -267,75 +279,36 @@ public class RepositoryTracingAspect {
     }
 
     /**
-     * Adds transaction-specific attributes to the observation.
+     * Determines the database system being used by inspecting DataSource metadata.
+     * Results are cached for performance.
      *
-     * @param observation   the observation to add attributes to
-     * @param transactional the @Transactional annotation
-     */
-    private void addTransactionAttributes(Observation observation, Transactional transactional) {
-        try {
-            // Isolation level
-            String isolationLevel = transactional.isolation().name();
-            observation.lowCardinalityKeyValue("tx.isolation_level", isolationLevel);
-
-            // Propagation
-            String propagation = transactional.propagation().name();
-            observation.lowCardinalityKeyValue("tx.propagation", propagation);
-
-            // Read-only flag
-            observation.lowCardinalityKeyValue("tx.read_only", String.valueOf(transactional.readOnly()));
-
-            // Timeout (if set)
-            int timeout = transactional.timeout();
-            if (timeout != -1) {
-                observation.lowCardinalityKeyValue("tx.timeout_seconds", String.valueOf(timeout));
-            }
-        } catch (Exception e) {
-            // Silently ignore transaction attribute extraction errors
-        }
-    }
-
-    /**
-     * Adds database-specific attributes to the observation.
-     *
-     * @param observation the observation to add attributes to
-     * @param methodName  the repository method name
-     */
-    private void addDatabaseAttributes(Observation observation, String methodName) {
-        try {
-            // Determine database system from active profile or configuration
-            // Default to H2 for development, PostgreSQL assumed for production
-            String dbSystem = determineDbSystem();
-            observation.lowCardinalityKeyValue(SpanAttributeBuilder.DB_SYSTEM, dbSystem);
-
-            // Derive operation type from method name
-            String operation = deriveOperationType(methodName);
-            observation.lowCardinalityKeyValue(SpanAttributeBuilder.DB_OPERATION, operation);
-
-            // Extract table name from method signature if possible
-            String tableName = deriveTableName(methodName);
-            if (tableName != null) {
-                observation.lowCardinalityKeyValue(SpanAttributeBuilder.DB_SQL_TABLE, tableName);
-            }
-
-            // Note: Actual SQL statement would require integration with Hibernate's
-            // StatementInspector or JDBC proxy. For now, we document the method pattern.
-            String queryPattern = deriveQueryPattern(methodName);
-            observation.highCardinalityKeyValue(SpanAttributeBuilder.DB_STATEMENT, queryPattern);
-
-        } catch (Exception e) {
-        }
-    }
-
-    /**
-     * Determines the database system being used.
-     *
-     * @return database system name
+     * @return database system name (e.g., postgresql, h2)
      */
     private String determineDbSystem() {
-        // This would ideally come from DataSource configuration
-        // For now, return a reasonable default
-        return "h2"; // TODO: Inject actual DB type from configuration
+        if (cachedDbSystem != null) {
+            return cachedDbSystem;
+        }
+
+        try (Connection connection = dataSource.getConnection()) {
+            DatabaseMetaData metaData = connection.getMetaData();
+            String productName = metaData.getDatabaseProductName().toLowerCase();
+
+            if (productName.contains("postgresql")) {
+                cachedDbSystem = "postgresql";
+            } else if (productName.contains("h2")) {
+                cachedDbSystem = "h2";
+            } else if (productName.contains("mysql")) {
+                cachedDbSystem = "mysql";
+            } else if (productName.contains("oracle")) {
+                cachedDbSystem = "oracle";
+            } else {
+                cachedDbSystem = productName;
+            }
+            return cachedDbSystem;
+        } catch (Exception e) {
+            // Default to h2 for safety in case of metadata extraction failure
+            return "h2";
+        }
     }
 
     /**
@@ -362,17 +335,22 @@ public class RepositoryTracingAspect {
     }
 
     /**
-     * Derives the primary table name from the method name pattern.
+     * Derives the primary table name from the repository class name.
      *
+     * @param className  the repository class name
      * @param methodName the method name
      * @return table name or null
      */
-    private String deriveTableName(String methodName) {
-        // Extract entity name from repository interface naming convention
-        // WalletRepository → wallet
-        // This is a simplified approach; real implementation would inspect entity
-        // metadata
-        return null; // TODO: Extract from repository interface or entity metadata
+    private String deriveTableName(String className, String methodName) {
+        // WalletRepository -> wallet
+        // TransactionRepository -> transaction
+        if (className == null || className.isBlank()) {
+            return null;
+        }
+
+        String entityName = className.replace("Repository", "");
+        // Convert camelCase to snake_case
+        return entityName.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
     }
 
     /**
@@ -431,42 +409,5 @@ public class RepositoryTracingAspect {
         String field = afterBy.substring(0, endIndex);
         // Convert camelCase to snake_case
         return field.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
-    }
-
-    /**
-     * Adds error attributes to the observation.
-     *
-     * @param observation the observation to add error attributes to
-     * @param throwable   the exception that occurred
-     */
-    private void addErrorAttributes(Observation observation, Throwable throwable) {
-        observation.lowCardinalityKeyValue(SpanAttributeBuilder.ERROR, "true");
-        observation.lowCardinalityKeyValue(SpanAttributeBuilder.ERROR_TYPE,
-                throwable.getClass().getSimpleName());
-
-        String message = throwable.getMessage();
-        if (message != null) {
-            // Sanitize error message (may contain SQL with sensitive data)
-            String sanitizedMessage = sanitizer.sanitizeSql(message);
-            observation.highCardinalityKeyValue(SpanAttributeBuilder.ERROR_MESSAGE,
-                    truncate(sanitizedMessage, 512));
-        }
-    }
-
-    /**
-     * Truncates a string to the specified length.
-     *
-     * @param value     the value to truncate
-     * @param maxLength maximum length
-     * @return truncated value
-     */
-    private String truncate(String value, int maxLength) {
-        if (value == null) {
-            return "";
-        }
-        if (value.length() <= maxLength) {
-            return value;
-        }
-        return value.substring(0, maxLength - 3) + "...";
     }
 }

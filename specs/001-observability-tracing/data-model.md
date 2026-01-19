@@ -290,33 +290,33 @@ public SamplingResult shouldSample(
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                            Trace                                 │
+│                            Trace                                │
 │  - trace_id: 4bf92f3577b34da6a3ce929d0e0e4736                   │
-│  - sampling_decision: SAMPLED                                    │
-│  - duration_nanos: 245000000                                     │
+│  - sampling_decision: SAMPLED                                   │
+│  - duration_nanos: 245000000                                    │
 └───────────────────────────┬─────────────────────────────────────┘
                             │
                             │ contains
                             │
                             ▼
         ┌───────────────────────────────────────┐
-        │              Span (Root)               │
+        │              Span (Root)              │
         │  - span_id: 00f067aa0ba902b7          │
         │  - name: "POST /api/wallets/transfer" │
-        │  - kind: SERVER                        │
-        │  - duration: 245ms                     │
+        │  - kind: SERVER                       │
+        │  - duration: 245ms                    │
         └────────────┬──────────────────────────┘
                      │
                      │ parent-child
                      │
-         ┌───────────┴──────────────┬────────────────────┐
+         ┌───────────┴──────────────┬─────────────────────┐
          │                          │                     │
          ▼                          ▼                     ▼
-┌─────────────────┐       ┌─────────────────┐   ┌─────────────────┐
-│  Span (Child 1) │       │  Span (Child 2) │   │  Span (Child 3) │
-│  - Use Case     │       │  - JPA Query    │   │  - Kafka Publish│
-│  - 50ms         │       │  - 20ms         │   │  - 150ms        │
-└─────────────────┘       └─────────────────┘   └─────────────────┘
+┌─────────────────┐       ┌─────────────────┐   ┌──────────────────┐
+│  Span (Child 1) │       │  Span (Child 2) │   │  Span (Child 3)  │
+│  - Use Case     │       │  - JPA Query    │   │  - Kafka Publish │
+│  - 50ms         │       │  - 20ms         │   │  - 150ms         │
+└─────────────────┘       └─────────────────┘   └──────────────────┘
          │                         │                      │
          │                         │                      │
          ▼                         ▼                      ▼
@@ -333,7 +333,7 @@ public SamplingResult shouldSample(
 ```
 1. HTTP Request Arrives
    ┌─────────────────────────────────────────┐
-   │ HTTP Headers:                            │
+   │ HTTP Headers:                           │
    │ traceparent: 00-{trace-id}-{span-id}-01 │
    └─────────────────────────────────────────┘
                     │

@@ -192,21 +192,15 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
                     getStateName(targetState)));
             span.start();
 
-            // Add state machine attributes
-            span.tag("statemachine.id", machineId);
-            span.tag("statemachine.type", "saga");
-            span.tag("statemachine.state.from", getStateName(sourceState));
-            span.tag("statemachine.state.to", getStateName(targetState));
-
-            if (event != null) {
-                span.tag("statemachine.event", event.name());
-            }
-
-            // Detect compensation flows (transitions to FAILED state)
-            if (targetState != null && targetState.getId() == SagaStates.FAILED) {
-                span.tag("statemachine.compensation", "true");
-                // Log removed
-            }
+            // Add state machine attributes using builder
+            boolean isCompensation = targetState != null && targetState.getId() == SagaStates.FAILED;
+            spanAttributeBuilder.addStateMachineAttributes(
+                    span,
+                    machineId,
+                    getStateName(sourceState),
+                    getStateName(targetState),
+                    event != null ? event.name() : null,
+                    isCompensation);
 
             // Record transition start time
             long startTime = System.nanoTime();
@@ -249,6 +243,9 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
                         span.tag("statemachine.slow_transition", "true");
                     }
                 }
+
+                // Mark as success using builder
+                spanAttributeBuilder.addSuccessStatus(span);
 
                 // Add completion event and end span
                 span.event("transition.completed");
@@ -340,9 +337,8 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
             Span span = activeSpans.get(machineId);
 
             if (span != null) {
-                span.tag("error.type", exception.getClass().getSimpleName());
-                span.tag("error.message", exception.getMessage() != null ? exception.getMessage() : "");
-                span.tag("status", "error");
+                // Add error attributes using builder (with automatic sanitization)
+                spanAttributeBuilder.addErrorAttributes(span, exception);
                 span.event("statemachine.error");
 
                 // Log removed

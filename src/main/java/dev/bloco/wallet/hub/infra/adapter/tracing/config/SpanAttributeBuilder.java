@@ -1,10 +1,11 @@
 package dev.bloco.wallet.hub.infra.adapter.tracing.config;
 
 import dev.bloco.wallet.hub.infra.adapter.tracing.filter.SensitiveDataSanitizer;
+import io.micrometer.common.KeyValue;
+import io.micrometer.observation.Observation;
 import io.micrometer.tracing.Span;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
@@ -703,6 +704,48 @@ public class SpanAttributeBuilder {
         span.tag(REACTOR_OPERATOR, sanitizeAndTruncate(operator));
     }
 
+    /**
+     * Adds state machine attributes to a span.
+     *
+     * @param span           the span to add attributes to
+     * @param machineId      machine instance ID
+     * @param from           source state
+     * @param to             target state
+     * @param event          triggering event
+     * @param isCompensation whether it is a compensation flow
+     */
+    public void addStateMachineAttributes(Span span, String machineId, String from, String to,
+            String event, boolean isCompensation) {
+        if (span == null) {
+            return;
+        }
+
+        span.tag("statemachine.id", sanitizeAndTruncate(machineId));
+        span.tag("statemachine.type", "saga");
+        span.tag("statemachine.state.from", sanitizeAndTruncate(from));
+        span.tag("statemachine.state.to", sanitizeAndTruncate(to));
+
+        if (event != null) {
+            span.tag("statemachine.event", sanitizeAndTruncate(event));
+        }
+
+        if (isCompensation) {
+            span.tag("statemachine.compensation", "true");
+        }
+    }
+
+    /**
+     * Adds success status to a span.
+     *
+     * @param span the span to add status to
+     */
+    public void addSuccessStatus(Span span) {
+        if (span == null) {
+            return;
+        }
+        span.tag("status", "success");
+    }
+
     // ========================================================================
     // Utility Methods
     // ========================================================================
@@ -800,5 +843,324 @@ public class SpanAttributeBuilder {
                 span.tag(key, sanitizeAndTruncate(value));
             }
         });
+    }
+
+    // ========================================================================
+    // Observation.Context Methods - For ObservationHandler components
+    // ========================================================================
+
+    /**
+     * Adds Kafka producer attributes to an Observation.Context.
+     *
+     * @param context   the observation context
+     * @param topic     Kafka topic name
+     * @param messageId message identifier (nullable)
+     * @param partition partition number (nullable)
+     */
+    public void addMessagingProducerAttributes(Observation.Context context, String topic,
+            String messageId, Integer partition) {
+        if (context == null) {
+            return;
+        }
+
+        context.addLowCardinalityKeyValue(KeyValue.of(MESSAGING_SYSTEM, "kafka"));
+        context.addLowCardinalityKeyValue(KeyValue.of(MESSAGING_OPERATION, "publish"));
+        context.addLowCardinalityKeyValue(KeyValue.of("span.kind", "PRODUCER"));
+
+        if (topic != null) {
+            context.addLowCardinalityKeyValue(KeyValue.of(MESSAGING_DESTINATION, sanitizeAndTruncate(topic)));
+            context.addLowCardinalityKeyValue(KeyValue.of(MESSAGING_DESTINATION_KIND, "topic"));
+        }
+
+        if (partition != null) {
+            context.addLowCardinalityKeyValue(KeyValue.of(MESSAGING_KAFKA_PARTITION, String.valueOf(partition)));
+        }
+
+        if (messageId != null) {
+            context.addHighCardinalityKeyValue(KeyValue.of(MESSAGING_MESSAGE_ID, sanitizeAndTruncate(messageId)));
+        }
+    }
+
+    /**
+     * Adds Kafka consumer attributes to an Observation.Context.
+     *
+     * @param context       the observation context
+     * @param topic         Kafka topic name
+     * @param consumerGroup consumer group (nullable)
+     * @param partition     partition number (nullable)
+     * @param offset        message offset (nullable)
+     */
+    public void addMessagingConsumerAttributes(Observation.Context context, String topic,
+            String consumerGroup, Integer partition, Long offset) {
+        if (context == null) {
+            return;
+        }
+
+        context.addLowCardinalityKeyValue(KeyValue.of(MESSAGING_SYSTEM, "kafka"));
+        context.addLowCardinalityKeyValue(KeyValue.of(MESSAGING_OPERATION, "receive"));
+        context.addLowCardinalityKeyValue(KeyValue.of("span.kind", "CONSUMER"));
+
+        if (topic != null) {
+            context.addLowCardinalityKeyValue(KeyValue.of(MESSAGING_DESTINATION, sanitizeAndTruncate(topic)));
+            context.addLowCardinalityKeyValue(KeyValue.of(MESSAGING_DESTINATION_KIND, "topic"));
+        }
+
+        if (consumerGroup != null) {
+            context.addLowCardinalityKeyValue(
+                    KeyValue.of(MESSAGING_KAFKA_CONSUMER_GROUP, sanitizeAndTruncate(consumerGroup)));
+        }
+
+        if (partition != null) {
+            context.addLowCardinalityKeyValue(KeyValue.of(MESSAGING_KAFKA_PARTITION, String.valueOf(partition)));
+        }
+
+        if (offset != null) {
+            context.addLowCardinalityKeyValue(KeyValue.of(MESSAGING_KAFKA_OFFSET, String.valueOf(offset)));
+        }
+    }
+
+    /**
+     * Adds database attributes to an Observation.Context.
+     *
+     * @param context   the observation context
+     * @param dbSystem  database system name
+     * @param operation operation type (SELECT, INSERT, etc.)
+     * @param tableName primary table name (nullable)
+     * @param statement SQL statement or pattern (nullable)
+     */
+    public void addDatabaseAttributes(Observation.Context context, String dbSystem, String operation,
+            String tableName, String statement) {
+        if (context == null) {
+            return;
+        }
+
+        if (dbSystem != null) {
+            context.addLowCardinalityKeyValue(KeyValue.of(DB_SYSTEM, sanitizeAndTruncate(dbSystem)));
+        }
+
+        if (operation != null) {
+            context.addLowCardinalityKeyValue(KeyValue.of(DB_OPERATION, sanitizeAndTruncate(operation)));
+        }
+
+        if (tableName != null) {
+            context.addLowCardinalityKeyValue(KeyValue.of(DB_SQL_TABLE, sanitizeAndTruncate(tableName)));
+        }
+
+        if (statement != null) {
+            context.addHighCardinalityKeyValue(KeyValue.of(DB_STATEMENT, sanitizer.sanitizeSql(statement)));
+        }
+    }
+
+    /**
+     * Adds transaction attributes to an Observation.Context.
+     *
+     * @param context        the observation context
+     * @param isolationLevel isolation level name
+     * @param propagation    propagation name
+     * @param readOnly       whether it is read-only
+     * @param timeoutSeconds timeout in seconds (nullable)
+     */
+    public void addTransactionAttributes(Observation.Context context, String isolationLevel,
+            String propagation, boolean readOnly, Integer timeoutSeconds) {
+        if (context == null) {
+            return;
+        }
+
+        context.addLowCardinalityKeyValue(KeyValue.of("tx.isolation_level", sanitizeAndTruncate(isolationLevel)));
+        context.addLowCardinalityKeyValue(KeyValue.of("tx.propagation", sanitizeAndTruncate(propagation)));
+        context.addLowCardinalityKeyValue(KeyValue.of("tx.read_only", String.valueOf(readOnly)));
+
+        if (timeoutSeconds != null && timeoutSeconds != -1) {
+            context.addLowCardinalityKeyValue(KeyValue.of("tx.timeout_seconds", String.valueOf(timeoutSeconds)));
+        }
+    }
+
+    /**
+     * Adds use case attributes to an Observation.Context.
+     *
+     * @param context   the observation context
+     * @param operation business operation name
+     */
+    public void addUseCaseAttributes(Observation.Context context, String operation) {
+        if (context == null) {
+            return;
+        }
+
+        if (operation != null) {
+            context.addLowCardinalityKeyValue(KeyValue.of(WALLET_OPERATION, sanitizeAndTruncate(operation)));
+        }
+    }
+
+    /**
+     * Adds a hashed identifier to an Observation.Context for privacy.
+     *
+     * @param context    the observation context
+     * @param key        attribute key
+     * @param identifier value to hash
+     */
+    public void addHashedIdentifier(Observation.Context context, String key, String identifier) {
+        if (context == null || key == null || identifier == null) {
+            return;
+        }
+
+        String hashed = sanitizer.hashIdentifier(identifier);
+        context.addHighCardinalityKeyValue(KeyValue.of(key, hashed));
+    }
+
+    /**
+     * Adds an unhashed identifier to an Observation.Context.
+     *
+     * @param context the observation context
+     * @param key     attribute key
+     * @param id      identifier value
+     */
+    public void addIdentifier(Observation.Context context, String key, String id) {
+        if (context == null || key == null || id == null) {
+            return;
+        }
+
+        context.addHighCardinalityKeyValue(KeyValue.of(key, sanitizeAndTruncate(id)));
+    }
+
+    /**
+     * Adds error attributes to an Observation.Context.
+     *
+     * @param context   the observation context
+     * @param exception the exception (nullable)
+     */
+    public void addErrorAttributes(Observation.Context context, Throwable exception) {
+        if (context == null || exception == null) {
+            return;
+        }
+
+        context.addLowCardinalityKeyValue(KeyValue.of(ERROR, "true"));
+        context.addLowCardinalityKeyValue(KeyValue.of(ERROR_TYPE, exception.getClass().getSimpleName()));
+        context.addLowCardinalityKeyValue(KeyValue.of("status", "error"));
+
+        String message = exception.getMessage();
+        if (message != null) {
+            context.addHighCardinalityKeyValue(KeyValue.of(ERROR_MESSAGE,
+                    sanitizer.sanitizeExceptionMessage(truncate(message))));
+        }
+    }
+
+    /**
+     * Adds database attributes to an Observation.Context.
+     *
+     * @param context   the observation context
+     * @param dbSystem  database system name
+     * @param operation operation type (SELECT, INSERT, etc.)
+     */
+    public void addDatabaseAttributes(Observation.Context context, String dbSystem, String operation) {
+        addDatabaseAttributes(context, dbSystem, operation, null, null);
+    }
+
+    /**
+     * Adds success status to an Observation.Context.
+     *
+     * @param context the observation context
+     */
+    public void addSuccessStatus(Observation.Context context) {
+        if (context == null) {
+            return;
+        }
+        context.addLowCardinalityKeyValue(KeyValue.of("status", "success"));
+    }
+
+    // ========================================================================
+    // Observation Overloads - For Aspects
+    // ========================================================================
+
+    /**
+     * Adds database attributes to an Observation.
+     *
+     * @param observation the observation
+     * @param dbSystem    database system name
+     * @param operation   operation type
+     * @param tableName   primary table name
+     * @param statement   SQL statement or pattern
+     */
+    public void addDatabaseAttributes(Observation observation, String dbSystem, String operation,
+            String tableName, String statement) {
+        if (observation != null) {
+            addDatabaseAttributes(observation.getContext(), dbSystem, operation, tableName, statement);
+        }
+    }
+
+    /**
+     * Adds transaction attributes to an Observation.
+     *
+     * @param observation    the observation
+     * @param isolationLevel isolation level
+     * @param propagation    propagation
+     * @param readOnly       read-only flag
+     * @param timeoutSeconds timeout
+     */
+    public void addTransactionAttributes(Observation observation, String isolationLevel,
+            String propagation, boolean readOnly, Integer timeoutSeconds) {
+        if (observation != null) {
+            addTransactionAttributes(observation.getContext(), isolationLevel, propagation, readOnly, timeoutSeconds);
+        }
+    }
+
+    /**
+     * Adds error attributes to an Observation.
+     *
+     * @param observation the observation
+     * @param exception   the exception
+     */
+    public void addErrorAttributes(Observation observation, Throwable exception) {
+        if (observation != null) {
+            addErrorAttributes(observation.getContext(), exception);
+        }
+    }
+
+    /**
+     * Adds success status to an Observation.
+     *
+     * @param observation the observation
+     */
+    public void addSuccessStatus(Observation observation) {
+        if (observation != null) {
+            addSuccessStatus(observation.getContext());
+        }
+    }
+
+    /**
+     * Adds use case attributes to an Observation.
+     *
+     * @param observation the observation
+     * @param operation   business operation name
+     */
+    public void addUseCaseAttributes(Observation observation, String operation) {
+        if (observation != null) {
+            addUseCaseAttributes(observation.getContext(), operation);
+        }
+    }
+
+    /**
+     * Adds a hashed identifier to an Observation for privacy.
+     *
+     * @param observation the observation
+     * @param key         attribute key
+     * @param identifier  value to hash
+     */
+    public void addHashedIdentifier(Observation observation, String key, String identifier) {
+        if (observation != null) {
+            addHashedIdentifier(observation.getContext(), key, identifier);
+        }
+    }
+
+    /**
+     * Adds an unhashed identifier to an Observation.
+     *
+     * @param observation the observation
+     * @param key         attribute key
+     * @param id          identifier value
+     */
+    public void addIdentifier(Observation observation, String key, String id) {
+        if (observation != null) {
+            addIdentifier(observation.getContext(), key, id);
+        }
     }
 }

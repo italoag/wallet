@@ -1,10 +1,5 @@
 package dev.bloco.wallet.hub.infra.adapter.tracing.aspect;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.Base64;
-
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
@@ -157,14 +152,6 @@ public class UseCaseTracingAspect {
     private final SpanAttributeBuilder spanAttributeBuilder;
     private final TracingFeatureFlags featureFlags;
 
-    private static final ThreadLocal<MessageDigest> SHA256_DIGEST = ThreadLocal.withInitial(() -> {
-        try {
-            return MessageDigest.getInstance("SHA-256");
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException("SHA-256 algorithm not available", e);
-        }
-    });
-
     /**
      * Intercepts use case method executions and wraps them in observation spans.
      *
@@ -202,17 +189,14 @@ public class UseCaseTracingAspect {
                 // Execute the use case
                 Object result = joinPoint.proceed();
 
-                // Mark observation as successful
-                observation.lowCardinalityKeyValue("status", "success");
+                // Mark observation as successful using builder
+                spanAttributeBuilder.addSuccessStatus(observation);
                 return result;
 
             } catch (Throwable ex) {
-                // Add error attributes
-                addErrorAttributes(observation, ex);
+                // Add error attributes using builder
+                spanAttributeBuilder.addErrorAttributes(observation, ex);
 
-                // Mark observation as failed
-                observation.error(ex);
-                observation.lowCardinalityKeyValue("status", "error");
                 // Rethrow as RuntimeException if it's a checked exception
                 switch (ex) {
                     case RuntimeException runtimeException -> throw runtimeException;
@@ -234,7 +218,9 @@ public class UseCaseTracingAspect {
         try {
             // Derive wallet operation from class name
             String walletOperation = deriveOperationName(className);
-            observation.lowCardinalityKeyValue(SpanAttributeBuilder.WALLET_OPERATION, walletOperation);
+
+            // Add use case attributes using builder
+            spanAttributeBuilder.addUseCaseAttributes(observation, walletOperation);
 
             // Extract method arguments
             Object[] args = joinPoint.getArgs();
@@ -270,159 +256,35 @@ public class UseCaseTracingAspect {
      */
     private void addIdentifierAttributes(Observation observation, String paramName, Object value) {
         String stringValue = value.toString();
+        String paramLower = paramName.toLowerCase();
 
         // Transaction ID - include as-is (technical identifier)
-        if (paramName.toLowerCase().contains("transaction")) {
-            observation.highCardinalityKeyValue(SpanAttributeBuilder.TRANSACTION_ID, stringValue);
+        if (paramLower.contains("transaction")) {
+            spanAttributeBuilder.addIdentifier(observation, SpanAttributeBuilder.TRANSACTION_ID, stringValue);
         }
         // Wallet ID - hash for privacy (user-related identifier)
-        else if (paramName.toLowerCase().contains("wallet")) {
-            String hashedWalletId = hashIdentifier(stringValue);
-            observation.highCardinalityKeyValue("wallet.id.hash", hashedWalletId);
+        else if (paramLower.contains("wallet")) {
+            spanAttributeBuilder.addHashedIdentifier(observation, "wallet.id.hash", stringValue);
         }
         // User ID - hash for privacy (user-related identifier)
-        else if (paramName.toLowerCase().contains("user")) {
-            String hashedUserId = hashIdentifier(stringValue);
-            observation.highCardinalityKeyValue("user.id.hash", hashedUserId);
+        else if (paramLower.contains("user")) {
+            spanAttributeBuilder.addHashedIdentifier(observation, "user.id.hash", stringValue);
         }
         // Amount - include as-is (business metric)
-        else if (paramName.toLowerCase().contains("amount")) {
-            observation.highCardinalityKeyValue(SpanAttributeBuilder.TRANSACTION_AMOUNT, stringValue);
+        else if (paramLower.contains("amount")) {
+            spanAttributeBuilder.addIdentifier(observation, SpanAttributeBuilder.TRANSACTION_AMOUNT, stringValue);
         }
         // Currency - include as-is (low cardinality)
-        else if (paramName.toLowerCase().contains("currency")) {
-            observation.lowCardinalityKeyValue(SpanAttributeBuilder.WALLET_CURRENCY, stringValue);
+        else if (paramLower.contains("currency")) {
+            spanAttributeBuilder.addIdentifier(observation, SpanAttributeBuilder.WALLET_CURRENCY, stringValue);
         }
     }
 
-    /**
-     * Hashes an identifier using SHA-256 and returns a URL-safe Base64 truncated
-     * string.
-     *
-     * <p>
-     * Truncated to 16 characters for readability while maintaining collision
-     * resistance
-     * (2^64 possible values).
-     * </p>
-     *
-     * @param identifier the identifier to hash
-     * @return hashed identifier (16 characters)
-     */
-    private String hashIdentifier(String identifier) {
-        if (identifier == null || identifier.isBlank()) {
-            return "null";
-        }
-
-        try {
-            MessageDigest digest = SHA256_DIGEST.get();
-            digest.reset();
-            byte[] hash = digest.digest(identifier.getBytes(StandardCharsets.UTF_8));
-            String base64 = Base64.getUrlEncoder().withoutPadding().encodeToString(hash);
-            // Truncate to 16 characters (96 bits of entropy)
-            return base64.substring(0, Math.min(16, base64.length()));
-        } catch (Exception e) {
-            // Log removed
-            return "hash_error";
-        }
-    }
-
-    /**
-     * Derives a wallet operation name from the use case class name.
-     *
-     * <p>
-     * Examples:
-     * </p>
-     * <ul>
-     * <li>AddFundsUseCase → add_funds</li>
-     * <li>TransferFundsUseCase → transfer_funds</li>
-     * <li>CreateWalletUseCase → create_wallet</li>
-     * </ul>
-     *
-     * @param className the use case class name
-     * @return operation name in snake_case
-     */
     private String deriveOperationName(String className) {
         // Remove "UseCase" suffix
         String operation = className.replace("UseCase", "");
 
         // Convert camelCase to snake_case
         return operation.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
-    }
-
-    /**
-     * Adds error attributes to the observation when an exception occurs.
-     *
-     * @param observation the observation to add error attributes to
-     * @param throwable   the exception that occurred
-     */
-    private void addErrorAttributes(Observation observation, Throwable throwable) {
-        observation.lowCardinalityKeyValue(SpanAttributeBuilder.ERROR, "true");
-        observation.lowCardinalityKeyValue(SpanAttributeBuilder.ERROR_TYPE,
-                throwable.getClass().getSimpleName());
-
-        // Sanitize exception message (may contain sensitive data)
-        String message = throwable.getMessage();
-        if (message != null) {
-            observation.highCardinalityKeyValue(SpanAttributeBuilder.ERROR_MESSAGE,
-                    sanitizeErrorMessage(message));
-        }
-
-        // Add truncated stack trace (first 10 lines)
-        String stackTrace = getStackTraceFirstLines(throwable, 10);
-        observation.highCardinalityKeyValue(SpanAttributeBuilder.ERROR_STACK, stackTrace);
-    }
-
-    /**
-     * Sanitizes error messages to remove potential sensitive data.
-     *
-     * @param message the error message
-     * @return sanitized message
-     */
-    private String sanitizeErrorMessage(String message) {
-        if (message == null) {
-            return "";
-        }
-
-        // Mask potential wallet IDs (UUID pattern)
-        String sanitized = message.replaceAll(
-                "\\b[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}\\b",
-                "***-WALLET-ID-***");
-
-        // Mask potential amounts with currency symbols
-        sanitized = sanitized.replaceAll("[$€£¥₹]\\s*[0-9,]+\\.?[0-9]*", "***");
-
-        // Truncate if too long
-        if (sanitized.length() > 512) {
-            sanitized = sanitized.substring(0, 509) + "...";
-        }
-
-        return sanitized;
-    }
-
-    /**
-     * Extracts the first N lines of a stack trace.
-     *
-     * @param throwable the exception
-     * @param lines     number of lines to extract
-     * @return formatted stack trace
-     */
-    private String getStackTraceFirstLines(Throwable throwable, int lines) {
-        if (throwable == null) {
-            return "";
-        }
-
-        StringBuilder sb = new StringBuilder();
-        StackTraceElement[] elements = throwable.getStackTrace();
-
-        int limit = Math.min(lines, elements.length);
-        for (int i = 0; i < limit; i++) {
-            sb.append(elements[i].toString()).append("\n");
-        }
-
-        if (elements.length > lines) {
-            sb.append("... ").append(elements.length - lines).append(" more lines");
-        }
-
-        return sb.toString();
     }
 }

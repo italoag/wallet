@@ -175,17 +175,13 @@ public class KafkaProducerObservationHandler implements ObservationHandler<Obser
     @Override
     public void onStart(Observation.Context context) {
         try {
-            // Add base messaging attributes
-            context.addLowCardinalityKeyValue(KeyValue.of("messaging.system", "kafka"));
-            context.addLowCardinalityKeyValue(KeyValue.of("messaging.operation", "publish"));
-            context.addLowCardinalityKeyValue(KeyValue.of("span.kind", "PRODUCER"));
-
-            // Add destination information if available
+            // Extract topic and message ID
             String topic = (String) context.get("kafka.topic");
-            if (topic != null) {
-                context.addLowCardinalityKeyValue(KeyValue.of("messaging.destination.name", topic));
-                context.addLowCardinalityKeyValue(KeyValue.of("messaging.destination.kind", "topic"));
-            }
+            String messageId = (String) context.get("message.id");
+            Integer partition = (Integer) context.get("kafka.partition");
+
+            // Add messaging attributes using builder (with automatic sanitization)
+            spanAttributeBuilder.addMessagingProducerAttributes(context, topic, messageId, partition);
 
             // Record serialization start timestamp
             context.put("serialization.start", System.nanoTime());
@@ -223,24 +219,18 @@ public class KafkaProducerObservationHandler implements ObservationHandler<Obser
             // Add partition and offset if available (from send result)
             Integer partition = (Integer) context.get("kafka.partition");
             if (partition != null) {
-                context.addLowCardinalityKeyValue(KeyValue.of("messaging.kafka.partition", String.valueOf(partition)));
+                context.addLowCardinalityKeyValue(KeyValue.of(SpanAttributeBuilder.MESSAGING_KAFKA_PARTITION,
+                        String.valueOf(partition)));
             }
 
             Long offset = (Long) context.get("kafka.offset");
             if (offset != null) {
-                context.addLowCardinalityKeyValue(KeyValue.of("messaging.kafka.offset", String.valueOf(offset)));
-            }
-
-            // Add message ID if available (CloudEvent ID)
-            String messageId = (String) context.get("message.id");
-            if (messageId != null) {
-                context.addHighCardinalityKeyValue(KeyValue.of("messaging.message.id", messageId));
+                context.addLowCardinalityKeyValue(KeyValue.of(SpanAttributeBuilder.MESSAGING_KAFKA_OFFSET,
+                        String.valueOf(offset)));
             }
 
             // Mark as successful publish
-            context.addLowCardinalityKeyValue(KeyValue.of("status", "success"));
-
-            String topic = (String) context.get("kafka.topic");
+            spanAttributeBuilder.addSuccessStatus(context);
         } catch (Exception e) {
             // Log removed
         }
@@ -259,14 +249,8 @@ public class KafkaProducerObservationHandler implements ObservationHandler<Obser
     public void onError(Observation.Context context) {
         try {
             Throwable error = context.getError();
-
-            if (error != null) {
-                context.addLowCardinalityKeyValue(KeyValue.of("error.type", error.getClass().getSimpleName()));
-                context.addLowCardinalityKeyValue(KeyValue.of("status", "error"));
-
-                String topic = (String) context.get("kafka.topic");
-            }
-
+            // Add error attributes using builder (with automatic sanitization)
+            spanAttributeBuilder.addErrorAttributes(context, error);
         } catch (Exception e) {
             // Log removed
         }
