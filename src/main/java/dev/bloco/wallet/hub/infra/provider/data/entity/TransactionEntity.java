@@ -33,6 +33,9 @@ public class TransactionEntity {
     @Column(nullable = false)
     private UUID networkId;
 
+    @Column(nullable = false)
+    private UUID walletId;
+
     @Column(nullable = false, unique = true)
     private String hash;
 
@@ -64,4 +67,125 @@ public class TransactionEntity {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private TransactionStatus status;
+
+    public UUID getId() {
+        return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
+    public UUID getNetworkId() {
+        return networkId;
+    }
+
+    public void setNetworkId(UUID networkId) {
+        this.networkId = networkId;
+    }
+
+    public UUID getWalletId() {
+        return walletId;
+    }
+
+    public void setWalletId(UUID walletId) {
+        this.walletId = walletId;
+    }
+
+    public String getHash() {
+        return hash;
+    }
+
+    public void setHash(String hash) {
+        this.hash = hash;
+    }
+
+    public String getFromAddress() {
+        return fromAddress;
+    }
+
+    public void setFromAddress(String fromAddress) {
+        this.fromAddress = fromAddress;
+    }
+
+    public String getToAddress() {
+        return toAddress;
+    }
+
+    public void setToAddress(String toAddress) {
+        this.toAddress = toAddress;
+    }
+
+    public BigDecimal getValue() {
+        return value;
+    }
+
+    public void setValue(BigDecimal value) {
+        this.value = value;
+    }
+
+    public BigDecimal getGasPrice() {
+        return gasPrice;
+    }
+
+    public void setGasPrice(BigDecimal gasPrice) {
+        this.gasPrice = gasPrice;
+    }
+
+    public BigDecimal getGasLimit() {
+        return gasLimit;
+    }
+
+    public void setGasLimit(BigDecimal gasLimit) {
+        this.gasLimit = gasLimit;
+    }
+
+    public BigDecimal getGasUsed() {
+        return gasUsed;
+    }
+
+    public void setGasUsed(BigDecimal gasUsed) {
+        this.gasUsed = gasUsed;
+    }
+
+    public String getData() {
+        return data;
+    }
+
+    public void setData(String data) {
+        this.data = data;
+    }
+
+    public Instant getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Instant timestamp) {
+        this.timestamp = timestamp;
+    }
+
+    public Long getBlockNumber() {
+        return blockNumber;
+    }
+
+    public void setBlockNumber(Long blockNumber) {
+        this.blockNumber = blockNumber;
+    }
+
+    public String getBlockHash() {
+        return blockHash;
+    }
+
+    public void setBlockHash(String blockHash) {
+        this.blockHash = blockHash;
+    }
+
+    public TransactionStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(TransactionStatus status) {
+        this.status = status;
+    }
+
 }

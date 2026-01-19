@@ -3,7 +3,9 @@ package dev.bloco.wallet.hub.infra.provider.data.repository;
 import dev.bloco.wallet.hub.domain.model.transaction.Transaction;
 import dev.bloco.wallet.hub.domain.model.transaction.TransactionHash;
 import dev.bloco.wallet.hub.infra.provider.data.entity.TransactionEntity;
+import dev.bloco.wallet.hub.infra.provider.data.entity.TransactionEntity;
 import dev.bloco.wallet.hub.infra.provider.mapper.TransactionMapper;
+import dev.bloco.wallet.hub.infra.provider.repository.JpaTransactionRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,7 +44,8 @@ class JpaTransactionRepositoryTest {
     void save_shouldMapDomainToEntity_andBackToDomain() {
         UUID id = UUID.randomUUID();
         UUID networkId = UUID.randomUUID();
-        Transaction domain = Transaction.create(id, networkId, new TransactionHash("0xhash"), "0xfrom", "0xto", new BigDecimal("12.34"), null);
+        Transaction domain = Transaction.create(id, networkId, new TransactionHash("0xhash"), "0xfrom", "0xto",
+                new BigDecimal("12.34"), null);
 
         TransactionEntity entity = new TransactionEntity();
         entity.setId(id);
@@ -62,7 +65,8 @@ class JpaTransactionRepositoryTest {
         savedEntity.setValue(new BigDecimal("12.34"));
         savedEntity.setTimestamp(Instant.now());
 
-        Transaction mappedBack = Transaction.create(id, networkId, new TransactionHash("0xhash"), "0xfrom", "0xto", new BigDecimal("12.34"), null);
+        Transaction mappedBack = Transaction.create(id, networkId, new TransactionHash("0xhash"), "0xfrom", "0xto",
+                new BigDecimal("12.34"), null);
 
         when(transactionMapper.toEntity(domain)).thenReturn(entity);
         when(springDataTransactionRepository.save(entity)).thenReturn(savedEntity);
@@ -109,8 +113,10 @@ class JpaTransactionRepositoryTest {
         e2.setValue(new BigDecimal("2.00"));
         e2.setTimestamp(Instant.now());
 
-        Transaction d1 = Transaction.create(e1.getId(), networkId, new TransactionHash("0x1"), "0xA", "0xB", new BigDecimal("1.00"), null);
-        Transaction d2 = Transaction.create(e2.getId(), networkId, new TransactionHash("0x2"), "0xC", "0xD", new BigDecimal("2.00"), null);
+        Transaction d1 = Transaction.create(e1.getId(), networkId, new TransactionHash("0x1"), "0xA", "0xB",
+                new BigDecimal("1.00"), null);
+        Transaction d2 = Transaction.create(e2.getId(), networkId, new TransactionHash("0x2"), "0xC", "0xD",
+                new BigDecimal("2.00"), null);
 
         when(springDataTransactionRepository.findByNetworkId(networkId)).thenReturn(List.of(e1, e2));
         when(transactionMapper.toDomain(e1)).thenReturn(d1);

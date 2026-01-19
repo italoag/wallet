@@ -114,7 +114,6 @@ public class CircuitBreakerTracingDecorator {
     @PostConstruct
     public void init() {
         if (!featureFlags.isExternalApi()) {
-            log.debug("Circuit breaker tracing disabled via feature flag");
             return;
         }
 
@@ -127,7 +126,6 @@ public class CircuitBreakerTracingDecorator {
                 .onStateTransition(event -> {
                     Span currentSpan = tracer.currentSpan();
                     if (currentSpan == null) {
-                        log.debug("No active span for circuit breaker state transition [cb={}]", cbName);
                         return;
                     }
 
@@ -144,16 +142,7 @@ public class CircuitBreakerTracingDecorator {
                             event.getStateTransition().getToState()
                         );
                         currentSpan.event(eventName + ": " + eventMessage);
-
-                        log.info("Circuit breaker state transition traced [cb={}, from={}, to={}, span={}]",
-                                cbName,
-                                event.getStateTransition().getFromState(),
-                                event.getStateTransition().getToState(),
-                                currentSpan.context().traceId());
-
                     } catch (Exception e) {
-                        log.error("Error adding circuit breaker attributes to span [cb={}]: {}", 
-                                 cbName, e.getMessage(), e);
                     }
                 });
 
@@ -173,13 +162,9 @@ public class CircuitBreakerTracingDecorator {
                             currentSpan.tag("cb.state", circuitBreaker.getState().name());
                             currentSpan.event("cb.error: " + event.getThrowable().getClass().getSimpleName());
                         } catch (Exception e) {
-                            log.error("Error adding circuit breaker error attributes [cb={}]: {}",
-                                     cbName, e.getMessage(), e);
                         }
                     }
                 });
-
-            log.info("Circuit breaker tracing registered [cb={}]", cbName);
         });
     }
 
@@ -205,8 +190,6 @@ public class CircuitBreakerTracingDecorator {
             currentSpan.tag("cb.slow_call_rate", String.format("%.2f", metrics.getSlowCallRate()));
 
         } catch (Exception e) {
-            log.error("Error adding circuit breaker metrics to span [cb={}]: {}", 
-                     cbName, e.getMessage(), e);
         }
     }
 

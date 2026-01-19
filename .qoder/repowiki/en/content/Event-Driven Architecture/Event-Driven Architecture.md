@@ -1,4 +1,3 @@
-
 # Event-Driven Architecture
 
 <cite>
@@ -15,7 +14,8 @@
 - [OutboxRepository.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/repository/OutboxRepository.java)
 - [KafkaEventProducer.java](file://src/main/java/dev/bloco/wallet/hub/infra/adapter/event/producer/KafkaEventProducer.java)
 - [EventProducer.java](file://src/main/java/dev/bloco/wallet/hub/infra/adapter/event/producer/EventProducer.java)
-- [CloudEventUtils.java](file://src/main/java/dev/bloco/wallet/hub/infra/util/CloudEventUtils.java)
+- [EventBindings.java](file://src/main/java/dev/bloco/wallet/hub/infra/adapter/event/producer/EventBindings.java) - *Added in recent commit*
+- [CloudEventUtils.java](file://src/main/java/dev/bloco/wallet/hub/infra/util/CloudEventUtils.java) - *Enhanced with improved JSON serialization*
 - [application.yml](file://src/main/resources/application.yml)
 - [CreateWalletUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/CreateWalletUseCase.java)
 - [AddFundsUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/AddFundsUseCase.java)
@@ -23,6 +23,14 @@
 - [TransferFundsUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/TransferFundsUseCase.java)
 - [Wallet.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/Wallet.java)
 </cite>
+
+## Update Summary
+**Changes Made**   
+- Added new section on EventBindings class for centralized Kafka binding names
+- Updated Kafka Integration section to reflect use of EventBindings
+- Enhanced Event Serialization section with details on improved JSON serialization in CloudEventUtils
+- Updated sequence diagram in Kafka Integration section to show binding resolution
+- Added new sources for EventBindings.java and updated CloudEventUtils.java
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -145,18 +153,24 @@ OutboxWorker --> OutboxService : "delegates"
 ## Kafka Integration via Spring Cloud Stream
 Kafka integration is achieved through Spring Cloud Stream with the KafkaEventProducer component. This producer implements the EventProducer interface and is responsible for sending events from the outbox to Kafka topics. The processOutbox() method is scheduled to run every 5 seconds, retrieving all unsent events from the outbox and attempting to send them to Kafka using StreamBridge.
 
-Each event type is mapped to a specific Kafka topic through configuration in application.yml. For example, walletCreatedEventProducer is bound to the wallet-created-topic. The channel name is dynamically constructed by appending "-out-0" to the event type. Only events that are successfully sent are marked as sent in the outbox, providing at-least-once delivery semantics. Failed deliveries remain in the outbox for retry in subsequent processing cycles.
+A new EventBindings class has been introduced to centralize Kafka binding names and avoid string coupling. This class provides constants for binding names and a lookup method to resolve event types to their corresponding binding names. The OutboxWorker now uses EventBindings.bindingForEventType() to determine the correct binding for each event type, making it easier to evolve channel names in one place.
+
+Each event type is mapped to a specific Kafka topic through configuration in application.yml. For example, walletCreatedEventProducer is bound to the wallet-created-topic. The channel name is resolved through the EventBindings class rather than being constructed dynamically. Only events that are successfully sent are marked as sent in the outbox, providing at-least-once delivery semantics. Failed deliveries remain in the outbox for retry in subsequent processing cycles.
 
 ```mermaid
 sequenceDiagram
 participant OutboxWorker
 participant OutboxService
+participant EventBindings
 participant StreamBridge
 participant Kafka
 OutboxWorker->>OutboxService : getUnsentEvents()
 OutboxService-->>OutboxWorker : List of OutboxEvent
 loop For each unsent event
-OutboxWorker->>StreamBridge : send(eventType + "-out-0", payload)
+OutboxWorker->>EventBindings : bindingForEventType(eventType)
+EventBindings-->>OutboxWorker : binding name
+alt Binding found
+OutboxWorker->>StreamBridge : send(binding, payload)
 StreamBridge->>Kafka : Publish message
 Kafka-->>StreamBridge : Success
 alt Success
@@ -166,32 +180,59 @@ else Failure
 StreamBridge-->>OutboxWorker : false
 OutboxWorker->>OutboxService : No action
 end
+else Binding not found
+OutboxWorker->>OutboxService : Skip event
+end
 end
 ```
 
 **Diagram sources**
 - [KafkaEventProducer.java](file://src/main/java/dev/bloco/wallet/hub/infra/adapter/event/producer/KafkaEventProducer.java#L29-L151)
 - [OutboxWorker.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/OutboxWorker.java#L43-L93)
+- [EventBindings.java](file://src/main/java/dev/bloco/wallet/hub/infra/adapter/event/producer/EventBindings.java#L1-L31)
 - [application.yml](file://src/main/resources/application.yml#L20-L28)
 
 **Section sources**
 - [KafkaEventProducer.java](file://src/main/java/dev/bloco/wallet/hub/infra/adapter/event/producer/KafkaEventProducer.java#L29-L151)
 - [EventProducer.java](file://src/main/java/dev/bloco/wallet/hub/infra/adapter/event/producer/EventProducer.java#L18-L23)
 - [OutboxWorker.java](file://src/main/java/dev/bloco/wallet/hub/infra/provider/data/OutboxWorker.java#L43-L93)
+- [EventBindings.java](file://src/main/java/dev/bloco/wallet/hub/infra/adapter/event/producer/EventBindings.java#L1-L31)
 - [application.yml](file://src/main/resources/application.yml#L20-L28)
 
 ## Event Serialization with CloudEvents
 Event serialization is handled through the CloudEventUtils class, which creates standardized CloudEvent instances from domain events. This ensures interoperability across different systems and services by providing a common event format. The createCloudEvent() methods generate CloudEvents with unique IDs, event types, source URIs, and optional correlation IDs as extensions.
 
-When events are serialized for storage in the outbox or transmission to Kafka, they are converted to JSON format using Jackson's ObjectMapper. The CloudEvent format includes metadata such as event ID, type, source, and timestamp, along with the event data payload. This standardization enables consistent event processing, monitoring, and debugging across the distributed system.
+The CloudEventUtils class has been enhanced with improved JSON serialization capabilities. It now includes a private toJsonBytes() method that uses Jackson's ObjectMapper with registered modules to properly handle Java Time types and other complex objects. The serialization includes error handling with a fallback to toString() if JSON serialization fails, preventing hard failures. When events are serialized for storage in the outbox or transmission to Kafka, they are converted to JSON format using this robust serialization mechanism. The CloudEvent format includes metadata such as event ID, type, source, and timestamp, along with the event data payload. This standardization enables consistent event processing, monitoring, and debugging across the distributed system.
+
+```mermaid
+classDiagram
+class CloudEventUtils {
++createCloudEvent(T, String, String) CloudEvent
++createCloudEvent(T, String, String, String) CloudEvent
+-private toJsonBytes(Object) byte[]
+}
+class CloudEvent {
++String getId()
++String getType()
++URI getSource()
++byte[] getData()
++String getDataContentType()
+}
+CloudEventUtils --> CloudEvent : "creates"
+```
+
+**Diagram sources**
+- [CloudEventUtils.java](file://src/main/java/dev/bloco/wallet/hub/infra/util/CloudEventUtils.java#L12-L71)
+- [CloudEventUtilsTest.java](file://src/main/java/dev/bloco/wallet/hub/infra/util/CloudEventUtilsTest.java#L1-L60)
 
 **Section sources**
-- [CloudEventUtils.java](file://src/main/java/dev/bloco/wallet/hub/infra/util/CloudEventUtils.java#L11-L54)
+- [CloudEventUtils.java](file://src/main/java/dev/bloco/wallet/hub/infra/util/CloudEventUtils.java#L12-L71)
+- [CloudEventUtilsTest.java](file://src/main/java/dev/bloco/wallet/hub/infra/util/CloudEventUtilsTest.java#L1-L60)
 
 ## Full Event Lifecycle
 The complete event lifecycle in the bloco-wallet-java application follows a well-defined sequence: domain change → event emission → outbox persistence → Kafka publishing → external consumption. When a business operation occurs, such as creating a wallet or adding funds, the corresponding domain aggregate (e.g., Wallet) registers a domain event. The use case then publishes this event through the DomainEventPublisher.
 
-The OutboxEventPublisher intercepts the event, serializes it to JSON, and persists it to the outbox table within the same transaction as the aggregate state change. This ensures atomicity - either both the business data and the event are committed, or neither is. Periodically, the KafkaEventProducer retrieves unsent events from the outbox and sends them to their designated Kafka topics using Spring Cloud Stream's StreamBridge.
+The OutboxEventPublisher intercepts the event, serializes it to JSON, and persists it to the outbox table within the same transaction as the aggregate state change. This ensures atomicity - either both the business data and the event are committed, or neither is. Periodically, the KafkaEventProducer retrieves unsent events from the outbox and sends them to their designated Kafka topics using Spring Cloud Stream's StreamBridge. The binding resolution is now handled through the centralized EventBindings class rather than dynamic string construction.
 
 External consumers subscribe to these Kafka topics and process the events accordingly. For example, the WalletCreatedEventConsumer receives wallet creation events and triggers further processing in related systems. The correlationId included in each event enables end-to-end tracing of operations across service boundaries.
 

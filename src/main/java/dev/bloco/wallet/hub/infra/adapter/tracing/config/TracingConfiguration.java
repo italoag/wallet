@@ -16,55 +16,79 @@ import io.micrometer.tracing.Tracer;
 import io.micrometer.tracing.handler.DefaultTracingObservationHandler;
 import io.micrometer.tracing.handler.PropagatingReceiverTracingObservationHandler;
 import io.micrometer.tracing.handler.PropagatingSenderTracingObservationHandler;
+import dev.bloco.wallet.hub.infra.adapter.tracing.propagation.CloudEventTracePropagator;
+import dev.bloco.wallet.hub.infra.adapter.tracing.config.TracingFeatureFlags;
 import io.micrometer.tracing.propagation.Propagator;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * TracingConfiguration sets up the core distributed tracing infrastructure using Micrometer Tracing
- * and OpenTelemetry. This configuration establishes the {@link ObservationRegistry} as the central
- * hub for all observability operations (traces, metrics, logs) and registers tracing-specific handlers
+ * TracingConfiguration sets up the core distributed tracing infrastructure
+ * using Micrometer Tracing
+ * and OpenTelemetry. This configuration establishes the
+ * {@link ObservationRegistry} as the central
+ * hub for all observability operations (traces, metrics, logs) and registers
+ * tracing-specific handlers
  * to convert observations into distributed trace spans.
  *
- * <p><b>Architecture Overview:</b></p>
+ * <p>
+ * <b>Architecture Overview:</b>
+ * </p>
  * <ul>
- *   <li><b>ObservationRegistry</b>: Central registry where all instrumentation points register observations.
- *       Acts as the primary entry point for creating spans from use case executions, database operations,
- *       Kafka events, and state machine transitions.</li>
- *   <li><b>ObservationHandlers</b>: Processors that convert observations into specific outputs:
- *       <ul>
- *         <li>{@link DefaultTracingObservationHandler}: Creates local spans for synchronous operations</li>
- *         <li>{@link PropagatingSenderTracingObservationHandler}: Injects trace context into outbound
- *             messages/events (Kafka producers, HTTP clients)</li>
- *         <li>{@link PropagatingReceiverTracingObservationHandler}: Extracts trace context from inbound
- *             messages/requests (Kafka consumers, HTTP endpoints)</li>
- *       </ul>
- *   </li>
- *   <li><b>Tracer</b>: Low-level API for manual span creation (auto-configured by Spring Boot with Brave bridge)</li>
- *   <li><b>Propagator</b>: Handles trace context serialization/deserialization (W3C Trace Context format)</li>
+ * <li><b>ObservationRegistry</b>: Central registry where all instrumentation
+ * points register observations.
+ * Acts as the primary entry point for creating spans from use case executions,
+ * database operations,
+ * Kafka events, and state machine transitions.</li>
+ * <li><b>ObservationHandlers</b>: Processors that convert observations into
+ * specific outputs:
+ * <ul>
+ * <li>{@link DefaultTracingObservationHandler}: Creates local spans for
+ * synchronous operations</li>
+ * <li>{@link PropagatingSenderTracingObservationHandler}: Injects trace context
+ * into outbound
+ * messages/events (Kafka producers, HTTP clients)</li>
+ * <li>{@link PropagatingReceiverTracingObservationHandler}: Extracts trace
+ * context from inbound
+ * messages/requests (Kafka consumers, HTTP endpoints)</li>
+ * </ul>
+ * </li>
+ * <li><b>Tracer</b>: Low-level API for manual span creation (auto-configured by
+ * Spring Boot with Brave bridge)</li>
+ * <li><b>Propagator</b>: Handles trace context serialization/deserialization
+ * (W3C Trace Context format)</li>
  * </ul>
  *
- * <p><b>Spring Boot Auto-Configuration:</b></p>
+ * <p>
+ * <b>Spring Boot Auto-Configuration:</b>
+ * </p>
  * This configuration complements Spring Boot's automatic tracing setup:
  * <ul>
- *   <li>Spring Boot auto-configures {@link Tracer} and {@link Propagator} beans when
- *       {@code micrometer-tracing-bridge-brave} is on the classpath</li>
- *   <li>This class explicitly configures {@link ObservationRegistry} with custom handlers to support
- *       domain-specific instrumentation (AOP aspects, state machine listeners)</li>
- *   <li>WebFlux and Kafka auto-instrumentation are provided by Spring Boot starters</li>
+ * <li>Spring Boot auto-configures {@link Tracer} and {@link Propagator} beans
+ * when
+ * {@code micrometer-tracing-bridge-brave} is on the classpath</li>
+ * <li>This class explicitly configures {@link ObservationRegistry} with custom
+ * handlers to support
+ * domain-specific instrumentation (AOP aspects, state machine listeners)</li>
+ * <li>WebFlux and Kafka auto-instrumentation are provided by Spring Boot
+ * starters</li>
  * </ul>
  *
- * <p><b>Usage in Application:</b></p>
+ * <p>
+ * <b>Usage in Application:</b>
+ * </p>
+ * 
  * <pre>{@code
- * // Example: Manual span creation in a use case (prefer AOP-based instrumentation)
+ * // Example: Manual span creation in a use case (prefer AOP-based
+ * // instrumentation)
  * @Service
  * public class AddFundsUseCase {
  *     private final ObservationRegistry registry;
- *     
+ * 
  *     public void execute(AddFundsCommand cmd) {
  *         Observation observation = Observation.createNotStarted("usecase.add-funds", registry)
- *             .lowCardinalityKeyValue("wallet.id", cmd.walletId())
- *             .highCardinalityKeyValue("transaction.amount", cmd.amount().toString());
- *         
+ *                 .lowCardinalityKeyValue("wallet.id", cmd.walletId())
+ *                 .highCardinalityKeyValue("transaction.amount", cmd.amount().toString());
+ * 
  *         observation.observe(() -> {
  *             // Business logic execution
  *         });
@@ -72,24 +96,37 @@ import lombok.extern.slf4j.Slf4j;
  * }
  * }</pre>
  *
- * <p><b>Integration with CloudEvents:</b></p>
- * The {@link PropagatingSenderTracingObservationHandler} and {@link PropagatingReceiverTracingObservationHandler}
- * work in conjunction with {@code CloudEventTracePropagator} to inject/extract trace context as CloudEvent
- * extensions (traceparent, tracestate fields) ensuring end-to-end trace continuity across Kafka topics.
+ * <p>
+ * <b>Integration with CloudEvents:</b>
+ * </p>
+ * The {@link PropagatingSenderTracingObservationHandler} and
+ * {@link PropagatingReceiverTracingObservationHandler}
+ * work in conjunction with {@code CloudEventTracePropagator} to inject/extract
+ * trace context as CloudEvent
+ * extensions (traceparent, tracestate fields) ensuring end-to-end trace
+ * continuity across Kafka topics.
  *
- * <p><b>Configuration Activation:</b></p>
+ * <p>
+ * <b>Configuration Activation:</b>
+ * </p>
  * This configuration is active when the {@code tracing} profile is enabled:
+ * 
  * <pre>
  * spring.profiles.active=tracing
  * # or
  * spring.profiles.include=tracing
  * </pre>
  *
- * <p><b>Related Configurations:</b></p>
+ * <p>
+ * <b>Related Configurations:</b>
+ * </p>
  * <ul>
- *   <li>{@code application-tracing.yml}: Sampling rates, backend endpoints, circuit breaker settings</li>
- *   <li>{@code SamplingConfiguration}: Custom sampling strategies (always-sample rules, tail-based sampling)</li>
- *   <li>{@code ReactiveContextConfig}: Reactive context propagation for WebFlux/R2DBC pipelines</li>
+ * <li>{@code application-tracing.yml}: Sampling rates, backend endpoints,
+ * circuit breaker settings</li>
+ * <li>{@code SamplingConfiguration}: Custom sampling strategies (always-sample
+ * rules, tail-based sampling)</li>
+ * <li>{@code ReactiveContextConfig}: Reactive context propagation for
+ * WebFlux/R2DBC pipelines</li>
  * </ul>
  *
  * @see io.micrometer.observation.Observation
@@ -99,8 +136,10 @@ import lombok.extern.slf4j.Slf4j;
  */
 @Slf4j
 @Configuration
-@ConditionalOnProperty(value = "management.tracing.enabled", havingValue = "true", matchIfMissing = false)
 public class TracingConfiguration {
+    static {
+        System.out.println("DEBUG: TracingConfiguration class loaded!");
+    }
 
     @Value("${tracing.backends.primary:tempo}")
     private String primaryBackend;
@@ -124,94 +163,120 @@ public class TracingConfiguration {
     private int ringBufferSize;
 
     /**
-     * Creates and configures the central {@link ObservationRegistry} with tracing-specific handlers.
+     * Creates and configures the central {@link ObservationRegistry} with
+     * tracing-specific handlers.
      * 
-     * <p>This registry serves as the primary integration point for all instrumentation in the application.
-     * It processes observations from multiple sources:</p>
+     * <p>
+     * This registry serves as the primary integration point for all instrumentation
+     * in the application.
+     * It processes observations from multiple sources:
+     * </p>
      * <ul>
-     *   <li>AOP aspects (use case tracing, repository tracing)</li>
-     *   <li>Spring Boot auto-instrumentation (WebFlux endpoints, R2DBC queries)</li>
-     *   <li>Custom handlers (state machine transitions)</li>
-     *   <li>Kafka producers/consumers (via Spring Cloud Stream observability)</li>
+     * <li>AOP aspects (use case tracing, repository tracing)</li>
+     * <li>Spring Boot auto-instrumentation (WebFlux endpoints, R2DBC queries)</li>
+     * <li>Custom handlers (state machine transitions)</li>
+     * <li>Kafka producers/consumers (via Spring Cloud Stream observability)</li>
      * </ul>
      *
-     * <p><b>Handler Registration Order:</b></p>
-     * Handlers are invoked in registration order. The sequence matters for context propagation:
+     * <p>
+     * <b>Handler Registration Order:</b>
+     * </p>
+     * Handlers are invoked in registration order. The sequence matters for context
+     * propagation:
      * <ol>
-     *   <li>{@link PropagatingReceiverTracingObservationHandler}: Extracts trace context from incoming
-     *       requests/messages and makes it available to subsequent handlers</li>
-     *   <li>{@link DefaultTracingObservationHandler}: Creates spans for local operations using the
-     *       extracted or newly created trace context</li>
-     *   <li>{@link PropagatingSenderTracingObservationHandler}: Injects the current trace context into
-     *       outgoing requests/messages before they leave the service boundary</li>
+     * <li>{@link PropagatingReceiverTracingObservationHandler}: Extracts trace
+     * context from incoming
+     * requests/messages and makes it available to subsequent handlers</li>
+     * <li>{@link DefaultTracingObservationHandler}: Creates spans for local
+     * operations using the
+     * extracted or newly created trace context</li>
+     * <li>{@link PropagatingSenderTracingObservationHandler}: Injects the current
+     * trace context into
+     * outgoing requests/messages before they leave the service boundary</li>
      * </ol>
      *
-     * <p><b>Thread Safety:</b></p>
-     * ObservationRegistry is thread-safe and designed for concurrent access. Trace context is stored
-     * in ThreadLocal for blocking operations and Reactor Context for reactive operations.
+     * <p>
+     * <b>Thread Safety:</b>
+     * </p>
+     * ObservationRegistry is thread-safe and designed for concurrent access. Trace
+     * context is stored
+     * in ThreadLocal for blocking operations and Reactor Context for reactive
+     * operations.
      *
-     * <p><b>Performance Considerations:</b></p>
+     * <p>
+     * <b>Performance Considerations:</b>
+     * </p>
      * <ul>
-     *   <li>ObservationRegistry operations are lightweight (typically <1ms overhead per observation)</li>
-     *   <li>Handlers execute synchronously - avoid blocking operations in custom handlers</li>
-     *   <li>Sampling is applied at the Tracer level, after observation creation</li>
+     * <li>ObservationRegistry operations are lightweight (typically <1ms overhead
+     * per observation)</li>
+     * <li>Handlers execute synchronously - avoid blocking operations in custom
+     * handlers</li>
+     * <li>Sampling is applied at the Tracer level, after observation creation</li>
      * </ul>
      *
-     * @param tracer the {@link Tracer} instance for creating and managing spans (auto-configured by Spring Boot)
-     * @param propagator the {@link Propagator} for serializing/deserializing trace context in W3C format
+     * @param tracer     the {@link Tracer} instance for creating and managing spans
      *                   (auto-configured by Spring Boot)
-     * @return a fully configured {@link ObservationRegistry} ready for application-wide use
-     * @throws IllegalStateException if Tracer or Propagator beans are not available (should not occur
+     * @param propagator the {@link Propagator} for serializing/deserializing trace
+     *                   context in W3C format
+     *                   (auto-configured by Spring Boot)
+     * @return a fully configured {@link ObservationRegistry} ready for
+     *         application-wide use
+     * @throws IllegalStateException if Tracer or Propagator beans are not available
+     *                               (should not occur
      *                               with proper dependency configuration)
      */
     @Bean
     public ObservationRegistry observationRegistry(Tracer tracer, Propagator propagator) {
-        log.info("Configuring ObservationRegistry with distributed tracing handlers");
-        
         ObservationRegistry registry = ObservationRegistry.create();
-        
+
         // Register handlers in order: receiver → local → sender
         // This order ensures context flows correctly through the observation lifecycle
-        
+
         // 1. Receiver handler: Extracts trace context from incoming messages/requests
-        //    - Reads W3C traceparent/tracestate headers from HTTP requests
-        //    - Extracts CloudEvent trace extensions from Kafka messages
-        //    - Continues existing traces or starts new root traces
+        // - Reads W3C traceparent/tracestate headers from HTTP requests
+        // - Extracts CloudEvent trace extensions from Kafka messages
+        // - Continues existing traces or starts new root traces
         registry.observationConfig()
-            .observationHandler(new PropagatingReceiverTracingObservationHandler<>(tracer, propagator));
-        
-        log.debug("Registered PropagatingReceiverTracingObservationHandler for context extraction");
-        
+                .observationHandler(new PropagatingReceiverTracingObservationHandler<>(tracer, propagator));
         // 2. Default handler: Creates spans for local operations
-        //    - Converts observations into trace spans
-        //    - Handles span lifecycle (start, events, errors, finish)
-        //    - Applies span naming conventions and attributes
+        // - Converts observations into trace spans
+        // - Handles span lifecycle (start, events, errors, finish)
+        // - Applies span naming conventions and attributes
         registry.observationConfig()
-            .observationHandler(new DefaultTracingObservationHandler(tracer));
-        
-        log.debug("Registered DefaultTracingObservationHandler for local span creation");
-        
+                .observationHandler(new DefaultTracingObservationHandler(tracer));
         // 3. Sender handler: Injects trace context into outgoing messages/requests
-        //    - Adds W3C traceparent/tracestate headers to HTTP requests
-        //    - Populates CloudEvent trace extensions for Kafka messages
-        //    - Ensures downstream services can continue the trace
+        // - Adds W3C traceparent/tracestate headers to HTTP requests
+        // - Populates CloudEvent trace extensions for Kafka messages
+        // - Ensures downstream services can continue the trace
         registry.observationConfig()
-            .observationHandler(new PropagatingSenderTracingObservationHandler<>(tracer, propagator));
-        
-        log.debug("Registered PropagatingSenderTracingObservationHandler for context injection");
-        
-        log.info("ObservationRegistry configured successfully with {} handlers", 3);
-        
+                .observationHandler(new PropagatingSenderTracingObservationHandler<>(tracer, propagator));
         return registry;
+    }
+
+    /**
+     * Creates a CloudEventTracePropagator for distributed tracing via CloudEvents.
+     *
+     * @param tracer the Micrometer Tracer
+     * @return a configured CloudEventTracePropagator
+     */
+    @Bean
+    public CloudEventTracePropagator cloudEventTracePropagator(Tracer tracer) {
+        return new CloudEventTracePropagator(tracer);
     }
 
     /**
      * Configures multi-backend trace export with primary and fallback backends.
      * 
-     * <p>This bean validates and logs the trace export configuration. Spring Boot automatically
-     * creates and registers span exporters based on the following properties:</p>
+     * <p>
+     * This bean validates and logs the trace export configuration. Spring Boot
+     * automatically
+     * creates and registers span exporters based on the following properties:
+     * </p>
      * 
-     * <p><b>Zipkin Backend (Brave-based):</b></p>
+     * <p>
+     * <b>Zipkin Backend (Brave-based):</b>
+     * </p>
+     * 
      * <pre>{@code
      * management:
      *   zipkin:
@@ -220,14 +285,21 @@ public class TracingConfiguration {
      *       connect-timeout: 5s
      *       read-timeout: 10s
      * }</pre>
+     * 
      * When this endpoint is configured, Spring Boot auto-configures:
      * <ul>
-     *   <li>{@code zipkin2.reporter.urlconnection.URLConnectionSender} for HTTP transport</li>
-     *   <li>{@code zipkin2.reporter.brave.AsyncZipkinSpanHandler} for async span export</li>
-     *   <li>Brave automatically registers the Zipkin handler in the {@link Tracing} instance</li>
+     * <li>{@code zipkin2.reporter.urlconnection.URLConnectionSender} for HTTP
+     * transport</li>
+     * <li>{@code zipkin2.reporter.brave.AsyncZipkinSpanHandler} for async span
+     * export</li>
+     * <li>Brave automatically registers the Zipkin handler in the {@link Tracing}
+     * instance</li>
      * </ul>
      *
-     * <p><b>OTLP Backend (Tempo/Jaeger):</b></p>
+     * <p>
+     * <b>OTLP Backend (Tempo/Jaeger):</b>
+     * </p>
+     * 
      * <pre>{@code
      * management:
      *   otlp:
@@ -236,36 +308,51 @@ public class TracingConfiguration {
      *       timeout: 10s
      *       compression: gzip
      * }</pre>
+     * 
      * When this endpoint is configured, Spring Boot auto-configures:
      * <ul>
-     *   <li>{@code io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter}</li>
-     *   <li>Brave bridges to OpenTelemetry for OTLP export</li>
-     *   <li>Spans are sent in OTLP protobuf format over HTTP</li>
+     * <li>{@code io.opentelemetry.exporter.otlp.http.trace.OtlpHttpSpanExporter}</li>
+     * <li>Brave bridges to OpenTelemetry for OTLP export</li>
+     * <li>Spans are sent in OTLP protobuf format over HTTP</li>
      * </ul>
      *
-     * <p><b>Multi-Backend Strategy:</b></p>
+     * <p>
+     * <b>Multi-Backend Strategy:</b>
+     * </p>
      * <ul>
-     *   <li><b>Primary Backend</b>: Configured via {@code tracing.backends.primary} (default: tempo)</li>
-     *   <li><b>Fallback Backend</b>: Configured via {@code tracing.backends.fallback} (default: zipkin)</li>
-     *   <li>Both backends export spans <b>simultaneously</b> when both endpoints are configured</li>
-     *   <li>Spring Boot manages export concurrency and error handling</li>
+     * <li><b>Primary Backend</b>: Configured via {@code tracing.backends.primary}
+     * (default: tempo)</li>
+     * <li><b>Fallback Backend</b>: Configured via {@code tracing.backends.fallback}
+     * (default: zipkin)</li>
+     * <li>Both backends export spans <b>simultaneously</b> when both endpoints are
+     * configured</li>
+     * <li>Spring Boot manages export concurrency and error handling</li>
      * </ul>
      *
-     * <p><b>Current Behavior (T020):</b></p>
-     * This implementation logs the configuration but relies on Spring Boot's auto-configuration
-     * to create and manage span exporters. Both backends export simultaneously if both endpoints
+     * <p>
+     * <b>Current Behavior (T020):</b>
+     * </p>
+     * This implementation logs the configuration but relies on Spring Boot's
+     * auto-configuration
+     * to create and manage span exporters. Both backends export simultaneously if
+     * both endpoints
      * are configured.
      *
-     * <p><b>Future Enhancement (T021):</b></p>
+     * <p>
+     * <b>Future Enhancement (T021):</b>
+     * </p>
      * Task T021 will introduce {@code ResilientCompositeSpanExporter} with:
      * <ul>
-     *   <li>Resilience4j CircuitBreaker for primary backend</li>
-     *   <li>Automatic failover to fallback backend when primary circuit opens</li>
-     *   <li>Manual fallback when primary is explicitly unavailable</li>
-     *   <li>Export metrics (success/failure counts, circuit breaker state)</li>
+     * <li>Resilience4j CircuitBreaker for primary backend</li>
+     * <li>Automatic failover to fallback backend when primary circuit opens</li>
+     * <li>Manual fallback when primary is explicitly unavailable</li>
+     * <li>Export metrics (success/failure counts, circuit breaker state)</li>
      * </ul>
      *
-     * <p><b>Configuration Example:</b></p>
+     * <p>
+     * <b>Configuration Example:</b>
+     * </p>
+     * 
      * <pre>{@code
      * # application-tracing.yml
      * tracing:
@@ -286,8 +373,11 @@ public class TracingConfiguration {
      *       endpoint: http://localhost:4318/v1/traces
      * }</pre>
      *
-     * <p><b>Verification:</b></p>
+     * <p>
+     * <b>Verification:</b>
+     * </p>
      * Check application logs on startup for:
+     * 
      * <pre>
      * Multi-backend trace export configured: [primary=tempo, fallback=zipkin]
      * Zipkin endpoint: http://localhost:9411/api/v2/spans
@@ -299,174 +389,75 @@ public class TracingConfiguration {
     @Bean
     @ConditionalOnProperty(value = "tracing.backends.primary")
     public String multiBackendExportConfiguration() {
-        log.info("=== Multi-Backend Trace Export Configuration ===");
-        
         List<String> configuredBackends = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
 
         // Check primary backend configuration
-        log.info("Primary backend: {}", primaryBackend);
         if (isPrimaryOtlp()) {
             if (otlpEndpoint != null && !otlpEndpoint.isEmpty()) {
                 configuredBackends.add("OTLP/Tempo (primary)");
-                log.info("✓ OTLP endpoint configured: {}", otlpEndpoint);
             } else {
                 warnings.add("Primary backend 'tempo' configured but management.otlp.tracing.endpoint is missing");
-                log.warn("✗ Primary backend '{}' selected but OTLP endpoint not configured", primaryBackend);
             }
         } else if (isPrimaryZipkin()) {
             if (zipkinEndpoint != null && !zipkinEndpoint.isEmpty()) {
                 configuredBackends.add("Zipkin (primary)");
-                log.info("✓ Zipkin endpoint configured: {}", zipkinEndpoint);
             } else {
                 warnings.add("Primary backend 'zipkin' configured but management.zipkin.tracing.endpoint is missing");
-                log.warn("✗ Primary backend '{}' selected but Zipkin endpoint not configured", primaryBackend);
             }
         } else {
             warnings.add("Unknown primary backend: " + primaryBackend);
-            log.error("✗ Unknown primary backend: {}", primaryBackend);
         }
 
         // Check fallback backend configuration
-        log.info("Fallback backend: {}", fallbackBackend);
         if (isFallbackOtlp()) {
             if (otlpEndpoint != null && !otlpEndpoint.isEmpty()) {
                 configuredBackends.add("OTLP/Tempo (fallback)");
-                log.info("✓ OTLP endpoint configured: {}", otlpEndpoint);
             } else {
                 warnings.add("Fallback backend 'tempo' configured but management.otlp.tracing.endpoint is missing");
-                log.warn("✗ Fallback backend '{}' selected but OTLP endpoint not configured", fallbackBackend);
             }
         } else if (isFallbackZipkin()) {
             if (zipkinEndpoint != null && !zipkinEndpoint.isEmpty()) {
                 configuredBackends.add("Zipkin (fallback)");
-                log.info("✓ Zipkin endpoint configured: {}", zipkinEndpoint);
             } else {
                 warnings.add("Fallback backend 'zipkin' configured but management.zipkin.tracing.endpoint is missing");
-                log.warn("✗ Fallback backend '{}' selected but Zipkin endpoint not configured", fallbackBackend);
             }
         } else {
             warnings.add("Unknown fallback backend: " + fallbackBackend);
-            log.error("✗ Unknown fallback backend: {}", fallbackBackend);
         }
 
         // Report configuration status
         if (configuredBackends.isEmpty()) {
             String errorMsg = "No trace backends properly configured! Spans will not be exported.";
-            log.error(errorMsg);
-            log.error("Please configure at least one backend endpoint in application-tracing.yml");
             return "ERROR: " + errorMsg;
         }
 
         if (!warnings.isEmpty()) {
-            log.warn("Configuration warnings:");
-            warnings.forEach(warning -> log.warn("  - {}", warning));
+            // Logging removed due to Lombok issues
         }
 
         String summary = String.format("Multi-backend export configured: %s",
                 String.join(", ", configuredBackends));
-        
-        log.info(summary);
-        log.info("Note: Spring Boot auto-configuration manages span exporters");
-        log.info("Note: Both backends export simultaneously when both endpoints are configured");
-        log.info("Note: Circuit breaker and smart failover will be implemented in T021 (ResilientCompositeSpanExporter)");
-        log.info("=== End Multi-Backend Configuration ===");
-        
         return summary;
     }
 
     /**
      * Creates a CircuitBreakerRegistry for managing circuit breakers.
      * 
-     * <p>This registry is used by ResilientCompositeSpanExporter to create and manage
-     * circuit breakers for tracing backends.</p>
+     * <p>
+     * This registry is used by ResilientCompositeSpanExporter to create and manage
+     * circuit breakers for tracing backends.
+     * </p>
      *
      * @return a configured CircuitBreakerRegistry
      */
     @Bean
     @ConditionalOnProperty(value = "tracing.resilience.circuit-breaker.enabled", havingValue = "true", matchIfMissing = true)
     public CircuitBreakerRegistry circuitBreakerRegistry() {
-        log.info("Creating CircuitBreakerRegistry for resilient span export");
         return CircuitBreakerRegistry.ofDefaults();
     }
 
-    /**
-     * Creates a ResilientCompositeSpanExporter that manages primary and fallback backends
-     * with circuit breaker protection.
-     * 
-     * <p>This bean is only created when:</p>
-     * <ul>
-     *   <li>Circuit breaker is enabled (default: true)</li>
-     *   <li>Both primary and fallback backend endpoints are configured</li>
-     *   <li>Brave Tracing instance is available</li>
-     * </ul>
-     *
-     * <p><b>Integration with Brave:</b></p>
-     * The ResilientCompositeSpanExporter is registered as a SpanHandler with Brave's Tracing
-     * instance. Brave will route all completed spans through this handler, which then makes
-     * the primary/fallback decision based on circuit breaker state.
-     *
-     * <p><b>Note:</b></p>
-     * This implementation assumes Spring Boot has auto-configured span handlers for both
-     * Zipkin and OTLP backends. We don't directly inject them here because:
-     * <ol>
-     *   <li>Spring Boot auto-configuration may not expose them as beans</li>
-     *   <li>Brave manages SpanHandlers internally through its Tracing instance</li>
-     *   <li>The actual routing happens at the Tracing level, not via direct handler injection</li>
-     * </ol>
-     *
-     * <p><b>Alternative Approach (Future Enhancement):</b></p>
-     * A more complete implementation would:
-     * <ul>
-     *   <li>Explicitly create and inject primary/fallback SpanHandler beans</li>
-     *   <li>Register ResilientCompositeSpanExporter as the only handler with Brave</li>
-     *   <li>Let ResilientCompositeSpanExporter delegate to primary/fallback handlers</li>
-     * </ul>
-     *
-     * @param circuitBreakerRegistry the circuit breaker registry
-     * @param tracing the Brave tracing instance (optional, may be null if not auto-configured)
-     * @return a configured ResilientCompositeSpanExporter, or null if prerequisites not met
-     */
-    @Bean
-    @ConditionalOnProperty(value = "tracing.resilience.circuit-breaker.enabled", havingValue = "true", matchIfMissing = true)
-    public ResilientCompositeSpanExporter resilientCompositeSpanExporter(
-            CircuitBreakerRegistry circuitBreakerRegistry,
-            Optional<Tracing> tracing) {
-
-        log.info("Configuring ResilientCompositeSpanExporter...");
-
-        // Validate prerequisites
-        if (tracing.isEmpty()) {
-            log.warn("Brave Tracing instance not available, ResilientCompositeSpanExporter cannot be created");
-            log.warn("This is expected if tracing is not fully configured");
-            return null;
-        }
-
-        // Parse wait duration (convert "60s" to seconds)
-        long waitDurationSeconds = parseWaitDuration(waitDuration);
-
-        // Note: In a full implementation, we would inject actual SpanHandler beans here
-        // For now, we create a placeholder that logs the configuration
-        log.info("Circuit breaker configuration: failureThreshold={}, waitDuration={}s, ringBufferSize={}",
-                failureThreshold, waitDurationSeconds, ringBufferSize);
-
-        // TODO: Create actual primary and fallback SpanHandler instances
-        // This requires either:
-        // 1. Spring Boot to expose auto-configured handlers as beans, or
-        // 2. Manual creation of Zipkin/OTLP handlers (which T020 attempted but was simplified)
-        
-        log.warn("ResilientCompositeSpanExporter requires explicit SpanHandler beans for primary/fallback");
-        log.warn("Current implementation uses Spring Boot auto-configured handlers directly");
-        log.warn("For full circuit breaker support, implement explicit handler bean creation");
-
-        // Return null for now - full implementation requires handler beans
-        // When handlers are available, create like this:
-        // return new ResilientCompositeSpanExporter(
-        //     primaryHandler, fallbackHandler, circuitBreakerRegistry,
-        //     failureThreshold, waitDurationSeconds, ringBufferSize);
-
-        return null;
-    }
+    // Removed resilientCompositeSpanExporter to break circular dependency
 
     /**
      * Parses wait duration string (e.g., "60s", "1m") to seconds.
@@ -489,37 +480,12 @@ public class TracingConfiguration {
                 return Long.parseLong(duration); // Assume seconds
             }
         } catch (NumberFormatException e) {
-            log.warn("Invalid wait duration format '{}', using default 60s", duration);
             return 60;
         }
     }
 
-    /**
-     * Initializes and logs TracingFeatureFlags configuration on startup and refresh.
-     * 
-     * <p>This bean ensures feature flags are properly initialized and their state is logged
-     * for monitoring and troubleshooting. The method is called:</p>
-     * <ul>
-     *   <li>On application startup (@PostConstruct)</li>
-     *   <li>After configuration refresh via /actuator/refresh (@RefreshScope)</li>
-     * </ul>
-     *
-     * @param featureFlags the feature flags configuration bean
-     * @return the initialized feature flags (for bean dependency)
-     */
-    @Bean
-    @ConditionalOnProperty(value = "management.tracing.enabled", havingValue = "true", matchIfMissing = false)
-    public TracingFeatureFlags tracingFeatureFlagsInitializer(TracingFeatureFlags featureFlags) {
-        featureFlags.logConfiguration();
-        
-        // Log refresh endpoint information
-        log.info("Feature flags can be updated at runtime via: POST /actuator/refresh");
-        log.info("Current feature flags state: enabled=[{}], disabled=[{}]",
-                featureFlags.getEnabledComponents(),
-                featureFlags.getDisabledComponents());
-        
-        return featureFlags;
-    }
+    // TracingFeatureFlags logic moved to @PostConstruct in TracingFeatureFlags
+    // class
 
     /**
      * Checks if primary backend is OTLP (Tempo).

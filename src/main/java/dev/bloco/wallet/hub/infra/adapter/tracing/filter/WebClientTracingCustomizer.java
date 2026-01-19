@@ -20,20 +20,23 @@ import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 
 /**
- * WebClient customizer that adds distributed tracing to all outbound HTTP calls.
+ * WebClient customizer that adds distributed tracing to all outbound HTTP
+ * calls.
  * 
  * <h2>Purpose</h2>
  * Instruments external HTTP requests with CLIENT spans, capturing:
  * <ul>
- *   <li>HTTP method and URL (sanitized to remove sensitive data)</li>
- *   <li>Response status code and duration</li>
- *   <li>Request and response body sizes</li>
- *   <li>Error details for failed requests</li>
- *   <li>W3C Trace Context propagation via traceparent header</li>
+ * <li>HTTP method and URL (sanitized to remove sensitive data)</li>
+ * <li>Response status code and duration</li>
+ * <li>Request and response body sizes</li>
+ * <li>Error details for failed requests</li>
+ * <li>W3C Trace Context propagation via traceparent header</li>
  * </ul>
  *
  * <h2>Integration</h2>
- * Automatically applied to all WebClient instances via Spring Boot's WebClientCustomizer:
+ * Automatically applied to all WebClient instances via Spring Boot's
+ * WebClientCustomizer:
+ * 
  * <pre>{@code
  * @Bean
  * WebClient.Builder webClientBuilder() {
@@ -45,44 +48,78 @@ import reactor.core.publisher.Mono;
  * <h2>Span Attributes</h2>
  * Following OpenTelemetry semantic conventions for HTTP clients:
  * <table border="1">
- *   <tr><th>Attribute</th><th>Description</th><th>Example</th></tr>
- *   <tr><td>http.method</td><td>HTTP method</td><td>GET</td></tr>
- *   <tr><td>http.url</td><td>Full URL (sanitized)</td><td>https://api.example.com/users?id=***</td></tr>
- *   <tr><td>http.status_code</td><td>Response status</td><td>200</td></tr>
- *   <tr><td>http.request.body.size</td><td>Request size in bytes</td><td>1024</td></tr>
- *   <tr><td>http.response.body.size</td><td>Response size in bytes</td><td>2048</td></tr>
- *   <tr><td>http.duration_ms</td><td>Request duration</td><td>123</td></tr>
- *   <tr><td>span.kind</td><td>Span type</td><td>CLIENT</td></tr>
+ * <tr>
+ * <th>Attribute</th>
+ * <th>Description</th>
+ * <th>Example</th>
+ * </tr>
+ * <tr>
+ * <td>http.method</td>
+ * <td>HTTP method</td>
+ * <td>GET</td>
+ * </tr>
+ * <tr>
+ * <td>http.url</td>
+ * <td>Full URL (sanitized)</td>
+ * <td>https://api.example.com/users?id=***</td>
+ * </tr>
+ * <tr>
+ * <td>http.status_code</td>
+ * <td>Response status</td>
+ * <td>200</td>
+ * </tr>
+ * <tr>
+ * <td>http.request.body.size</td>
+ * <td>Request size in bytes</td>
+ * <td>1024</td>
+ * </tr>
+ * <tr>
+ * <td>http.response.body.size</td>
+ * <td>Response size in bytes</td>
+ * <td>2048</td>
+ * </tr>
+ * <tr>
+ * <td>http.duration_ms</td>
+ * <td>Request duration</td>
+ * <td>123</td>
+ * </tr>
+ * <tr>
+ * <td>span.kind</td>
+ * <td>Span type</td>
+ * <td>CLIENT</td>
+ * </tr>
  * </table>
  *
  * <h2>URL Sanitization</h2>
  * Sensitive data in URLs is automatically masked:
  * <ul>
- *   <li>Query parameters: {@code ?token=***&apiKey=***}</li>
- *   <li>Path segments containing IDs: {@code /users/***}</li>
- *   <li>Authentication in URLs: {@code https://user:***@example.com}</li>
+ * <li>Query parameters: {@code ?token=***&apiKey=***}</li>
+ * <li>Path segments containing IDs: {@code /users/***}</li>
+ * <li>Authentication in URLs: {@code https://user:***@example.com}</li>
  * </ul>
  *
  * <h2>W3C Trace Context Propagation</h2>
  * Automatically injects {@code traceparent} header into outbound requests:
+ * 
  * <pre>
  * traceparent: 00-{trace-id}-{span-id}-01
  * </pre>
+ * 
  * This enables trace continuity when calling traced services.
  *
  * <h2>Error Handling</h2>
  * Failed requests are marked with error attributes:
  * <ul>
- *   <li>{@code error.type}: Exception class name</li>
- *   <li>{@code error.message}: Exception message</li>
- *   <li>{@code status}: "error"</li>
+ * <li>{@code error.type}: Exception class name</li>
+ * <li>{@code error.message}: Exception message</li>
+ * <li>{@code status}: "error"</li>
  * </ul>
  *
  * <h2>Performance</h2>
  * <ul>
- *   <li>Overhead per request: <1ms (span creation + header injection)</li>
- *   <li>No impact on request latency</li>
- *   <li>Async span export</li>
+ * <li>Overhead per request: <1ms (span creation + header injection)</li>
+ * <li>No impact on request latency</li>
+ * <li>Async span export</li>
  * </ul>
  *
  * <h2>Feature Flag</h2>
@@ -114,12 +151,10 @@ public class WebClientTracingCustomizer implements WebClientCustomizer {
     @Override
     public void customize(WebClient.Builder webClientBuilder) {
         if (!featureFlags.isExternalApi()) {
-            log.debug("External API tracing disabled via feature flag");
             return;
         }
 
         webClientBuilder.filter(tracingExchangeFilterFunction());
-        log.debug("WebClient tracing filter registered");
     }
 
     /**
@@ -138,8 +173,8 @@ public class WebClientTracingCustomizer implements WebClientCustomizer {
 
             // Create CLIENT span for outbound request
             Span span = tracer.nextSpan()
-                             .name(String.format("HTTP %s", request.method().name()))
-                             .start();
+                    .name(String.format("HTTP %s", request.method().name()))
+                    .start();
 
             try {
                 // Add HTTP attributes
@@ -155,17 +190,13 @@ public class WebClientTracingCustomizer implements WebClientCustomizer {
 
                 // Inject W3C Trace Context into request headers
                 ClientRequest tracedRequest = ClientRequest.from(request)
-                    .headers(headers -> injectTraceContext(span, headers::add))
-                    .build();
-
-                log.debug("Started CLIENT span [method={}, url={}]", 
-                         request.method(), sanitizeUrl(request.url()));
-
+                        .headers(headers -> injectTraceContext(span, headers::add))
+                        .build();
                 // Execute request and handle response
                 return next.exchange(tracedRequest)
-                          .flatMap(response -> handleResponse(span, response, startTime))
-                          .doOnError(error -> handleError(span, error, startTime))
-                          .doFinally(signalType -> span.end());
+                        .flatMap(response -> handleResponse(span, response, startTime))
+                        .doOnError(error -> handleError(span, error, startTime))
+                        .doFinally(signalType -> span.end());
 
             } catch (Exception e) {
                 handleError(span, e, startTime);
@@ -178,8 +209,8 @@ public class WebClientTracingCustomizer implements WebClientCustomizer {
     /**
      * Handles successful response by adding response attributes to span.
      *
-     * @param span the CLIENT span
-     * @param response the HTTP response
+     * @param span      the CLIENT span
+     * @param response  the HTTP response
      * @param startTime request start time in nanoseconds
      * @return Mono of the response
      */
@@ -189,9 +220,8 @@ public class WebClientTracingCustomizer implements WebClientCustomizer {
             span.tag("http.status_code", String.valueOf(response.statusCode().value()));
 
             // Add response body size if available
-            response.headers().contentLength().ifPresent(length ->
-                span.tag("http.response.body.size", String.valueOf(length))
-            );
+            response.headers().contentLength()
+                    .ifPresent(length -> span.tag("http.response.body.size", String.valueOf(length)));
 
             // Calculate and add duration
             long durationMs = (System.nanoTime() - startTime) / 1_000_000;
@@ -204,12 +234,8 @@ public class WebClientTracingCustomizer implements WebClientCustomizer {
                 span.tag("status", "error");
                 span.tag("error.type", "HTTP_" + response.statusCode().value());
             }
-
-            log.debug("Completed CLIENT span [status={}, duration={}ms]", 
-                     response.statusCode().value(), durationMs);
-
         } catch (Exception e) {
-            log.error("Error handling response in CLIENT span: {}", e.getMessage(), e);
+            // Error handling response
         }
 
         return Mono.just(response);
@@ -218,8 +244,8 @@ public class WebClientTracingCustomizer implements WebClientCustomizer {
     /**
      * Handles request error by adding error attributes to span.
      *
-     * @param span the CLIENT span
-     * @param error the error that occurred
+     * @param span      the CLIENT span
+     * @param error     the error that occurred
      * @param startTime request start time in nanoseconds
      */
     private void handleError(Span span, Throwable error, long startTime) {
@@ -232,19 +258,15 @@ public class WebClientTracingCustomizer implements WebClientCustomizer {
             span.tag("error.type", error.getClass().getSimpleName());
             span.tag("error.message", error.getMessage() != null ? error.getMessage() : "");
             span.tag("status", "error");
-
-            log.warn("CLIENT span error [type={}, duration={}ms]: {}", 
-                    error.getClass().getSimpleName(), durationMs, error.getMessage());
-
         } catch (Exception e) {
-            log.error("Error handling error in CLIENT span: {}", e.getMessage(), e);
+            // Error handling error
         }
     }
 
     /**
      * Injects W3C Trace Context into HTTP headers.
      *
-     * @param span the current span
+     * @param span         the current span
      * @param headerSetter callback to set headers
      */
     private void injectTraceContext(Span span, java.util.function.BiConsumer<String, String> headerSetter) {
@@ -253,7 +275,7 @@ public class WebClientTracingCustomizer implements WebClientCustomizer {
                 headerSetter.accept(key, value);
             });
         } catch (Exception e) {
-            log.error("Error injecting trace context: {}", e.getMessage(), e);
+            // Error injecting trace context
         }
     }
 
@@ -267,7 +289,6 @@ public class WebClientTracingCustomizer implements WebClientCustomizer {
         try {
             return sanitizer.sanitizeUrl(uri.toString());
         } catch (Exception e) {
-            log.error("Error sanitizing URL: {}", e.getMessage(), e);
             return uri.getScheme() + "://" + uri.getHost();
         }
     }

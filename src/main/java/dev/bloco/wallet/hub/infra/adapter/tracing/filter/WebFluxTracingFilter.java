@@ -17,22 +17,25 @@ import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
 
 /**
- * WebFlux filter for extracting W3C Trace Context 1.0 from incoming HTTP requests and
+ * WebFlux filter for extracting W3C Trace Context 1.0 from incoming HTTP
+ * requests and
  * propagating trace context through reactive pipelines.
  *
  * <h2>Purpose</h2>
- * Creates root spans for incoming HTTP requests and ensures trace context is available
+ * Creates root spans for incoming HTTP requests and ensures trace context is
+ * available
  * throughout the reactive processing chain:
  * <ul>
- *   <li>Extracts W3C Trace Context 1.0 traceparent header from requests</li>
- *   <li>Creates root span if no parent trace context exists</li>
- *   <li>Propagates trace context to Reactor Context for reactive operators</li>
- *   <li>Maintains trace continuity across async boundaries</li>
- *   <li>Adds HTTP request attributes to spans</li>
+ * <li>Extracts W3C Trace Context 1.0 traceparent header from requests</li>
+ * <li>Creates root span if no parent trace context exists</li>
+ * <li>Propagates trace context to Reactor Context for reactive operators</li>
+ * <li>Maintains trace continuity across async boundaries</li>
+ * <li>Adds HTTP request attributes to spans</li>
  * </ul>
  *
  * <h2>W3C Trace Context 1.0 Format</h2>
  * Extracts the following headers:
+ * 
  * <pre>
  * traceparent: 00-4bf92f3577b34da6a3ce929d0e0e4736-00f067aa0ba902b7-01
  *              └─ version-trace_id-parent_id-trace_flags
@@ -43,15 +46,36 @@ import reactor.util.context.Context;
  * <h2>Span Attributes</h2>
  * Adds HTTP request attributes:
  * <table border="1">
- *   <tr><th>Attribute</th><th>Description</th><th>Example</th></tr>
- *   <tr><td>http.method</td><td>HTTP method</td><td>GET, POST</td></tr>
- *   <tr><td>http.route</td><td>Route pattern</td><td>/api/wallets/{id}</td></tr>
- *   <tr><td>http.url</td><td>Full URL (sanitized)</td><td>/api/wallets?page=1</td></tr>
- *   <tr><td>http.status_code</td><td>Response status</td><td>200, 404, 500</td></tr>
+ * <tr>
+ * <th>Attribute</th>
+ * <th>Description</th>
+ * <th>Example</th>
+ * </tr>
+ * <tr>
+ * <td>http.method</td>
+ * <td>HTTP method</td>
+ * <td>GET, POST</td>
+ * </tr>
+ * <tr>
+ * <td>http.route</td>
+ * <td>Route pattern</td>
+ * <td>/api/wallets/{id}</td>
+ * </tr>
+ * <tr>
+ * <td>http.url</td>
+ * <td>Full URL (sanitized)</td>
+ * <td>/api/wallets?page=1</td>
+ * </tr>
+ * <tr>
+ * <td>http.status_code</td>
+ * <td>Response status</td>
+ * <td>200, 404, 500</td>
+ * </tr>
  * </table>
  *
  * <h2>Reactive Context Propagation</h2>
  * Trace context is injected into Reactor Context:
+ * 
  * <pre>{@code
  * // In downstream reactive operators:
  * return Mono.deferContextual(ctx -> {
@@ -61,7 +85,8 @@ import reactor.util.context.Context;
  * }</pre>
  *
  * <h2>Filter Order</h2>
- * Runs early in the filter chain (ORDER = -100) to ensure tracing is available for
+ * Runs early in the filter chain (ORDER = -100) to ensure tracing is available
+ * for
  * all downstream processing.
  *
  * <h2>Feature Flag</h2>
@@ -70,12 +95,13 @@ import reactor.util.context.Context;
  *
  * <h2>Performance</h2>
  * <ul>
- *   <li>Overhead: <1ms per request (header parsing + span creation)</li>
- *   <li>No blocking operations</li>
- *   <li>Context propagation is zero-copy</li>
+ * <li>Overhead: <1ms per request (header parsing + span creation)</li>
+ * <li>No blocking operations</li>
+ * <li>Context propagation is zero-copy</li>
  * </ul>
  *
  * <h2>Example Request Flow</h2>
+ * 
  * <pre>
  * Client Request with traceparent header
  *         ↓
@@ -99,7 +125,6 @@ import reactor.util.context.Context;
 @Component
 @Order(Ordered.HIGHEST_PRECEDENCE + 100)
 @RequiredArgsConstructor
-@ConditionalOnProperty(value = "management.tracing.enabled", havingValue = "true", matchIfMissing = false)
 public class WebFluxTracingFilter implements WebFilter {
 
     private final ObservationRegistry observationRegistry;
@@ -109,7 +134,7 @@ public class WebFluxTracingFilter implements WebFilter {
      * Filters incoming HTTP requests to establish trace context.
      *
      * @param exchange the server web exchange
-     * @param chain the filter chain
+     * @param chain    the filter chain
      * @return Mono that completes when the request processing is done
      */
     @Override
@@ -136,8 +161,6 @@ public class WebFluxTracingFilter implements WebFilter {
                                 : 200;
                         observation.lowCardinalityKeyValue("http.status_code", String.valueOf(statusCode));
                         observation.lowCardinalityKeyValue("status", "success");
-                        
-                        log.trace("HTTP request traced: {} {} - {}", method, path, statusCode);
                     })
                     .doOnError(error -> {
                         int statusCode = exchange.getResponse().getStatusCode() != null
@@ -146,9 +169,6 @@ public class WebFluxTracingFilter implements WebFilter {
                         observation.lowCardinalityKeyValue("http.status_code", String.valueOf(statusCode));
                         observation.lowCardinalityKeyValue("status", "error");
                         observation.error(error);
-                        
-                        log.debug("HTTP request traced with error: {} {} - {}", 
-                                 method, path, error.getClass().getSimpleName());
                     })
                     .contextWrite(ctx -> addObservationToContext(ctx, observation));
         });
@@ -158,7 +178,7 @@ public class WebFluxTracingFilter implements WebFilter {
      * Adds HTTP request attributes to the observation.
      *
      * @param observation the observation
-     * @param exchange the server web exchange
+     * @param exchange    the server web exchange
      */
     private void addRequestAttributes(Observation observation, ServerWebExchange exchange) {
         try {
@@ -166,18 +186,14 @@ public class WebFluxTracingFilter implements WebFilter {
             String traceparent = exchange.getRequest().getHeaders().getFirst("traceparent");
             if (traceparent != null) {
                 observation.lowCardinalityKeyValue("trace.parent", "present");
-                log.trace("Extracted W3C Trace Context traceparent header: {}", 
-                         maskTraceId(traceparent));
             } else {
                 observation.lowCardinalityKeyValue("trace.parent", "absent");
-                log.trace("No traceparent header present, creating root span");
             }
 
             // Extract tracestate header if present
             String tracestate = exchange.getRequest().getHeaders().getFirst("tracestate");
             if (tracestate != null) {
                 observation.lowCardinalityKeyValue("trace.state", "present");
-                log.trace("Extracted tracestate header");
             }
 
             // Add URL (sanitized - query params will be masked by sanitizer if needed)
@@ -197,14 +213,14 @@ public class WebFluxTracingFilter implements WebFilter {
             }
 
         } catch (Exception e) {
-            log.warn("Failed to extract request attributes: {}", e.getMessage());
+            // Failed to extract request attributes
         }
     }
 
     /**
      * Adds the observation to the Reactor context for propagation.
      *
-     * @param ctx the current context
+     * @param ctx         the current context
      * @param observation the observation to add
      * @return updated context
      */
@@ -256,7 +272,7 @@ public class WebFluxTracingFilter implements WebFilter {
 
         // Mask common sensitive query parameters
         String sanitized = url.replaceAll("([?&])(token|password|secret|key|auth)=([^&]*)", "$1$2=***");
-        
+
         return truncate(sanitized, 512);
     }
 
@@ -318,7 +334,7 @@ public class WebFluxTracingFilter implements WebFilter {
     /**
      * Truncates a string to the specified length.
      *
-     * @param value the value to truncate
+     * @param value     the value to truncate
      * @param maxLength maximum length
      * @return truncated value
      */

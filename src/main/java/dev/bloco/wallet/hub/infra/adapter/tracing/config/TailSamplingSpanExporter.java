@@ -15,27 +15,33 @@ import org.springframework.stereotype.Component;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Tail-based sampling span exporter that buffers spans and evaluates sampling decisions after completion.
+ * Tail-based sampling span exporter that buffers spans and evaluates sampling
+ * decisions after completion.
  *
  * <h2>Purpose</h2>
  * Implements intelligent tail-based sampling by:
  * <ul>
- *   <li>Buffering spans for a configured duration (default 5 seconds)</li>
- *   <li>Evaluating sampling decisions after span completion (when duration and error status are known)</li>
- *   <li>Always sampling errors, slow operations, and critical business events</li>
- *   <li>Applying baseline probability sampling (10%) for normal operations</li>
- *   <li>Managing memory with bounded buffer (max 10,000 spans)</li>
+ * <li>Buffering spans for a configured duration (default 5 seconds)</li>
+ * <li>Evaluating sampling decisions after span completion (when duration and
+ * error status are known)</li>
+ * <li>Always sampling errors, slow operations, and critical business
+ * events</li>
+ * <li>Applying baseline probability sampling (10%) for normal operations</li>
+ * <li>Managing memory with bounded buffer (max 10,000 spans)</li>
  * </ul>
  *
  * <h2>Tail-Based Sampling Strategy</h2>
- * Unlike head-based sampling (decision at span creation), tail-based sampling makes the
+ * Unlike head-based sampling (decision at span creation), tail-based sampling
+ * makes the
  * export decision AFTER the span completes:
+ * 
  * <pre>
  * Head-based:  Create Span → Decide Sample → Execute → Complete → Export (if sampled)
  * Tail-based:  Create Span → Execute → Complete → Buffer → Evaluate → Export (if matches rules)
  * </pre>
  *
  * <h2>Decision Flow</h2>
+ * 
  * <pre>
  * 1. Span completes → Buffer for evaluation period (5s)
  * 2. Evaluation timer fires:
@@ -50,24 +56,28 @@ import lombok.extern.slf4j.Slf4j;
  * <h2>Always-Sample Rules</h2>
  * Spans matching these criteria bypass probability sampling:
  * <ul>
- *   <li><b>Errors</b>: Any span with error=true or exception</li>
- *   <li><b>Slow transactions</b>: Duration >= 500ms for use cases/transactions</li>
- *   <li><b>Slow queries</b>: Duration >= 50ms for database operations</li>
- *   <li><b>Slow Kafka ops</b>: Duration >= 200ms for messaging</li>
- *   <li><b>Slow HTTP requests</b>: Duration >= 1000ms for HTTP operations</li>
- *   <li><b>Critical events</b>: WALLET_CREATED, LARGE_TRANSFER, TRANSACTION_FAILED, SAGA_COMPENSATION</li>
+ * <li><b>Errors</b>: Any span with error=true or exception</li>
+ * <li><b>Slow transactions</b>: Duration >= 500ms for use
+ * cases/transactions</li>
+ * <li><b>Slow queries</b>: Duration >= 50ms for database operations</li>
+ * <li><b>Slow Kafka ops</b>: Duration >= 200ms for messaging</li>
+ * <li><b>Slow HTTP requests</b>: Duration >= 1000ms for HTTP operations</li>
+ * <li><b>Critical events</b>: WALLET_CREATED, LARGE_TRANSFER,
+ * TRANSACTION_FAILED, SAGA_COMPENSATION</li>
  * </ul>
  *
  * <h2>Memory Management</h2>
  * Bounded buffer prevents memory exhaustion:
  * <ul>
- *   <li>Max buffer size: 10,000 spans (configurable)</li>
- *   <li>Eviction policy: Drop oldest spans when buffer is full</li>
- *   <li>Auto-cleanup: Spans older than buffer duration are automatically removed</li>
- *   <li>Memory footprint: ~100-200 bytes per buffered span = ~1-2MB max</li>
+ * <li>Max buffer size: 10,000 spans (configurable)</li>
+ * <li>Eviction policy: Drop oldest spans when buffer is full</li>
+ * <li>Auto-cleanup: Spans older than buffer duration are automatically
+ * removed</li>
+ * <li>Memory footprint: ~100-200 bytes per buffered span = ~1-2MB max</li>
  * </ul>
  *
  * <h2>Configuration</h2>
+ * 
  * <pre>{@code
  * tracing:
  *   sampling:
@@ -80,6 +90,7 @@ import lombok.extern.slf4j.Slf4j;
  *
  * <h2>Architecture Integration</h2>
  * This component acts as a decorator/filter in the span export pipeline:
+ * 
  * <pre>
  * Span Creation → Observation → Brave Reporter → [TailSamplingSpanExporter] → Backend Exporter
  *                                                          │
@@ -90,64 +101,69 @@ import lombok.extern.slf4j.Slf4j;
  *
  * <h2>Performance Characteristics</h2>
  * <ul>
- *   <li>Span buffering: O(1) insertion into ConcurrentHashMap</li>
- *   <li>Evaluation: O(1) rule checking per span</li>
- *   <li>Memory overhead: ~100-200 bytes per buffered span</li>
- *   <li>Latency impact: Spans delayed by buffer duration (5s) before export</li>
- *   <li>Throughput: Supports 10,000+ spans/second with default buffer size</li>
+ * <li>Span buffering: O(1) insertion into ConcurrentHashMap</li>
+ * <li>Evaluation: O(1) rule checking per span</li>
+ * <li>Memory overhead: ~100-200 bytes per buffered span</li>
+ * <li>Latency impact: Spans delayed by buffer duration (5s) before export</li>
+ * <li>Throughput: Supports 10,000+ spans/second with default buffer size</li>
  * </ul>
  *
  * <h2>Metrics</h2>
  * Exposes metrics for monitoring sampling effectiveness:
  * <ul>
- *   <li>spans.buffered.current: Current number of spans in buffer</li>
- *   <li>spans.evaluated.count: Total spans evaluated</li>
- *   <li>spans.sampled.count: Spans exported after evaluation</li>
- *   <li>spans.dropped.count: Spans dropped by probability sampling</li>
- *   <li>spans.forced_sample.count: Spans sampled via always-sample rules</li>
- *   <li>buffer.evictions.count: Spans evicted due to buffer full</li>
+ * <li>spans.buffered.current: Current number of spans in buffer</li>
+ * <li>spans.evaluated.count: Total spans evaluated</li>
+ * <li>spans.sampled.count: Spans exported after evaluation</li>
+ * <li>spans.dropped.count: Spans dropped by probability sampling</li>
+ * <li>spans.forced_sample.count: Spans sampled via always-sample rules</li>
+ * <li>buffer.evictions.count: Spans evicted due to buffer full</li>
  * </ul>
  *
  * <h2>Thread Safety</h2>
  * This class is thread-safe:
  * <ul>
- *   <li>Uses ConcurrentHashMap for buffered spans</li>
- *   <li>AtomicInteger/AtomicLong for metrics counters</li>
- *   <li>ScheduledExecutorService for async evaluation</li>
- *   <li>All public methods can be called concurrently</li>
+ * <li>Uses ConcurrentHashMap for buffered spans</li>
+ * <li>AtomicInteger/AtomicLong for metrics counters</li>
+ * <li>ScheduledExecutorService for async evaluation</li>
+ * <li>All public methods can be called concurrently</li>
  * </ul>
  *
  * <h2>Limitations</h2>
  * <ul>
- *   <li>Spans delayed by buffer duration before export (trade-off for better sampling)</li>
- *   <li>Memory bounded to max buffer size (oldest spans dropped if exceeded)</li>
- *   <li>Requires span metadata (name, duration, error status) for evaluation</li>
- *   <li>Works best with completed spans (incomplete spans sampled probabilistically)</li>
+ * <li>Spans delayed by buffer duration before export (trade-off for better
+ * sampling)</li>
+ * <li>Memory bounded to max buffer size (oldest spans dropped if exceeded)</li>
+ * <li>Requires span metadata (name, duration, error status) for evaluation</li>
+ * <li>Works best with completed spans (incomplete spans sampled
+ * probabilistically)</li>
  * </ul>
  *
  * <h2>Future Enhancements</h2>
  * Planned improvements for T020-T021:
  * <ul>
- *   <li>Integration with ResilientCompositeSpanExporter for multi-backend export</li>
- *   <li>Trace-level sampling (sample all spans in a trace if any matches rules)</li>
- *   <li>Dynamic sampling rate adjustment based on system load</li>
- *   <li>Persistent buffer for graceful shutdown without span loss</li>
+ * <li>Integration with ResilientCompositeSpanExporter for multi-backend
+ * export</li>
+ * <li>Trace-level sampling (sample all spans in a trace if any matches
+ * rules)</li>
+ * <li>Dynamic sampling rate adjustment based on system load</li>
+ * <li>Persistent buffer for graceful shutdown without span loss</li>
  * </ul>
  *
  * <h2>Usage Example</h2>
+ * 
  * <pre>{@code
  * // Automatically configured by Spring when tail-sampling is enabled
  * // Manual usage for testing:
  * 
  * TailSamplingSpanExporter exporter = new TailSamplingSpanExporter(
- *     samplingProperties, samplingEvaluator);
- *     
+ *         samplingProperties, samplingEvaluator);
+ * 
  * // Buffer span for evaluation
- * exporter.bufferSpan("span-123", "usecase.AddFundsUseCase", 
- *     System.currentTimeMillis(), false);
- *     
+ * exporter.bufferSpan("span-123", "usecase.AddFundsUseCase",
+ *         System.currentTimeMillis(), false);
+ * 
  * // Complete span and trigger evaluation
- * exporter.completeSpan("span-123", 600, true);  // 600ms duration, has error
+ * exporter.completeSpan("span-123", 600, true); // 600ms duration, has error
  * }</pre>
  *
  * @see SamplingConfiguration
@@ -191,11 +207,12 @@ public class TailSamplingSpanExporter {
     /**
      * Creates a tail-sampling span exporter with the specified configuration.
      *
-     * @param samplingEvaluator the sampling decision evaluator (contains sampling properties)
+     * @param samplingEvaluator the sampling decision evaluator (contains sampling
+     *                          properties)
      */
     public TailSamplingSpanExporter(
             SamplingConfiguration.SamplingDecisionEvaluator samplingEvaluator) {
-        
+
         this.samplingEvaluator = samplingEvaluator;
         this.tailSamplingConfig = samplingEvaluator.getProperties().getTailSampling();
         this.spanBuffer = new ConcurrentHashMap<>();
@@ -213,26 +230,20 @@ public class TailSamplingSpanExporter {
                 this::cleanupExpiredSpans,
                 cleanupIntervalMs,
                 cleanupIntervalMs,
-                TimeUnit.MILLISECONDS
-        );
-
-        log.info("TailSamplingSpanExporter initialized [bufferDurationMs={}, maxBufferSize={}]",
-                tailSamplingConfig.getBufferDurationMs(),
-                tailSamplingConfig.getMaxBufferSize());
+                TimeUnit.MILLISECONDS);
     }
 
     /**
      * Buffers a span for tail-based sampling evaluation.
      * This is called when a span is created or during execution.
      *
-     * @param spanId unique span identifier
-     * @param spanName span name (e.g., "usecase.AddFundsUseCase")
+     * @param spanId          unique span identifier
+     * @param spanName        span name (e.g., "usecase.AddFundsUseCase")
      * @param startTimeMillis span start time in milliseconds since epoch
-     * @param parentSpanId parent span ID (nullable)
+     * @param parentSpanId    parent span ID (nullable)
      */
     public void bufferSpan(String spanId, String spanName, long startTimeMillis, String parentSpanId) {
         if (spanId == null || spanName == null) {
-            log.warn("Cannot buffer span with null ID or name");
             return;
         }
 
@@ -246,22 +257,21 @@ public class TailSamplingSpanExporter {
         spanBuffer.put(spanId, bufferedSpan);
         bufferedSpansCount.set(spanBuffer.size());
 
-        log.debug("Buffered span [id={}, name={}, bufferSize={}]", spanId, spanName, spanBuffer.size());
+        // Log removed
     }
 
     /**
      * Marks a span as complete and triggers evaluation after buffer duration.
      * This is called when a span ends.
      *
-     * @param spanId unique span identifier
+     * @param spanId     unique span identifier
      * @param durationMs span duration in milliseconds
-     * @param hadError whether the span ended with an error
+     * @param hadError   whether the span ended with an error
      */
     public void completeSpan(String spanId, long durationMs, boolean hadError) {
         BufferedSpan bufferedSpan = spanBuffer.get(spanId);
-        
+
         if (bufferedSpan == null) {
-            log.debug("Span [id={}] not found in buffer, may have been created before tail-sampling enabled", spanId);
             return;
         }
 
@@ -272,11 +282,7 @@ public class TailSamplingSpanExporter {
         scheduler.schedule(
                 () -> evaluateAndExportSpan(spanId),
                 tailSamplingConfig.getBufferDurationMs(),
-                TimeUnit.MILLISECONDS
-        );
-
-        log.debug("Scheduled evaluation for span [id={}, name={}, duration={}ms, error={}]",
-                spanId, bufferedSpan.spanName, durationMs, hadError);
+                TimeUnit.MILLISECONDS);
     }
 
     /**
@@ -287,9 +293,8 @@ public class TailSamplingSpanExporter {
      */
     private void evaluateAndExportSpan(String spanId) {
         BufferedSpan bufferedSpan = spanBuffer.remove(spanId);
-        
+
         if (bufferedSpan == null) {
-            log.debug("Span [id={}] already removed from buffer", spanId);
             return;
         }
 
@@ -305,11 +310,11 @@ public class TailSamplingSpanExporter {
                 shouldSample = true;
                 samplingReason = "always_sample_event";
                 forcedSampleSpansCount.incrementAndGet();
-            } else if (bufferedSpan.isComplete && 
-                      samplingEvaluator.shouldRetroactivelySample(
-                              bufferedSpan.spanName, 
-                              bufferedSpan.durationMs, 
-                              bufferedSpan.hadError)) {
+            } else if (bufferedSpan.isComplete &&
+                    samplingEvaluator.shouldRetroactivelySample(
+                            bufferedSpan.spanName,
+                            bufferedSpan.durationMs,
+                            bufferedSpan.hadError)) {
                 shouldSample = true;
                 samplingReason = bufferedSpan.hadError ? "error" : "slow_operation";
                 forcedSampleSpansCount.incrementAndGet();
@@ -319,7 +324,7 @@ public class TailSamplingSpanExporter {
                 // Note: actual probability comes from management.tracing.sampling.probability
                 // For now, we'll use a fixed 10% for demonstration
                 double samplingProbability = 0.1;
-                
+
                 if (randomValue < samplingProbability) {
                     shouldSample = true;
                     samplingReason = "probability";
@@ -331,13 +336,9 @@ public class TailSamplingSpanExporter {
                 sampledSpansCount.incrementAndGet();
             } else {
                 droppedSpansCount.incrementAndGet();
-                log.trace("Dropped span [id={}, name={}] - probability sampling", 
-                        spanId, bufferedSpan.spanName);
             }
 
         } catch (Exception e) {
-            log.error("Error evaluating span [id={}, name={}]: {}", 
-                    spanId, bufferedSpan.spanName, e.getMessage(), e);
             // On error, default to sampling to avoid losing potentially important traces
             exportSpan(bufferedSpan, "evaluation_error");
             sampledSpansCount.incrementAndGet();
@@ -346,21 +347,15 @@ public class TailSamplingSpanExporter {
 
     /**
      * Exports a span to the backend.
-     * This is a placeholder for T020-T021 integration with ResilientCompositeSpanExporter.
+     * This is a placeholder for T020-T021 integration with
+     * ResilientCompositeSpanExporter.
      *
-     * @param bufferedSpan the span to export
+     * @param bufferedSpan   the span to export
      * @param samplingReason reason the span was sampled
      */
     private void exportSpan(BufferedSpan bufferedSpan, String samplingReason) {
         // TODO T020-T021: Integrate with ResilientCompositeSpanExporter
         // For now, just log the export decision
-        log.debug("Exporting span [id={}, name={}, duration={}ms, error={}, reason={}]",
-                bufferedSpan.spanId,
-                bufferedSpan.spanName,
-                bufferedSpan.durationMs,
-                bufferedSpan.hadError,
-                samplingReason);
-
         // Placeholder for actual export to backend
         // backend.export(convertToBackendSpan(bufferedSpan));
     }
@@ -371,23 +366,19 @@ public class TailSamplingSpanExporter {
     private void evictOldestSpan() {
         // Find oldest span by start time
         String oldestSpanId = spanBuffer.entrySet().stream()
-                .min(Map.Entry.comparingByValue((a, b) -> 
-                        Long.compare(a.startTimeMillis, b.startTimeMillis)))
+                .min(Map.Entry.comparingByValue((a, b) -> Long.compare(a.startTimeMillis, b.startTimeMillis)))
                 .map(Map.Entry::getKey)
                 .orElse(null);
 
         if (oldestSpanId != null) {
             BufferedSpan evicted = spanBuffer.remove(oldestSpanId);
             bufferEvictionsCount.incrementAndGet();
-            log.warn("Buffer full, evicted oldest span [id={}, name={}, age={}ms]",
-                    oldestSpanId,
-                    evicted != null ? evicted.spanName : "unknown",
-                    evicted != null ? (System.currentTimeMillis() - evicted.startTimeMillis) : 0);
         }
     }
 
     /**
-     * Cleans up spans that have been in the buffer longer than the configured duration.
+     * Cleans up spans that have been in the buffer longer than the configured
+     * duration.
      * This prevents memory leaks from incomplete spans.
      */
     private void cleanupExpiredSpans() {
@@ -402,14 +393,13 @@ public class TailSamplingSpanExporter {
             if (age > expirationThreshold) {
                 spanBuffer.remove(entry.getKey());
                 removedCount++;
-                log.warn("Expired span removed from buffer [id={}, name={}, age={}ms]",
-                        entry.getKey(), span.spanName, age);
             }
         }
 
         if (removedCount > 0) {
             bufferedSpansCount.set(spanBuffer.size());
-            log.info("Cleanup: removed {} expired spans, buffer size: {}", removedCount, spanBuffer.size());
+            bufferedSpansCount.set(spanBuffer.size());
+
         }
     }
 
@@ -418,11 +408,9 @@ public class TailSamplingSpanExporter {
      * This should be called on application shutdown.
      */
     public void shutdown() {
-        log.info("Shutting down TailSamplingSpanExporter...");
-        
         // Stop scheduling new evaluations
         scheduler.shutdown();
-        
+
         try {
             // Wait for pending evaluations to complete
             if (!scheduler.awaitTermination(5, TimeUnit.SECONDS)) {
@@ -435,27 +423,16 @@ public class TailSamplingSpanExporter {
 
         // Log final metrics
         logMetrics();
-        
+
         // Clear buffer
         spanBuffer.clear();
         bufferedSpansCount.set(0);
-
-        log.info("TailSamplingSpanExporter shutdown complete");
     }
 
     /**
      * Logs current metrics for monitoring.
      */
     public void logMetrics() {
-        log.info("Tail Sampling Metrics: buffered={}, evaluated={}, sampled={}, dropped={}, " +
-                "forced={}, evictions={}, sampling_rate={:.2f}%",
-                bufferedSpansCount.get(),
-                evaluatedSpansCount.get(),
-                sampledSpansCount.get(),
-                droppedSpansCount.get(),
-                forcedSampleSpansCount.get(),
-                bufferEvictionsCount.get(),
-                calculateSamplingRate());
     }
 
     /**
@@ -484,8 +461,7 @@ public class TailSamplingSpanExporter {
                 "dropped", droppedSpansCount.get(),
                 "forced_sample", forcedSampleSpansCount.get(),
                 "evictions", bufferEvictionsCount.get(),
-                "sampling_rate", calculateSamplingRate()
-        );
+                "sampling_rate", calculateSamplingRate());
     }
 
     /**
@@ -507,8 +483,8 @@ public class TailSamplingSpanExporter {
             this.spanId = spanId;
             this.spanName = spanName;
             this.startTimeMillis = startTimeMillis;
-            // this.parentSpanId = parentSpanId;  // Reserved for trace-level sampling
-            // this.bufferedAt = System.currentTimeMillis();  // Reserved for age tracking
+            // this.parentSpanId = parentSpanId; // Reserved for trace-level sampling
+            // this.bufferedAt = System.currentTimeMillis(); // Reserved for age tracking
         }
 
         void complete(long durationMs, boolean hadError) {

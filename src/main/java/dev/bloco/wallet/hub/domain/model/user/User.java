@@ -10,7 +10,8 @@ import java.time.Instant;
 import java.util.UUID;
 
 /**
- * Represents a user in the system with comprehensive authentication and profile management.
+ * Represents a user in the system with comprehensive authentication and profile
+ * management.
  * This class manages user identity, security settings, and account lifecycle.
  * <p/>
  * The User entity is an aggregate root that publishes domain events for
@@ -22,7 +23,7 @@ public class User extends AggregateRoot {
     private String email;
     private String passwordHash;
     private UserStatus status;
-    private final Instant createdAt;
+    private Instant createdAt;
     private Instant updatedAt;
     private Instant lastLoginAt;
     private boolean emailVerified;
@@ -31,18 +32,39 @@ public class User extends AggregateRoot {
     private int failedLoginAttempts;
     private Instant lockedUntil;
 
-  /**
-   * Creates a new User with the specified details and registers a UserCreatedEvent.
-   *
-   * @param id the unique identifier for the user
-   * @param name the name of the user
-   * @param email the email address of the user
-   * @param passwordHash the hashed password
-   * @return a new User instance
-   */
+    /**
+     * Creates a new User with the specified details and registers a
+     * UserCreatedEvent.
+     *
+     * @param id           the unique identifier for the user
+     * @param name         the name of the user
+     * @param email        the email address of the user
+     * @param passwordHash the hashed password
+     * @return a new User instance
+     */
     public static User create(UUID id, String name, String email, String passwordHash) {
         User user = new User(id, name, email, passwordHash);
         user.registerEvent(new UserCreatedEvent(id, name, email, null));
+        return user;
+    }
+
+    /**
+     * Rehydrates a User from existing data (e.g., from a database entity).
+     */
+    public static User rehydrate(UUID id, String name, String email, String passwordHash,
+            UserStatus status, Instant createdAt, Instant updatedAt,
+            Instant lastLoginAt, boolean emailVerified,
+            String emailVerificationToken, int failedLoginAttempts,
+            Instant lockedUntil) {
+        User user = new User(id, name, email, passwordHash);
+        user.status = status;
+        user.createdAt = createdAt;
+        user.updatedAt = updatedAt;
+        user.lastLoginAt = lastLoginAt;
+        user.emailVerified = emailVerified;
+        user.emailVerificationToken = emailVerificationToken;
+        user.failedLoginAttempts = failedLoginAttempts;
+        user.lockedUntil = lockedUntil;
         return user;
     }
 
@@ -64,6 +86,12 @@ public class User extends AggregateRoot {
         this.emailVerified = false;
         this.twoFactorAuth = TwoFactorAuth.create(id);
         this.failedLoginAttempts = 0;
+    }
+
+    // Default constructor for JPA/MapStruct
+    protected User() {
+        super(null);
+        this.twoFactorAuth = null;
     }
 
     /**
@@ -165,7 +193,7 @@ public class User extends AggregateRoot {
     public void recordFailedLogin() {
         this.failedLoginAttempts++;
         this.updatedAt = Instant.now();
-        
+
         // Lock account after 5 failed attempts for 30 minutes
         if (this.failedLoginAttempts >= 5) {
             this.lockedUntil = Instant.now().plusSeconds(1800); // 30 minutes
@@ -232,5 +260,53 @@ public class User extends AggregateRoot {
      */
     public int getAvailableBackupCodesCount() {
         return this.twoFactorAuth.getAvailableBackupCodesCount();
+    }
+
+    public String getName() {
+        return name;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public String getPasswordHash() {
+        return passwordHash;
+    }
+
+    public UserStatus getStatus() {
+        return status;
+    }
+
+    public Instant getCreatedAt() {
+        return createdAt;
+    }
+
+    public Instant getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public Instant getLastLoginAt() {
+        return lastLoginAt;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public String getEmailVerificationToken() {
+        return emailVerificationToken;
+    }
+
+    public TwoFactorAuth getTwoFactorAuth() {
+        return twoFactorAuth;
+    }
+
+    public int getFailedLoginAttempts() {
+        return failedLoginAttempts;
+    }
+
+    public Instant getLockedUntil() {
+        return lockedUntil;
     }
 }

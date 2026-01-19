@@ -14,15 +14,21 @@ import java.util.Set;
  * Configuration for distributed tracing sampling strategies.
  *
  * <h2>Purpose</h2>
- * Implements intelligent sampling rules to balance observability needs with performance and cost:
+ * Implements intelligent sampling rules to balance observability needs with
+ * performance and cost:
  * <ul>
- *   <li><b>Baseline probability sampling</b>: Sample X% of all traces (configurable, default 10%)</li>
- *   <li><b>Always-sample rules</b>: Force sampling for critical events (errors, large transfers, saga compensations)</li>
- *   <li><b>Performance-based sampling</b>: Always sample slow operations exceeding thresholds</li>
- *   <li><b>Tail-based sampling</b>: Buffer spans briefly to evaluate completion status before export</li>
+ * <li><b>Baseline probability sampling</b>: Sample X% of all traces
+ * (configurable, default 10%)</li>
+ * <li><b>Always-sample rules</b>: Force sampling for critical events (errors,
+ * large transfers, saga compensations)</li>
+ * <li><b>Performance-based sampling</b>: Always sample slow operations
+ * exceeding thresholds</li>
+ * <li><b>Tail-based sampling</b>: Buffer spans briefly to evaluate completion
+ * status before export</li>
  * </ul>
  *
  * <h2>Sampling Strategy</h2>
+ * 
  * <pre>
  * Decision Flow:
  * 1. Check if span matches always-sample rules (event type, error, slow operation)
@@ -37,25 +43,30 @@ import java.util.Set;
  * <h2>Always-Sample Rules</h2>
  * Critical events that should never be dropped:
  * <ul>
- *   <li><b>WALLET_CREATED</b>: Account creation audit trail</li>
- *   <li><b>WALLET_CLOSED</b>: Account closure audit trail</li>
- *   <li><b>LARGE_TRANSFER</b>: High-value transactions (configurable threshold)</li>
- *   <li><b>TRANSACTION_FAILED</b>: Any failed transaction for debugging</li>
- *   <li><b>SAGA_COMPENSATION</b>: Distributed transaction rollbacks</li>
- *   <li><b>ERROR</b>: Any span marked with error=true</li>
- *   <li><b>SLOW_OPERATION</b>: Operations exceeding duration thresholds</li>
+ * <li><b>WALLET_CREATED</b>: Account creation audit trail</li>
+ * <li><b>WALLET_CLOSED</b>: Account closure audit trail</li>
+ * <li><b>LARGE_TRANSFER</b>: High-value transactions (configurable
+ * threshold)</li>
+ * <li><b>TRANSACTION_FAILED</b>: Any failed transaction for debugging</li>
+ * <li><b>SAGA_COMPENSATION</b>: Distributed transaction rollbacks</li>
+ * <li><b>ERROR</b>: Any span marked with error=true</li>
+ * <li><b>SLOW_OPERATION</b>: Operations exceeding duration thresholds</li>
  * </ul>
  *
  * <h2>Performance Thresholds</h2>
- * Operations exceeding these durations are always sampled for performance analysis:
+ * Operations exceeding these durations are always sampled for performance
+ * analysis:
  * <ul>
- *   <li>Slow transaction: 500ms (configurable via slow-transaction-threshold-ms)</li>
- *   <li>Slow database query: 50ms (configurable via slow-query-threshold-ms)</li>
- *   <li>Slow Kafka operation: 200ms (configurable via slow-kafka-threshold-ms)</li>
- *   <li>Slow HTTP request: 1000ms (configurable via slow-http-threshold-ms)</li>
+ * <li>Slow transaction: 500ms (configurable via
+ * slow-transaction-threshold-ms)</li>
+ * <li>Slow database query: 50ms (configurable via slow-query-threshold-ms)</li>
+ * <li>Slow Kafka operation: 200ms (configurable via
+ * slow-kafka-threshold-ms)</li>
+ * <li>Slow HTTP request: 1000ms (configurable via slow-http-threshold-ms)</li>
  * </ul>
  *
  * <h2>Configuration Example</h2>
+ * 
  * <pre>{@code
  * # application-tracing.yml
  * management:
@@ -79,8 +90,10 @@ import java.util.Set;
  * }</pre>
  *
  * <h2>Usage</h2>
- * This configuration is automatically applied by Micrometer Tracing's Observation API.
+ * This configuration is automatically applied by Micrometer Tracing's
+ * Observation API.
  * For manual sampling decisions:
+ * 
  * <pre>{@code
  * @Autowired
  * private SamplingProperties samplingProperties;
@@ -100,42 +113,45 @@ import java.util.Set;
  * <h2>Tail-Based Sampling</h2>
  * Implemented in {@link TailSamplingSpanExporter}:
  * <ul>
- *   <li>Buffers spans for configured duration (default 5 seconds)</li>
- *   <li>Re-evaluates sampling decision after span completion</li>
- *   <li>Upgrades sampling if span ends with error or exceeds threshold</li>
- *   <li>Exports all related spans in a trace if any span matches always-sample rules</li>
+ * <li>Buffers spans for configured duration (default 5 seconds)</li>
+ * <li>Re-evaluates sampling decision after span completion</li>
+ * <li>Upgrades sampling if span ends with error or exceeds threshold</li>
+ * <li>Exports all related spans in a trace if any span matches always-sample
+ * rules</li>
  * </ul>
  *
  * <h2>Cost Optimization</h2>
  * Baseline 10% sampling reduces backend storage and network costs by 90% while
  * maintaining full visibility into:
  * <ul>
- *   <li>All errors and failures</li>
- *   <li>All performance issues (slow operations)</li>
- *   <li>All critical business events</li>
- *   <li>Representative sample of normal operations</li>
+ * <li>All errors and failures</li>
+ * <li>All performance issues (slow operations)</li>
+ * <li>All critical business events</li>
+ * <li>Representative sample of normal operations</li>
  * </ul>
  *
  * <h2>Thread Safety</h2>
- * This configuration is immutable after startup. Properties are read-only during runtime
+ * This configuration is immutable after startup. Properties are read-only
+ * during runtime
  * (unless refreshed via Spring Cloud Config or @RefreshScope).
  *
  * <h2>Performance Impact</h2>
  * Sampling evaluation overhead:
  * <ul>
- *   <li>Baseline probability check: <0.01ms (random number generation)</li>
- *   <li>Always-sample rule check: <0.1ms (set lookup)</li>
- *   <li>Threshold comparison: <0.01ms (simple numeric comparison)</li>
+ * <li>Baseline probability check: <0.01ms (random number generation)</li>
+ * <li>Always-sample rule check: <0.1ms (set lookup)</li>
+ * <li>Threshold comparison: <0.01ms (simple numeric comparison)</li>
  * </ul>
  * Total overhead per span: <0.2ms (negligible)
  *
  * <h2>Monitoring</h2>
  * Key metrics to monitor sampling effectiveness:
  * <ul>
- *   <li>traces.sampled.count: Number of traces sampled</li>
- *   <li>traces.dropped.count: Number of traces dropped</li>
- *   <li>traces.forced_sample.count: Traces sampled via always-sample rules</li>
- *   <li>traces.sampling.ratio: Actual sampling ratio (should be ~10% + forced samples)</li>
+ * <li>traces.sampled.count: Number of traces sampled</li>
+ * <li>traces.dropped.count: Number of traces dropped</li>
+ * <li>traces.forced_sample.count: Traces sampled via always-sample rules</li>
+ * <li>traces.sampling.ratio: Actual sampling ratio (should be ~10% + forced
+ * samples)</li>
  * </ul>
  *
  * @see TailSamplingSpanExporter
@@ -145,7 +161,6 @@ import java.util.Set;
  */
 @Slf4j
 @Configuration
-@ConditionalOnProperty(value = "management.tracing.enabled", havingValue = "true", matchIfMissing = false)
 public class SamplingConfiguration {
 
     /**
@@ -159,15 +174,15 @@ public class SamplingConfiguration {
 
         /**
          * Event types that should always be sampled, regardless of probability.
-         * Default: WALLET_CREATED, WALLET_CLOSED, LARGE_TRANSFER, TRANSACTION_FAILED, SAGA_COMPENSATION
+         * Default: WALLET_CREATED, WALLET_CLOSED, LARGE_TRANSFER, TRANSACTION_FAILED,
+         * SAGA_COMPENSATION
          */
         private Set<String> alwaysSampleEvents = new HashSet<>(Set.of(
                 "WALLET_CREATED",
                 "WALLET_CLOSED",
                 "LARGE_TRANSFER",
                 "TRANSACTION_FAILED",
-                "SAGA_COMPENSATION"
-        ));
+                "SAGA_COMPENSATION"));
 
         /**
          * Slow transaction threshold in milliseconds.
@@ -287,8 +302,6 @@ public class SamplingConfiguration {
             // Check event type from span name
             for (String event : alwaysSampleEvents) {
                 if (spanName.toUpperCase().contains(event)) {
-                    log.debug("Force sampling span [name={}] due to always-sample event: {}", 
-                            spanName, event);
                     return true;
                 }
             }
@@ -305,13 +318,15 @@ public class SamplingConfiguration {
 
         /**
          * Whether tail-based sampling is enabled.
-         * When enabled, spans are buffered briefly to allow re-evaluation of sampling decision.
+         * When enabled, spans are buffered briefly to allow re-evaluation of sampling
+         * decision.
          * Default: false (will be enabled in T019)
          */
         private boolean enabled = false;
 
         /**
-         * Duration to buffer spans before making final sampling decision (in milliseconds).
+         * Duration to buffer spans before making final sampling decision (in
+         * milliseconds).
          * Default: 5000ms (5 seconds)
          */
         private long bufferDurationMs = 5000;
@@ -333,7 +348,8 @@ public class SamplingConfiguration {
 
     /**
      * Creates the sampling decision evaluator bean.
-     * This method is a placeholder for future integration with Micrometer's SamplerFunction.
+     * This method is a placeholder for future integration with Micrometer's
+     * SamplerFunction.
      *
      * @param properties the sampling properties
      * @return sampling decision evaluator
@@ -344,7 +360,8 @@ public class SamplingConfiguration {
 
     /**
      * Evaluates sampling decisions for spans based on configured rules.
-     * This class encapsulates the logic for determining whether a span should be sampled.
+     * This class encapsulates the logic for determining whether a span should be
+     * sampled.
      */
     public static class SamplingDecisionEvaluator {
 
@@ -371,11 +388,12 @@ public class SamplingConfiguration {
 
         /**
          * Evaluates whether a completed span should be retroactively sampled.
-         * Used by tail-based sampling to upgrade sampling decision after span completion.
+         * Used by tail-based sampling to upgrade sampling decision after span
+         * completion.
          *
-         * @param spanName the name of the completed span
+         * @param spanName   the name of the completed span
          * @param durationMs span duration in milliseconds
-         * @param hadError whether the span ended with an error
+         * @param hadError   whether the span ended with an error
          * @return true if the span should be retroactively sampled
          */
         public boolean shouldRetroactivelySample(String spanName, long durationMs, boolean hadError) {
@@ -385,7 +403,6 @@ public class SamplingConfiguration {
 
             // Always sample errors
             if (hadError) {
-                log.debug("Retroactively sampling span [name={}] due to error", spanName);
                 return true;
             }
 
@@ -394,26 +411,19 @@ public class SamplingConfiguration {
 
             if (lowerSpanName.contains("db.") || lowerSpanName.contains("query")) {
                 if (properties.isSlowQuery(durationMs)) {
-                    log.debug("Retroactively sampling span [name={}] due to slow query: {}ms", 
-                            spanName, durationMs);
                     return true;
                 }
             } else if (lowerSpanName.contains("messaging.") || lowerSpanName.contains("kafka")) {
                 if (properties.isSlowKafkaOperation(durationMs)) {
-                    log.debug("Retroactively sampling span [name={}] due to slow Kafka operation: {}ms", 
-                            spanName, durationMs);
                     return true;
                 }
-            } else if (lowerSpanName.contains("http.") || lowerSpanName.contains("post") || lowerSpanName.contains("get")) {
+            } else if (lowerSpanName.contains("http.") || lowerSpanName.contains("post")
+                    || lowerSpanName.contains("get")) {
                 if (properties.isSlowHttpRequest(durationMs)) {
-                    log.debug("Retroactively sampling span [name={}] due to slow HTTP request: {}ms", 
-                            spanName, durationMs);
                     return true;
                 }
             } else if (lowerSpanName.contains("usecase.") || lowerSpanName.contains("transaction")) {
                 if (properties.isSlowTransaction(durationMs)) {
-                    log.debug("Retroactively sampling span [name={}] due to slow transaction: {}ms", 
-                            spanName, durationMs);
                     return true;
                 }
             }

@@ -22,70 +22,111 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * Spring Statemachine listener for distributed tracing of saga state transitions.
+ * Spring Statemachine listener for distributed tracing of saga state
+ * transitions.
  * 
  * <h2>Purpose</h2>
  * Instruments state machine transitions with spans to provide visibility into:
  * <ul>
- *   <li>Saga workflow execution paths</li>
- *   <li>State transition timing and duration</li>
- *   <li>Compensation flow detection and tracking</li>
- *   <li>Stuck or slow transitions (timeout detection)</li>
- *   <li>Guard evaluations and action executions</li>
+ * <li>Saga workflow execution paths</li>
+ * <li>State transition timing and duration</li>
+ * <li>Compensation flow detection and tracking</li>
+ * <li>Stuck or slow transitions (timeout detection)</li>
+ * <li>Guard evaluations and action executions</li>
  * </ul>
  *
  * <h2>Integration</h2>
  * This handler is automatically registered as a listener when:
  * <ul>
- *   <li>Spring Statemachine is on the classpath</li>
- *   <li>{@code tracing.features.stateMachine} flag is enabled (default: true)</li>
+ * <li>Spring Statemachine is on the classpath</li>
+ * <li>{@code tracing.features.stateMachine} flag is enabled (default:
+ * true)</li>
  * </ul>
  *
  * <h2>Span Attributes</h2>
  * Following OpenTelemetry semantic conventions for state machines:
  * <table border="1">
- *   <tr><th>Attribute</th><th>Description</th><th>Example</th></tr>
- *   <tr><td>statemachine.id</td><td>State machine instance ID</td><td>saga-123</td></tr>
- *   <tr><td>statemachine.type</td><td>State machine type</td><td>saga</td></tr>
- *   <tr><td>statemachine.state.from</td><td>Source state</td><td>FUNDS_ADDED</td></tr>
- *   <tr><td>statemachine.state.to</td><td>Target state</td><td>FUNDS_WITHDRAWN</td></tr>
- *   <tr><td>statemachine.event</td><td>Triggering event</td><td>FUNDS_WITHDRAWN</td></tr>
- *   <tr><td>statemachine.compensation</td><td>Is compensation flow</td><td>true</td></tr>
- *   <tr><td>statemachine.transition.duration_ms</td><td>Transition time</td><td>123</td></tr>
- *   <tr><td>statemachine.slow_transition</td><td>Exceeded threshold</td><td>true</td></tr>
+ * <tr>
+ * <th>Attribute</th>
+ * <th>Description</th>
+ * <th>Example</th>
+ * </tr>
+ * <tr>
+ * <td>statemachine.id</td>
+ * <td>State machine instance ID</td>
+ * <td>saga-123</td>
+ * </tr>
+ * <tr>
+ * <td>statemachine.type</td>
+ * <td>State machine type</td>
+ * <td>saga</td>
+ * </tr>
+ * <tr>
+ * <td>statemachine.state.from</td>
+ * <td>Source state</td>
+ * <td>FUNDS_ADDED</td>
+ * </tr>
+ * <tr>
+ * <td>statemachine.state.to</td>
+ * <td>Target state</td>
+ * <td>FUNDS_WITHDRAWN</td>
+ * </tr>
+ * <tr>
+ * <td>statemachine.event</td>
+ * <td>Triggering event</td>
+ * <td>FUNDS_WITHDRAWN</td>
+ * </tr>
+ * <tr>
+ * <td>statemachine.compensation</td>
+ * <td>Is compensation flow</td>
+ * <td>true</td>
+ * </tr>
+ * <tr>
+ * <td>statemachine.transition.duration_ms</td>
+ * <td>Transition time</td>
+ * <td>123</td>
+ * </tr>
+ * <tr>
+ * <td>statemachine.slow_transition</td>
+ * <td>Exceeded threshold</td>
+ * <td>true</td>
+ * </tr>
  * </table>
  *
  * <h2>Span Events</h2>
  * Lifecycle events added to transition spans:
  * <ul>
- *   <li>{@code transition.started} - Transition initiated</li>
- *   <li>{@code guard.evaluated} - Guard condition evaluated (with result)</li>
- *   <li>{@code action.started} - Transition action started</li>
- *   <li>{@code action.completed} - Transition action completed</li>
- *   <li>{@code transition.completed} - Transition finished</li>
+ * <li>{@code transition.started} - Transition initiated</li>
+ * <li>{@code guard.evaluated} - Guard condition evaluated (with result)</li>
+ * <li>{@code action.started} - Transition action started</li>
+ * <li>{@code action.completed} - Transition action completed</li>
+ * <li>{@code transition.completed} - Transition finished</li>
  * </ul>
  *
  * <h2>Compensation Detection</h2>
- * Automatically detects compensation flows by identifying transitions to FAILED state:
+ * Automatically detects compensation flows by identifying transitions to FAILED
+ * state:
  * <ul>
- *   <li>Marks span with {@code statemachine.compensation=true}</li>
- *   <li>Links compensation span to original forward transaction span (if correlation ID available)</li>
- *   <li>Enables trace visualization of rollback scenarios</li>
+ * <li>Marks span with {@code statemachine.compensation=true}</li>
+ * <li>Links compensation span to original forward transaction span (if
+ * correlation ID available)</li>
+ * <li>Enables trace visualization of rollback scenarios</li>
  * </ul>
  *
  * <h2>Timeout Detection</h2>
  * Monitors transition duration and flags slow transitions:
  * <ul>
- *   <li>Threshold: 5 seconds (configurable via {@code tracing.statemachine.slow-threshold-ms})</li>
- *   <li>Adds {@code statemachine.slow_transition=true} attribute</li>
- *   <li>Helps identify stuck workflows or performance bottlenecks</li>
+ * <li>Threshold: 5 seconds (configurable via
+ * {@code tracing.statemachine.slow-threshold-ms})</li>
+ * <li>Adds {@code statemachine.slow_transition=true} attribute</li>
+ * <li>Helps identify stuck workflows or performance bottlenecks</li>
  * </ul>
  *
  * <h2>Performance</h2>
  * <ul>
- *   <li>Overhead per transition: ~0.5-1ms (span creation + attributes)</li>
- *   <li>No impact on state machine execution</li>
- *   <li>Async span export</li>
+ * <li>Overhead per transition: ~0.5-1ms (span creation + attributes)</li>
+ * <li>No impact on state machine execution</li>
+ * <li>Async span export</li>
  * </ul>
  *
  * <h2>Feature Flag</h2>
@@ -130,10 +171,11 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
      * Called when a state machine transition starts.
      * Creates a new span for the transition with initial attributes.
      *
-     * @param transition the transition being executed
+     * @param transition   the transition being executed
      * @param stateMachine the state machine instance
      */
-    public void transitionStarted(Transition<SagaStates, SagaEvents> transition, StateMachine<SagaStates, SagaEvents> stateMachine) {
+    public void transitionStarted(Transition<SagaStates, SagaEvents> transition,
+            StateMachine<SagaStates, SagaEvents> stateMachine) {
         if (!featureFlags.isStateMachine()) {
             return;
         }
@@ -145,9 +187,9 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
             SagaEvents event = transition.getTrigger() != null ? transition.getTrigger().getEvent() : null;
 
             // Create new span for transition
-            Span span = tracer.nextSpan().name(String.format("State Transition: %s → %s", 
-                                                             getStateName(sourceState),
-                                                             getStateName(targetState)));
+            Span span = tracer.nextSpan().name(String.format("State Transition: %s → %s",
+                    getStateName(sourceState),
+                    getStateName(targetState)));
             span.start();
 
             // Add state machine attributes
@@ -155,7 +197,7 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
             span.tag("statemachine.type", "saga");
             span.tag("statemachine.state.from", getStateName(sourceState));
             span.tag("statemachine.state.to", getStateName(targetState));
-            
+
             if (event != null) {
                 span.tag("statemachine.event", event.name());
             }
@@ -163,7 +205,7 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
             // Detect compensation flows (transitions to FAILED state)
             if (targetState != null && targetState.getId() == SagaStates.FAILED) {
                 span.tag("statemachine.compensation", "true");
-                log.debug("Compensation flow detected: {} → FAILED", getStateName(sourceState));
+                // Log removed
             }
 
             // Record transition start time
@@ -173,12 +215,8 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
 
             // Add transition started event
             span.event("transition.started");
-
-            log.debug("Started transition span [machineId={}, from={}, to={}, event={}]",
-                     machineId, getStateName(sourceState), getStateName(targetState), event);
-
         } catch (Exception e) {
-            log.error("Error in transitionStarted: {}", e.getMessage(), e);
+            // Log removed
         }
     }
 
@@ -186,10 +224,11 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
      * Called when a state machine transition ends.
      * Completes the transition span with final attributes and duration.
      *
-     * @param transition the completed transition
+     * @param transition   the completed transition
      * @param stateMachine the state machine instance
      */
-    public void transitionEnded(Transition<SagaStates, SagaEvents> transition, StateMachine<SagaStates, SagaEvents> stateMachine) {
+    public void transitionEnded(Transition<SagaStates, SagaEvents> transition,
+            StateMachine<SagaStates, SagaEvents> stateMachine) {
         if (!featureFlags.isStateMachine()) {
             return;
         }
@@ -208,8 +247,6 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
                     // Flag slow transitions
                     if (durationMs > SLOW_TRANSITION_THRESHOLD_MS) {
                         span.tag("statemachine.slow_transition", "true");
-                        log.warn("Slow state machine transition detected [machineId={}, duration={}ms, threshold={}ms]",
-                                machineId, durationMs, SLOW_TRANSITION_THRESHOLD_MS);
                     }
                 }
 
@@ -218,12 +255,10 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
                 span.end();
 
                 State<SagaStates, SagaEvents> targetState = transition.getTarget();
-                log.debug("Completed transition span [machineId={}, targetState={}]",
-                         machineId, getStateName(targetState));
             }
 
         } catch (Exception e) {
-            log.error("Error in transitionEnded: {}", e.getMessage(), e);
+            // Log removed
         }
     }
 
@@ -231,12 +266,12 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
      * Called when a state change occurs.
      * Adds span events for the state change.
      *
-     * @param from the previous state
-     * @param to the new state
+     * @param from         the previous state
+     * @param to           the new state
      * @param stateMachine the state machine instance
      */
-    public void stateChanged(State<SagaStates, SagaEvents> from, State<SagaStates, SagaEvents> to, 
-                            StateMachine<SagaStates, SagaEvents> stateMachine) {
+    public void stateChanged(State<SagaStates, SagaEvents> from, State<SagaStates, SagaEvents> to,
+            StateMachine<SagaStates, SagaEvents> stateMachine) {
         if (!featureFlags.isStateMachine()) {
             return;
         }
@@ -247,11 +282,10 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
 
             if (span != null) {
                 span.event(String.format("state.changed: %s → %s", getStateName(from), getStateName(to)));
-                log.debug("State changed [machineId={}, from={}, to={}]", machineId, getStateName(from), getStateName(to));
             }
 
         } catch (Exception e) {
-            log.error("Error in stateChanged: {}", e.getMessage(), e);
+            // Log removed
         }
     }
 
@@ -259,7 +293,7 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
      * Called when a state context message is received during extended state change.
      * This can be used to track guard evaluations and action executions.
      *
-     * @param message the state context message
+     * @param message      the state context message
      * @param stateMachine the state machine instance
      */
     public void extendedStateChanged(Object key, Object value, StateMachine<SagaStates, SagaEvents> stateMachine) {
@@ -276,18 +310,16 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
                 if (key.toString().startsWith("guard.")) {
                     span.event(String.format("guard.evaluated: %s = %s", key, value));
                     span.tag(key.toString(), String.valueOf(value));
-                    log.debug("Guard evaluated [machineId={}, guard={}, result={}]", machineId, key, value);
                 }
 
                 // Track action executions
                 if (key.toString().startsWith("action.")) {
                     span.event(String.format("action.executed: %s", key));
-                    log.debug("Action executed [machineId={}, action={}]", machineId, key);
                 }
             }
 
         } catch (Exception e) {
-            log.error("Error in extendedStateChanged: {}", e.getMessage(), e);
+            // Log removed
         }
     }
 
@@ -296,7 +328,7 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
      * Marks the transition span as error and adds exception details.
      *
      * @param stateMachine the state machine instance
-     * @param exception the exception that occurred
+     * @param exception    the exception that occurred
      */
     public void stateMachineError(StateMachine<SagaStates, SagaEvents> stateMachine, Exception exception) {
         if (!featureFlags.isStateMachine()) {
@@ -312,12 +344,12 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
                 span.tag("error.message", exception.getMessage() != null ? exception.getMessage() : "");
                 span.tag("status", "error");
                 span.event("statemachine.error");
-                
-                log.error("State machine error [machineId={}]: {}", machineId, exception.getMessage(), exception);
+
+                // Log removed
             }
 
         } catch (Exception e) {
-            log.error("Error in stateMachineError: {}", e.getMessage(), e);
+            // Log removed
         }
     }
 
@@ -330,7 +362,7 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
      */
     private String getMachineId(StateMachine<SagaStates, SagaEvents> stateMachine) {
         return Optional.ofNullable(stateMachine.getId())
-                       .orElse(stateMachine.getUuid().toString());
+                .orElse(stateMachine.getUuid().toString());
     }
 
     /**
@@ -340,8 +372,8 @@ public class StateMachineObservationHandler extends StateMachineListenerAdapter<
      * @return the state name, or "UNKNOWN" if null
      */
     private String getStateName(State<SagaStates, SagaEvents> state) {
-        return state != null && state.getId() != null 
-               ? state.getId().name() 
-               : "UNKNOWN";
+        return state != null && state.getId() != null
+                ? state.getId().name()
+                : "UNKNOWN";
     }
 }

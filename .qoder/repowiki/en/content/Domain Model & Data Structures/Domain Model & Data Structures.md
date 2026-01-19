@@ -20,7 +20,20 @@
 - [Network.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/Network.java)
 - [Store.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/store/Store.java)
 - [Contract.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/contract/Contract.java)
+- [AddressBalanceResult.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/AddressBalanceResult.java) - *Added in portfolio update*
+- [PortfolioSummary.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/portfolio/PortfolioSummary.java) - *Added in portfolio update*
+- [TokenHolding.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/portfolio/TokenHolding.java) - *Added in portfolio update*
+- [AssetAllocation.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/portfolio/AssetAllocation.java) - *Added in portfolio update*
+- [PortfolioOverview.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/portfolio/PortfolioOverview.java) - *Added in portfolio update*
 </cite>
+
+## Update Summary
+**Changes Made**   
+- Added new section for Address Balance Result model
+- Added new section for Portfolio Domain Models including PortfolioSummary, TokenHolding, AssetAllocation, and PortfolioOverview
+- Updated Table of Contents to include new sections
+- Added references to new portfolio and balance domain models in document sources
+- Maintained existing structure while integrating new domain models
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -33,6 +46,8 @@
 8. [Validation and Business Rules](#validation-and-business-rules)
 9. [Encapsulation and Immutability Patterns](#encapsulation-and-immutability-patterns)
 10. [Sample JSON Representations](#sample-json-representations)
+11. [Address Balance Result](#address-balance-result)
+12. [Portfolio Domain Models](#portfolio-domain-models)
 
 ## Introduction
 
@@ -629,3 +644,127 @@ Contract ||--o{ Address : "owned by"
 - [Network.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/Network.java#L7-L114)
 - [Store.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/store/Store.java#L12-L100)
 - [Contract.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/contract/Contract.java#L13-L113)
+
+## Address Balance Result
+
+The AddressBalanceResult class is a domain model that encapsulates comprehensive balance information for a specific blockchain address. It serves as a result object returned by balance-related use cases, aggregating data from multiple sources. The model contains the address identifier, wallet identifier, network identifier, total value across all tokens, and a map of token balances indexed by token ID. It also includes a count of the number of token balances for quick reference.
+
+```mermaid
+classDiagram
+class AddressBalanceResult {
+-UUID addressId
+-String address
+-UUID walletId
+-UUID networkId
+-BigDecimal totalValue
+-Map<UUID, BigDecimal> tokenBalances
+-int balanceCount
++static Builder builder()
++UUID getAddressId()
++String getAddress()
++UUID getWalletId()
++UUID getNetworkId()
++BigDecimal getTotalValue()
++Map<UUID, BigDecimal> getTokenBalances()
++int getBalanceCount()
+}
+```
+
+**Diagram sources**
+- [AddressBalanceResult.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/AddressBalanceResult.java#L12-L65)
+
+**Section sources**
+- [AddressBalanceResult.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/address/AddressBalanceResult.java#L12-L65)
+- [GetAddressBalanceUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/GetAddressBalanceUseCase.java#L42-L66)
+
+## Portfolio Domain Models
+
+### PortfolioSummary
+The PortfolioSummary record provides a comprehensive view of a wallet's portfolio with detailed analytics. It includes the wallet identifier, name, counts of tokens and addresses, total portfolio value, a list of individual token holdings, asset allocation breakdown, and the timestamp of the last update. This model serves as the primary response object for portfolio summary queries, aggregating data from multiple addresses and tokens within a wallet.
+
+```mermaid
+classDiagram
+class PortfolioSummary {
+-UUID walletId
+-String walletName
+-int totalTokens
+-int totalAddresses
+-BigDecimal totalValue
+-List<TokenHolding> holdings
+-List<AssetAllocation> assetAllocation
+-Instant lastUpdated
+}
+```
+
+**Diagram sources**
+- [PortfolioSummary.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/portfolio/PortfolioSummary.java#L16-L25)
+
+**Section sources**
+- [PortfolioSummary.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/portfolio/PortfolioSummary.java#L16-L25)
+- [GetPortfolioSummaryUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/GetPortfolioSummaryUseCase.java#L82-L94)
+
+### TokenHolding
+The TokenHolding record represents an individual token holding within a portfolio. It captures the aggregated balance and valuation of a specific token across all addresses in a wallet. The model includes the token identifier, name, symbol, raw balance, formatted balance string, decimal precision, estimated monetary value, and token type. This information is used to display individual token positions in the portfolio.
+
+```mermaid
+classDiagram
+class TokenHolding {
+-UUID tokenId
+-String name
+-String symbol
+-BigDecimal rawBalance
+-String formattedBalance
+-int decimals
+-BigDecimal estimatedValue
+-TokenType type
+}
+```
+
+**Diagram sources**
+- [TokenHolding.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/portfolio/TokenHolding.java#L15-L24)
+
+**Section sources**
+- [TokenHolding.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/portfolio/TokenHolding.java#L15-L24)
+- [GetPortfolioSummaryUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/GetPortfolioSummaryUseCase.java#L127-L146)
+
+### AssetAllocation
+The AssetAllocation record represents the distribution of value across different tokens in a wallet's portfolio. It includes the token identifier, symbol, monetary value, and percentage of the total portfolio value. This model is used to analyze portfolio diversification and risk exposure, with holdings typically sorted by percentage in descending order to highlight the largest positions.
+
+```mermaid
+classDiagram
+class AssetAllocation {
+-UUID tokenId
+-String symbol
+-BigDecimal value
+-BigDecimal percentage
+}
+```
+
+**Diagram sources**
+- [AssetAllocation.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/portfolio/AssetAllocation.java#L14-L19)
+
+**Section sources**
+- [AssetAllocation.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/portfolio/AssetAllocation.java#L14-L19)
+- [GetPortfolioSummaryUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/GetPortfolioSummaryUseCase.java#L172-L193)
+
+### PortfolioOverview
+The PortfolioOverview record provides a simplified, lightweight summary of a wallet's portfolio. It includes essential metrics such as wallet identifier, name, token and address counts, total value, and last update timestamp, but excludes detailed holdings and allocation information. This model is designed for scenarios where performance is critical and only high-level portfolio information is needed.
+
+```mermaid
+classDiagram
+class PortfolioOverview {
+-UUID walletId
+-String walletName
+-int totalTokens
+-int totalAddresses
+-BigDecimal totalValue
+-Instant lastUpdated
+}
+```
+
+**Diagram sources**
+- [PortfolioOverview.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/portfolio/PortfolioOverview.java#L15-L22)
+
+**Section sources**
+- [PortfolioOverview.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/portfolio/PortfolioOverview.java#L15-L22)
+- [GetPortfolioSummaryUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/GetPortfolioSummaryUseCase.java#L103-L113)

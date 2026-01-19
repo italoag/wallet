@@ -2,7 +2,9 @@ package dev.bloco.wallet.hub.infra.provider.data.repository;
 
 import dev.bloco.wallet.hub.domain.model.Wallet;
 import dev.bloco.wallet.hub.infra.provider.data.entity.WalletEntity;
+import dev.bloco.wallet.hub.infra.provider.data.entity.WalletEntity;
 import dev.bloco.wallet.hub.infra.provider.mapper.WalletMapper;
+import dev.bloco.wallet.hub.infra.provider.repository.JpaWalletRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

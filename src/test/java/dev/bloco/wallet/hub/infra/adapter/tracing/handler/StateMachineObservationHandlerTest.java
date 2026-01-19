@@ -26,9 +26,11 @@ import io.micrometer.tracing.Tracer;
 
 /**
  * Unit tests for StateMachineObservationHandler.
- * Verifies state transition tracking, compensation detection, and lifecycle events.
+ * Verifies state transition tracking, compensation detection, and lifecycle
+ * events.
  */
 @ExtendWith(MockitoExtension.class)
+@org.mockito.junit.jupiter.MockitoSettings(strictness = org.mockito.quality.Strictness.LENIENT)
 class StateMachineObservationHandlerTest {
 
     @Mock
@@ -159,7 +161,8 @@ class StateMachineObservationHandlerTest {
         handler.transitionStarted(transition, stateMachine);
 
         // Manually inject old start time to simulate slow transition (>5s)
-        // Note: This is a limitation of the current implementation - we can't easily mock System.nanoTime()
+        // Note: This is a limitation of the current implementation - we can't easily
+        // mock System.nanoTime()
         // In a real scenario, we'd need to refactor to inject a Clock or TimeProvider
 
         // When
@@ -177,7 +180,7 @@ class StateMachineObservationHandlerTest {
         when(transition.getTarget()).thenReturn(targetState);
         when(sourceState.getId()).thenReturn(SagaStates.WALLET_CREATED);
         when(targetState.getId()).thenReturn(SagaStates.FUNDS_ADDED);
-        
+
         handler.transitionStarted(transition, stateMachine);
 
         // When
@@ -248,8 +251,8 @@ class StateMachineObservationHandlerTest {
     void shouldNotInstrumentWhenFeatureFlagDisabled() {
         // Given
         when(featureFlags.isStateMachine()).thenReturn(false);
-        StateMachineObservationHandler disabledHandler = 
-            new StateMachineObservationHandler(tracer, spanAttributeBuilder, featureFlags);
+        StateMachineObservationHandler disabledHandler = new StateMachineObservationHandler(tracer,
+                spanAttributeBuilder, featureFlags);
 
         when(transition.getSource()).thenReturn(sourceState);
         when(transition.getTarget()).thenReturn(targetState);

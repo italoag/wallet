@@ -5,6 +5,7 @@ import java.util.Map;
 
 import org.springframework.boot.actuate.health.Health;
 import org.springframework.boot.actuate.health.HealthIndicator;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import dev.bloco.wallet.hub.infra.adapter.tracing.config.TracingFeatureFlags;
@@ -15,19 +16,20 @@ import io.micrometer.tracing.Tracer;
  * 
  * <h2>Health Checks</h2>
  * <ul>
- *   <li>Tracer availability and functionality</li>
- *   <li>Feature flag states</li>
- *   <li>Span creation capability</li>
+ * <li>Tracer availability and functionality</li>
+ * <li>Feature flag states</li>
+ * <li>Span creation capability</li>
  * </ul>
  * 
  * <h2>Health Status</h2>
  * <ul>
- *   <li><b>UP</b>: Tracing fully functional</li>
- *   <li><b>DOWN</b>: Tracer unavailable or non-functional</li>
- *   <li><b>UNKNOWN</b>: Unable to determine tracing state</li>
+ * <li><b>UP</b>: Tracing fully functional</li>
+ * <li><b>DOWN</b>: Tracer unavailable or non-functional</li>
+ * <li><b>UNKNOWN</b>: Unable to determine tracing state</li>
  * </ul>
  * 
  * <h2>Exposed Details</h2>
+ * 
  * <pre>
  * {
  *   "status": "UP",
@@ -60,20 +62,20 @@ public class TracingHealthIndicator implements HealthIndicator {
     public Health health() {
         try {
             Map<String, Object> details = new LinkedHashMap<>();
-            
+
             // Check tracer availability
             boolean tracerAvailable = tracer != null;
             details.put("tracer.available", tracerAvailable);
-            
+
             if (!tracerAvailable) {
                 return Health.down()
                         .withDetails(details)
                         .build();
             }
-            
+
             // Get tracer type
             details.put("tracer.type", tracer.getClass().getSimpleName());
-            
+
             // Check feature flags
             details.put("features.database", featureFlags.isDatabase());
             details.put("features.kafka", featureFlags.isKafka());
@@ -81,11 +83,11 @@ public class TracingHealthIndicator implements HealthIndicator {
             details.put("features.externalApi", featureFlags.isExternalApi());
             details.put("features.reactive", featureFlags.isReactive());
             details.put("features.useCase", featureFlags.isUseCase());
-            
+
             // Test span creation
             String spanTestResult = testSpanCreation();
             details.put("span.creation.test", spanTestResult);
-            
+
             if ("success".equals(spanTestResult)) {
                 return Health.up()
                         .withDetails(details)
@@ -96,7 +98,7 @@ public class TracingHealthIndicator implements HealthIndicator {
                         .withDetails(details)
                         .build();
             }
-            
+
         } catch (Exception e) {
             return Health.down()
                     .withException(e)

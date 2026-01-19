@@ -2,7 +2,7 @@
 
 <cite>
 **Referenced Files in This Document**   
-- [Transaction.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/Transaction.java)
+- [Transaction.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/Transaction.java) - *Updated in recent commit*
 - [TransactionHash.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/TransactionHash.java)
 - [TransactionStatus.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/TransactionStatus.java)
 - [TransactionCreatedEvent.java](file://src/main/java/dev/bloco/wallet/hub/domain/event/transaction/TransactionCreatedEvent.java)
@@ -12,7 +12,22 @@
 - [TransactionRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/TransactionRepository.java)
 - [Network.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/Network.java)
 - [Token.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/token/Token.java)
+- [FeeEstimate.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/FeeEstimate.java) - *Added in recent commit*
+- [FeeEstimateResult.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/FeeEstimateResult.java) - *Added in recent commit*
+- [FeeLevel.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/FeeLevel.java) - *Added in recent commit*
+- [BlockchainTransactionType.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/BlockchainTransactionType.java) - *Added in recent commit, replaces TransactionType*
+- [TransactionType.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/TransactionType.java) - *Deprecated, replaced by BlockchainTransactionType*
+- [EstimateTransactionFeeUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/EstimateTransactionFeeUseCase.java) - *Updated for new fee estimation models*
 </cite>
+
+## Update Summary
+**Changes Made**   
+- Added new section on Transaction Fee Estimation Models covering FeeEstimate and FeeEstimateResult
+- Added new section on BlockchainTransactionType to document the renamed TransactionType enum
+- Updated relationships section to include new fee estimation components
+- Added new sequence diagram for fee estimation workflow
+- Updated document sources to include new and modified files
+- Marked TransactionType as deprecated in sources
 
 ## Table of Contents
 1. [Introduction](#introduction)
@@ -25,6 +40,8 @@
 8. [Lifecycle Management Example](#lifecycle-management-example)
 9. [Validation and Error Conditions](#validation-and-error-conditions)
 10. [Integration with Use Cases](#integration-with-use-cases)
+11. [Transaction Fee Estimation Models](#transaction-fee-estimation-models)
+12. [BlockchainTransactionType](#blockchaintransactiontype)
 
 ## Introduction
 The `Transaction` entity in the bloco-wallet-java application represents a blockchain transaction that occurs within a specific network. It encapsulates critical information such as sender and recipient addresses, value transferred, gas parameters, and transaction status. As an aggregate root, it manages its own lifecycle and emits domain events to reflect state changes. This document details the structure, behavior, and integration points of the Transaction entity.
@@ -255,12 +272,22 @@ The Transaction entity interacts with several other domain entities:
 - Token contract address may be the toAddress in ERC-20 transfers
 - Token decimals and type affect value interpretation
 
+### Fee Estimation Components
+- **FeeEstimate**: Contains detailed fee information for a specific fee level
+- **FeeEstimateResult**: Aggregates multiple FeeEstimate objects for a network
+- **FeeLevel**: Enumerates different fee levels (SLOW, STANDARD, FAST, URGENT)
+- **BlockchainTransactionType**: Categorizes transactions for gas estimation purposes
+
 ```mermaid
 erDiagram
 TRANSACTION ||--o{ NETWORK : "occurs on"
 TRANSACTION }|--|| TRANSACTION_STATUS : "has"
 TRANSACTION }o--o| TOKEN : "involves"
 TRANSACTION }o--o| WALLET : "affects"
+TRANSACTION }|--|| FEE_ESTIMATE_RESULT : "uses"
+FEE_ESTIMATE_RESULT }|--|| FEE_ESTIMATE : "contains"
+FEE_ESTIMATE }|--|| FEE_LEVEL : "has"
+TRANSACTION }|--|| BLOCKCHAIN_TRANSACTION_TYPE : "categorized as"
 TRANSACTION {
 UUID id PK
 UUID networkId FK
@@ -288,17 +315,40 @@ String status
 TRANSACTION_STATUS {
 String status PK
 }
+FEE_ESTIMATE_RESULT {
+UUID networkId PK
+BigDecimal gasLimit
+}
+FEE_ESTIMATE {
+FeeLevel level PK
+BigDecimal gasPrice
+BigDecimal totalCost
+}
+FEE_LEVEL {
+String level PK
+}
+BLOCKCHAIN_TRANSACTION_TYPE {
+String type PK
+}
 ```
 
 **Diagram sources**
 - [Transaction.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/Transaction.java#L20-L45)
 - [Network.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/Network.java#L10-L25)
 - [Token.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/token/Token.java#L10-L25)
+- [FeeEstimateResult.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/FeeEstimateResult.java#L1-L20)
+- [FeeEstimate.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/FeeEstimate.java#L1-L21)
+- [FeeLevel.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/FeeLevel.java#L1-L31)
+- [BlockchainTransactionType.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/BlockchainTransactionType.java#L1-L44)
 
 **Section sources**
 - [Transaction.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/Transaction.java#L20-L45)
 - [Network.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/network/Network.java#L10-L25)
 - [Token.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/token/Token.java#L10-L25)
+- [FeeEstimateResult.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/FeeEstimateResult.java#L1-L20)
+- [FeeEstimate.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/FeeEstimate.java#L1-L21)
+- [FeeLevel.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/FeeLevel.java#L1-L31)
+- [BlockchainTransactionType.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/BlockchainTransactionType.java#L1-L44)
 
 ## Lifecycle Management Example
 The typical transaction lifecycle follows this sequence:
@@ -423,3 +473,104 @@ FailTransactionUseCase --> DomainEventPublisher : "publishes events"
 - [ConfirmTransactionUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/ConfirmTransactionUseCase.java#L10-L38)
 - [FailTransactionUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/FailTransactionUseCase.java#L10-L34)
 - [TransactionRepository.java](file://src/main/java/dev/bloco/wallet/hub/domain/gateway/TransactionRepository.java#L10-L55)
+
+## Transaction Fee Estimation Models
+The system introduces new fee estimation models to provide comprehensive transaction cost analysis.
+
+### FeeEstimate
+Represents a fee estimate for a specific fee level with detailed information:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| level | FeeLevel | The fee level (SLOW, STANDARD, FAST, URGENT) |
+| gasPrice | BigDecimal | Price per unit of gas |
+| baseFee | BigDecimal | Base fee component (for EIP-1559 networks) |
+| priorityFee | BigDecimal | Priority fee component (for EIP-1559 networks) |
+| totalCost | BigDecimal | Total estimated transaction cost |
+| estimatedTime | String | Expected confirmation time |
+| description | String | User-friendly description of the fee level |
+
+```mermaid
+classDiagram
+class FeeEstimate {
++FeeLevel level
++BigDecimal gasPrice
++BigDecimal baseFee
++BigDecimal priorityFee
++BigDecimal totalCost
++String estimatedTime
++String description
+}
+```
+
+**Diagram sources**
+- [FeeEstimate.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/FeeEstimate.java#L1-L21)
+
+### FeeEstimateResult
+Aggregates fee estimates for all levels on a specific network:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| networkId | UUID | Identifier of the network |
+| networkName | String | Name of the network |
+| gasLimit | BigDecimal | Estimated gas limit for the transaction |
+| estimates | List<FeeEstimate> | Collection of fee estimates for all levels |
+
+```mermaid
+sequenceDiagram
+participant Client as "Client"
+participant UseCase as "EstimateTransactionFeeUseCase"
+participant NetworkRepo as "NetworkRepository"
+participant FeeRepo as "TransactionFeeRepository"
+participant Result as "FeeEstimateResult"
+Client->>UseCase : estimateTransactionFee(networkId, gasLimit)
+UseCase->>NetworkRepo : findById(networkId)
+NetworkRepo-->>UseCase : Network
+UseCase->>FeeRepo : findLatestByNetworkIdAndLevel() for each FeeLevel
+FeeRepo-->>UseCase : TransactionFee objects
+UseCase->>UseCase : Create FeeEstimate for each level
+UseCase->>UseCase : Build FeeEstimateResult
+UseCase-->>Client : Return FeeEstimateResult
+```
+
+**Diagram sources**
+- [EstimateTransactionFeeUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/EstimateTransactionFeeUseCase.java#L49-L77)
+- [FeeEstimateResult.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/FeeEstimateResult.java#L1-L20)
+
+**Section sources**
+- [FeeEstimate.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/FeeEstimate.java#L1-L21)
+- [FeeEstimateResult.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/FeeEstimateResult.java#L1-L20)
+- [EstimateTransactionFeeUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/EstimateTransactionFeeUseCase.java#L49-L77)
+
+## BlockchainTransactionType
+The `TransactionType` enum has been renamed to `BlockchainTransactionType` for consistency and enhanced with gas estimation capabilities.
+
+### Enumeration Values
+- **SIMPLE_TRANSFER**: Simple native token transfer (e.g., ETH transfer), typical gas: 21,000
+- **ERC20_TRANSFER**: ERC20 token transfer, typical gas: 65,000
+- **ERC721_TRANSFER**: ERC721 (NFT) token transfer, typical gas: 85,000
+- **CONTRACT_INTERACTION**: Smart contract interaction (function call), typical gas: 150,000
+- **CONTRACT_DEPLOYMENT**: Smart contract deployment, typical gas: 500,000
+- **COMPLEX_DEFI**: Complex DeFi operations (swaps, liquidity provision, etc.), typical gas: 300,000
+
+This enum is used by the `EstimateTransactionFeeUseCase` to determine appropriate gas limits for different transaction types.
+
+```mermaid
+classDiagram
+class BlockchainTransactionType {
++SIMPLE_TRANSFER
++ERC20_TRANSFER
++ERC721_TRANSFER
++CONTRACT_INTERACTION
++CONTRACT_DEPLOYMENT
++COMPLEX_DEFI
+}
+```
+
+**Diagram sources**
+- [BlockchainTransactionType.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/BlockchainTransactionType.java#L1-L44)
+
+**Section sources**
+- [BlockchainTransactionType.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/BlockchainTransactionType.java#L1-L44)
+- [EstimateTransactionFeeUseCase.java](file://src/main/java/dev/bloco/wallet/hub/usecase/EstimateTransactionFeeUseCase.java#L100-L108)
+- [TransactionType.java](file://src/main/java/dev/bloco/wallet/hub/domain/model/transaction/TransactionType.java#L1-L7) - *Deprecated*

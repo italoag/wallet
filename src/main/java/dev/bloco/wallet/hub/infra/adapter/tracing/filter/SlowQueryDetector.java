@@ -3,6 +3,7 @@ package dev.bloco.wallet.hub.infra.adapter.tracing.filter;
 import io.micrometer.observation.Observation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.time.Duration;
@@ -16,14 +17,15 @@ import java.time.Duration;
  *
  * <h2>Detection Logic</h2>
  * <ul>
- *   <li>Threshold: Configurable (default 50ms)</li>
- *   <li>Applies to: JPA queries, R2DBC queries, transactions</li>
- *   <li>Tag added: {@code slow_query=true}</li>
- *   <li>Additional tag: {@code query.duration_ms} (actual duration)</li>
+ * <li>Threshold: Configurable (default 50ms)</li>
+ * <li>Applies to: JPA queries, R2DBC queries, transactions</li>
+ * <li>Tag added: {@code slow_query=true}</li>
+ * <li>Additional tag: {@code query.duration_ms} (actual duration)</li>
  * </ul>
  *
  * <h2>Configuration</h2>
  * Set threshold via application properties:
+ * 
  * <pre>
  * tracing:
  *   sampling:
@@ -33,27 +35,29 @@ import java.time.Duration;
  * <h2>Integration</h2>
  * Called by:
  * <ul>
- *   <li>{@link dev.bloco.wallet.hub.infra.adapter.tracing.aspect.RepositoryTracingAspect}</li>
- *   <li>{@link dev.bloco.wallet.hub.infra.adapter.tracing.handler.R2dbcObservationHandler}</li>
+ * <li>{@link dev.bloco.wallet.hub.infra.adapter.tracing.aspect.RepositoryTracingAspect}</li>
+ * <li>{@link dev.bloco.wallet.hub.infra.adapter.tracing.handler.R2dbcObservationHandler}</li>
  * </ul>
  *
  * <h2>Usage Example</h2>
+ * 
  * <pre>{@code
  * @Around("execution(* repository.*.*(..))")
  * public Object trace(ProceedingJoinPoint joinPoint) {
  *     long start = System.currentTimeMillis();
  *     Object result = joinPoint.proceed();
  *     long duration = System.currentTimeMillis() - start;
- *     
+ * 
  *     Observation observation = createObservation();
  *     slowQueryDetector.detectAndTag(observation, duration);
- *     
+ * 
  *     return result;
  * }
  * }</pre>
  *
  * <h2>Alerting</h2>
  * Slow queries can trigger alerts in observability platforms:
+ * 
  * <pre>
  * Grafana Alert: count(traces{slow_query="true"}) > 100 in 5m
  * Tempo Query: {slow_query="true"} | latency > 50ms
@@ -61,9 +65,9 @@ import java.time.Duration;
  *
  * <h2>Performance</h2>
  * <ul>
- *   <li>Detection overhead: <0.1ms (simple threshold comparison)</li>
- *   <li>No impact when queries are fast</li>
- *   <li>Tagging is zero-copy operation</li>
+ * <li>Detection overhead: <0.1ms (simple threshold comparison)</li>
+ * <li>No impact when queries are fast</li>
+ * <li>Tagging is zero-copy operation</li>
  * </ul>
  *
  * @since 1.0.0
@@ -82,14 +86,13 @@ public class SlowQueryDetector {
     public SlowQueryDetector(
             @Value("${tracing.sampling.slow-query-threshold-ms:50}") long thresholdMs) {
         this.thresholdMs = thresholdMs;
-        log.info("SlowQueryDetector initialized with threshold: {}ms", thresholdMs);
     }
 
     /**
      * Detects if a query is slow and adds diagnostic tags to the observation.
      *
      * @param observation the observation to tag
-     * @param durationMs query duration in milliseconds
+     * @param durationMs  query duration in milliseconds
      * @return true if query is slow, false otherwise
      */
     public boolean detectAndTag(Observation observation, long durationMs) {
@@ -98,13 +101,10 @@ public class SlowQueryDetector {
         }
 
         boolean isSlow = durationMs > thresholdMs;
-        
+
         if (isSlow) {
             observation.lowCardinalityKeyValue("slow_query", "true");
             observation.highCardinalityKeyValue("query.duration_ms", String.valueOf(durationMs));
-            
-            log.debug("Slow query detected: {}ms (threshold: {}ms, observation: {})",
-                     durationMs, thresholdMs, observation.getContext().getName());
         }
 
         return isSlow;
@@ -114,7 +114,7 @@ public class SlowQueryDetector {
      * Detects if a query is slow using Duration.
      *
      * @param observation the observation to tag
-     * @param duration query duration
+     * @param duration    query duration
      * @return true if query is slow, false otherwise
      */
     public boolean detectAndTag(Observation observation, Duration duration) {
@@ -128,8 +128,8 @@ public class SlowQueryDetector {
      * Detects if a query is slow using nanosecond timing.
      *
      * @param observation the observation to tag
-     * @param startNanos start time in nanoseconds
-     * @param endNanos end time in nanoseconds
+     * @param startNanos  start time in nanoseconds
+     * @param endNanos    end time in nanoseconds
      * @return true if query is slow, false otherwise
      */
     public boolean detectAndTagNanos(Observation observation, long startNanos, long endNanos) {

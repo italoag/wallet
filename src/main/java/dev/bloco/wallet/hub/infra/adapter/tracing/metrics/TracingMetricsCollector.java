@@ -3,6 +3,7 @@ package dev.bloco.wallet.hub.infra.adapter.tracing.metrics;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import dev.bloco.wallet.hub.infra.adapter.tracing.config.TracingFeatureFlags;
@@ -17,20 +18,23 @@ import jakarta.annotation.PostConstruct;
  * 
  * <h2>Metrics Exposed</h2>
  * <ul>
- *   <li><b>tracing.spans.created</b>: Total spans created</li>
- *   <li><b>tracing.spans.exported</b>: Total spans exported</li>
- *   <li><b>tracing.spans.dropped</b>: Total spans dropped</li>
- *   <li><b>tracing.feature.flags.changes</b>: Feature flag change events</li>
- *   <li><b>tracing.feature.flags.state</b>: Current state of each feature flag (gauge)</li>
+ * <li><b>tracing.spans.created</b>: Total spans created</li>
+ * <li><b>tracing.spans.exported</b>: Total spans exported</li>
+ * <li><b>tracing.spans.dropped</b>: Total spans dropped</li>
+ * <li><b>tracing.feature.flags.changes</b>: Feature flag change events</li>
+ * <li><b>tracing.feature.flags.state</b>: Current state of each feature flag
+ * (gauge)</li>
  * </ul>
  * 
  * <h2>Tags</h2>
  * <ul>
- *   <li><b>feature</b>: Feature name (api, database, kafka, stateMachine, externalApi, reactive)</li>
- *   <li><b>state</b>: Feature flag state (enabled, disabled)</li>
+ * <li><b>feature</b>: Feature name (api, database, kafka, stateMachine,
+ * externalApi, reactive)</li>
+ * <li><b>state</b>: Feature flag state (enabled, disabled)</li>
  * </ul>
  * 
  * <h2>Usage in Prometheus</h2>
+ * 
  * <pre>
  * # Total spans created
  * tracing_spans_created_total
@@ -49,12 +53,12 @@ public class TracingMetricsCollector {
     private final MeterRegistry meterRegistry;
     private final Tracer tracer;
     private final TracingFeatureFlags featureFlags;
-    
+
     private Counter spansCreatedCounter;
     private Counter spansExportedCounter;
     private Counter spansDroppedCounter;
     private Counter featureFlagChangesCounter;
-    
+
     private final AtomicLong databaseFeatureState = new AtomicLong(0);
     private final AtomicLong kafkaFeatureState = new AtomicLong(0);
     private final AtomicLong stateMachineFeatureState = new AtomicLong(0);
@@ -77,19 +81,19 @@ public class TracingMetricsCollector {
         spansCreatedCounter = Counter.builder("tracing.spans.created")
                 .description("Total number of spans created")
                 .register(meterRegistry);
-        
+
         spansExportedCounter = Counter.builder("tracing.spans.exported")
                 .description("Total number of spans exported")
                 .register(meterRegistry);
-        
+
         spansDroppedCounter = Counter.builder("tracing.spans.dropped")
                 .description("Total number of spans dropped")
                 .register(meterRegistry);
-        
+
         featureFlagChangesCounter = Counter.builder("tracing.feature.flags.changes")
                 .description("Total number of feature flag changes")
                 .register(meterRegistry);
-        
+
         // Initialize gauges for feature flag states
         registerFeatureFlagGauge("database", databaseFeatureState);
         registerFeatureFlagGauge("kafka", kafkaFeatureState);
@@ -97,7 +101,7 @@ public class TracingMetricsCollector {
         registerFeatureFlagGauge("externalApi", externalApiFeatureState);
         registerFeatureFlagGauge("reactive", reactiveFeatureState);
         registerFeatureFlagGauge("useCase", useCaseFeatureState);
-        
+
         // Update initial states
         updateFeatureFlagStates();
     }
@@ -112,8 +116,7 @@ public class TracingMetricsCollector {
         meterRegistry.gauge(
                 "tracing.feature.flags.state",
                 List.of(Tag.of("feature", featureName)),
-                stateHolder
-        );
+                stateHolder);
     }
 
     /**

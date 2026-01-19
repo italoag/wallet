@@ -18,98 +18,134 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * Represents a Wallet entity that aggregates and manages related data and behaviors
- * associated with a wallet in the domain. Wallets are identified by a unique UUID and
- * support operations such as creating, updating, and managing associated addresses.
+ * Represents a Wallet entity that aggregates and manages related data and
+ * behaviors
+ * associated with a wallet in the domain. Wallets are identified by a unique
+ * UUID and
+ * support operations such as creating, updating, and managing associated
+ * addresses.
  *
- * This class extends the AggregateRoot entity to support the recognition and publishing
+ * This class extends the AggregateRoot entity to support the recognition and
+ * publishing
  * of domain events, such as wallet creation and updates.
  */
 @Getter
 @Setter
 public class Wallet extends AggregateRoot {
 
-    private String name;
-    private String description;
-    private final Set<UUID> addressIds = new HashSet<>();
-    private final Instant createdAt;
-    private Instant updatedAt;
-    private BigDecimal balance;
-    private UUID correlationId;
-    private WalletStatus status;
-    private UUID userId;
+  private String name;
+  private String description;
+  private final Set<UUID> addressIds = new HashSet<>();
+  private final Instant createdAt;
+  private Instant updatedAt;
+  private BigDecimal balance;
+  private UUID correlationId;
+  private WalletStatus status;
+  private UUID userId;
+
+  public BigDecimal getBalance() {
+    return balance;
+  }
+
+  public void setBalance(BigDecimal balance) {
+    this.balance = balance;
+  }
+
+  public void setUserId(UUID userId) {
+    this.userId = userId;
+  }
+
+  public String getName() {
+    return name;
+  }
+
+  public void setName(String name) {
+    this.name = name;
+  }
+
+  public String getDescription() {
+    return description;
+  }
+
+  public void setDescription(String description) {
+    this.description = description;
+  }
 
   /**
-   * Creates a new Wallet instance with the specified attributes and registers a WalletCreatedEvent
+   * Creates a new Wallet instance with the specified attributes and registers a
+   * WalletCreatedEvent
    * to indicate its creation within the domain model.
    *
-   * @param id the unique identifier for the wallet
-   * @param name the name of the wallet
+   * @param id          the unique identifier for the wallet
+   * @param name        the name of the wallet
    * @param description a description of the wallet
    * @return a new Wallet instance initialized with the provided attributes
    */
-    public static Wallet create(UUID id, String name, String description) {
-        Wallet wallet = new Wallet(id, name, description);
-        wallet.registerEvent(new WalletCreatedEvent(id, wallet.getCorrelationId()));
-        return wallet;
-    }
+  public static Wallet create(UUID id, String name, String description) {
+    Wallet wallet = new Wallet(id, name, description);
+    wallet.registerEvent(new WalletCreatedEvent(id, wallet.getCorrelationId()));
+    return wallet;
+  }
 
-    public Wallet(UUID id, String name, String description) {
-        super(id);
-        this.name = name;
-        this.description = description;
-        this.createdAt = Instant.now();
-        this.updatedAt = Instant.now();
-        this.balance = BigDecimal.ZERO;
-        this.status = WalletStatus.ACTIVE;
-    }
+  public Wallet(UUID id, String name, String description) {
+    super(id);
+    this.name = name;
+    this.description = description;
+    this.createdAt = Instant.now();
+    this.updatedAt = Instant.now();
+    this.balance = BigDecimal.ZERO;
+    this.status = WalletStatus.ACTIVE;
+  }
 
-    public Wallet(UUID id, String name, String description, UUID userId) {
-        super(id);
-        this.name = name;
-        this.description = description;
-        this.createdAt = Instant.now();
-        this.updatedAt = Instant.now();
-        this.balance = BigDecimal.ZERO;
-        this.status = WalletStatus.ACTIVE;
-        this.userId = userId;
-    }
+  public Wallet(UUID id, String name, String description, UUID userId) {
+    super(id);
+    this.name = name;
+    this.description = description;
+    this.createdAt = Instant.now();
+    this.updatedAt = Instant.now();
+    this.balance = BigDecimal.ZERO;
+    this.status = WalletStatus.ACTIVE;
+    this.userId = userId;
+  }
 
   public Set<UUID> getAddressIds() {
-        return Collections.unmodifiableSet(addressIds);
-    }
+    return Collections.unmodifiableSet(addressIds);
+  }
 
   public void updateInfo(String name, String description) {
-        this.name = name;
-        this.description = description;
-        this.updatedAt = Instant.now();
-        registerEvent(new WalletUpdatedEvent(getId(), name, description, this.getCorrelationId()));
-    }
+    this.name = name;
+    this.description = description;
+    this.updatedAt = Instant.now();
+    registerEvent(new WalletUpdatedEvent(getId(), name, description, this.getCorrelationId()));
+  }
 
-    public void addAddress(UUID addressId) {
-        if (addressIds.add(addressId)) {
-            this.updatedAt = Instant.now();
-        }
+  public void addAddress(UUID addressId) {
+    if (addressIds.add(addressId)) {
+      this.updatedAt = Instant.now();
     }
+  }
 
-    public void removeAddress(UUID addressId) {
-        if (addressIds.remove(addressId)) {
-            this.updatedAt = Instant.now();
-        }
+  public void removeAddress(UUID addressId) {
+    if (addressIds.remove(addressId)) {
+      this.updatedAt = Instant.now();
     }
+  }
 
-    public boolean containsAddress(UUID addressId) {
-        return addressIds.contains(addressId);
-    }
+  public boolean containsAddress(UUID addressId) {
+    return addressIds.contains(addressId);
+  }
 
   /**
-   * Adds a specified amount to the wallet's balance. The amount must be greater than zero.
-   * If the amount is invalid (less than or equal to zero), an {@code IllegalArgumentException}
+   * Adds a specified amount to the wallet's balance. The amount must be greater
+   * than zero.
+   * If the amount is invalid (less than or equal to zero), an
+   * {@code IllegalArgumentException}
    * is thrown.
    *
    * @param amount the monetary value to be added to the wallet's balance.
    *               This must be a positive number greater than zero.
-   * @throws IllegalArgumentException if the specified amount is not greater than zero.
+   * @throws IllegalArgumentException if the specified amount is not greater than
+   *                                  zero.
    */
   public void addFunds(BigDecimal amount) {
     if (amount.compareTo(BigDecimal.ZERO) > 0) {
@@ -120,14 +156,18 @@ public class Wallet extends AggregateRoot {
   }
 
   /**
-   * Withdraws a specified amount from the wallet's balance. The amount must be greater than zero
-   * and less than or equal to the current balance. If the amount is invalid or the wallet has
+   * Withdraws a specified amount from the wallet's balance. The amount must be
+   * greater than zero
+   * and less than or equal to the current balance. If the amount is invalid or
+   * the wallet has
    * insufficient balance, an {@code IllegalArgumentException} is thrown.
    *
    * @param amount the monetary value to be withdrawn from the wallet's balance.
-   *               This must be a positive number greater than zero and less than or equal
+   *               This must be a positive number greater than zero and less than
+   *               or equal
    *               to the current wallet balance.
-   * @throws IllegalArgumentException if the specified amount is not greater than zero
+   * @throws IllegalArgumentException if the specified amount is not greater than
+   *                                  zero
    *                                  or the wallet has insufficient balance.
    */
   public void withdrawFunds(BigDecimal amount) {
@@ -147,7 +187,8 @@ public class Wallet extends AggregateRoot {
       WalletStatus oldStatus = this.status;
       this.status = WalletStatus.ACTIVE;
       this.updatedAt = Instant.now();
-      registerEvent(new WalletStatusChangedEvent(getId(), oldStatus, this.status, "Wallet activated", this.correlationId));
+      registerEvent(
+          new WalletStatusChangedEvent(getId(), oldStatus, this.status, "Wallet activated", this.correlationId));
     }
   }
 
@@ -160,7 +201,8 @@ public class Wallet extends AggregateRoot {
       WalletStatus oldStatus = this.status;
       this.status = WalletStatus.INACTIVE;
       this.updatedAt = Instant.now();
-      registerEvent(new WalletStatusChangedEvent(getId(), oldStatus, this.status, "Wallet deactivated", this.correlationId));
+      registerEvent(
+          new WalletStatusChangedEvent(getId(), oldStatus, this.status, "Wallet deactivated", this.correlationId));
     }
   }
 
@@ -199,14 +241,16 @@ public class Wallet extends AggregateRoot {
    * Initiates wallet recovery process.
    * The wallet enters recovery state while being restored.
    * 
-   * @param recoveryMethod the method used for recovery (e.g., "seed_phrase", "backup")
+   * @param recoveryMethod the method used for recovery (e.g., "seed_phrase",
+   *                       "backup")
    */
   public void initiateRecovery(String recoveryMethod) {
     if (this.status != WalletStatus.RECOVERING) {
       WalletStatus oldStatus = this.status;
       this.status = WalletStatus.RECOVERING;
       this.updatedAt = Instant.now();
-      registerEvent(new WalletStatusChangedEvent(getId(), oldStatus, this.status, "Recovery initiated", this.correlationId));
+      registerEvent(
+          new WalletStatusChangedEvent(getId(), oldStatus, this.status, "Recovery initiated", this.correlationId));
       registerEvent(new WalletRecoveryInitiatedEvent(getId(), this.userId, recoveryMethod, this.correlationId));
     }
   }
@@ -233,7 +277,8 @@ public class Wallet extends AggregateRoot {
    * Validates if operations can be performed on this wallet.
    * Operations are allowed only for active wallets.
    * 
-   * @throws IllegalStateException if the wallet is not in a state that allows operations
+   * @throws IllegalStateException if the wallet is not in a state that allows
+   *                               operations
    */
   public void validateOperationAllowed() {
     if (!isActive()) {

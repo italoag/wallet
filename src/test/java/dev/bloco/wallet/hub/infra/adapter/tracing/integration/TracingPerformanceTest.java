@@ -8,27 +8,20 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-
 import dev.bloco.wallet.hub.infra.adapter.tracing.config.TracingFeatureFlags;
 import io.micrometer.tracing.Span;
-import io.micrometer.tracing.Tracer;
 
 /**
  * Performance tests for distributed tracing overhead (T143-T144).
  * 
  * <h2>Performance Requirements</h2>
  * <ul>
- *   <li>Span creation and export: &lt;5ms per operation</li>
- *   <li>Feature flag check: &lt;1μs per check</li>
+ * <li>Span creation and export: &lt;5ms per operation</li>
+ * <li>Feature flag check: &lt;1μs per check</li>
  * </ul>
  */
-@SpringBootTest
 @DisplayName("Tracing Performance Tests")
-class TracingPerformanceTest {
-
-    @Autowired
-    private Tracer tracer;
+class TracingPerformanceTest extends BaseIntegrationTest {
 
     @Autowired
     private TracingFeatureFlags featureFlags;
@@ -48,11 +41,11 @@ class TracingPerformanceTest {
         // Measure span creation overhead
         for (int i = 0; i < iterations; i++) {
             long startNanos = System.nanoTime();
-            
+
             Span span = tracer.nextSpan().name("performance-test").start();
             span.tag("iteration", String.valueOf(i));
             span.end();
-            
+
             long endNanos = System.nanoTime();
             durations.add(endNanos - startNanos);
         }
@@ -92,7 +85,7 @@ class TracingPerformanceTest {
         // Measure with multiple tags
         for (int i = 0; i < iterations; i++) {
             long startNanos = System.nanoTime();
-            
+
             Span span = tracer.nextSpan().name("tagged-span").start();
             span.tag("operation.type", "test");
             span.tag("operation.id", String.valueOf(i));
@@ -100,7 +93,7 @@ class TracingPerformanceTest {
             span.tag("operation.status", "success");
             span.tag("iteration", String.valueOf(i));
             span.end();
-            
+
             long endNanos = System.nanoTime();
             durations.add(endNanos - startNanos);
         }
@@ -136,14 +129,14 @@ class TracingPerformanceTest {
         // Measure nested span creation
         for (int i = 0; i < iterations; i++) {
             long startNanos = System.nanoTime();
-            
+
             Span parent = tracer.nextSpan().name("parent-span").start();
             Span child1 = tracer.nextSpan().name("child-span-1").start();
             child1.end();
             Span child2 = tracer.nextSpan().name("child-span-2").start();
             child2.end();
             parent.end();
-            
+
             long endNanos = System.nanoTime();
             durations.add(endNanos - startNanos);
         }
@@ -180,14 +173,14 @@ class TracingPerformanceTest {
         // Measure feature flag checks
         for (int i = 0; i < iterations; i++) {
             long startNanos = System.nanoTime();
-            
+
             boolean database = featureFlags.isDatabase();
             boolean kafka = featureFlags.isKafka();
             boolean stateMachine = featureFlags.isStateMachine();
             boolean externalApi = featureFlags.isExternalApi();
             boolean reactive = featureFlags.isReactive();
             boolean useCase = featureFlags.isUseCase();
-            
+
             long endNanos = System.nanoTime();
             durations.add(endNanos - startNanos);
         }
@@ -225,13 +218,13 @@ class TracingPerformanceTest {
         // Measure span event recording
         for (int i = 0; i < iterations; i++) {
             long startNanos = System.nanoTime();
-            
+
             Span span = tracer.nextSpan().name("event-span").start();
             span.event("operation.started");
             span.event("operation.processing");
             span.event("operation.completed");
             span.end();
-            
+
             long endNanos = System.nanoTime();
             durations.add(endNanos - startNanos);
         }
@@ -263,11 +256,11 @@ class TracingPerformanceTest {
                 List<Long> durations = new ArrayList<>();
                 for (int i = 0; i < iterationsPerThread; i++) {
                     long startNanos = System.nanoTime();
-                    
+
                     Span span = tracer.nextSpan().name("concurrent-span").start();
                     span.tag("thread", Thread.currentThread().getName());
                     span.end();
-                    
+
                     long endNanos = System.nanoTime();
                     durations.add(endNanos - startNanos);
                 }

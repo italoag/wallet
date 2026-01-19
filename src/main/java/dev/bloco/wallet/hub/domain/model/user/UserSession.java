@@ -41,6 +41,10 @@ public class UserSession extends Entity {
         return sessionToken;
     }
 
+    public String getToken() {
+        return sessionToken;
+    }
+
     public Instant getCreatedAt() {
         return createdAt;
     }

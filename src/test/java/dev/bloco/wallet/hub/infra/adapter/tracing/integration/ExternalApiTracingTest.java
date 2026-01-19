@@ -16,19 +16,23 @@ import io.micrometer.tracing.exporter.FinishedSpan;
 /**
  * Integration tests for External API distributed tracing.
  * 
- * <p>Tests HTTP client tracing with URL sanitization, timeout handling,
- * and circuit breaker state tracking.</p>
+ * <p>
+ * Tests HTTP client tracing with URL sanitization, timeout handling,
+ * and circuit breaker state tracking.
+ * </p>
  * 
- * <p>Validates:
+ * <p>
+ * Validates:
  * <ul>
- *   <li>T118: External HTTP calls capture URL (query params masked), status, duration</li>
- *   <li>T119: Timeout scenarios marked as ERROR with timeout details</li>
- *   <li>T120: Circuit breaker state (open/closed) included in spans</li>
+ * <li>T118: External HTTP calls capture URL (query params masked), status,
+ * duration</li>
+ * <li>T119: Timeout scenarios marked as ERROR with timeout details</li>
+ * <li>T120: Circuit breaker state (open/closed) included in spans</li>
  * </ul>
  */
 @Testcontainers
-@TestPropertySource(properties = {
-    "tracing.features.externalApi=true"
+@TestPropertySource(inheritProperties = true, properties = {
+        "tracing.features.externalApi=true"
 })
 @DisplayName("External API Tracing Integration Tests")
 class ExternalApiTracingTest extends BaseIntegrationTest {
@@ -46,7 +50,7 @@ class ExternalApiTracingTest extends BaseIntegrationTest {
         String baseUrl = "https://api.example.com";
         String endpoint = "/users/123/profile?apiKey=secret123&userId=456";
         String sanitizedUrl = "https://api.example.com/users/123/profile?apiKey=***&userId=456";
-        
+
         clearSpans();
 
         // Simulate external HTTP call
@@ -58,18 +62,18 @@ class ExternalApiTracingTest extends BaseIntegrationTest {
         httpSpan.tag("http.target", "/users/123/profile");
         httpSpan.tag("net.peer.name", "api.example.com");
         httpSpan.tag("net.peer.port", "443");
-        
+
         long startTime = System.currentTimeMillis();
-        
+
         // Simulate response
         try {
             Thread.sleep(50); // Simulate network delay
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        
+
         long duration = System.currentTimeMillis() - startTime;
-        
+
         httpSpan.tag("http.status_code", "200");
         httpSpan.tag("http.response_content_length", "1024");
         httpSpan.tag("http.duration_ms", String.valueOf(duration));
@@ -78,25 +82,25 @@ class ExternalApiTracingTest extends BaseIntegrationTest {
         // Assert
         waitForSpans(1, 1000);
         List<FinishedSpan> spans = getSpans();
-        
+
         assertThat(spans).hasSize(1);
         FinishedSpan span = spans.get(0);
-        
+
         // Verify HTTP attributes
-        assertSpanHasTags(span, 
-            "http.method", 
-            "http.url", 
-            "http.status_code",
-            "http.duration_ms");
-        
+        assertSpanHasTags(span,
+                "http.method",
+                "http.url",
+                "http.status_code",
+                "http.duration_ms");
+
         assertSpanTagEquals(span, "http.method", "GET");
         assertSpanTagEquals(span, "http.status_code", "200");
-        
+
         // Verify URL is sanitized (apiKey masked)
         String capturedUrl = span.getTags().get("http.url");
         assertThat(capturedUrl).contains("apiKey=***");
         assertThat(capturedUrl).doesNotContain("secret123");
-        
+
         // Verify duration captured
         String durationStr = span.getTags().get("http.duration_ms");
         assertThat(Long.parseLong(durationStr)).isGreaterThan(0);
@@ -115,18 +119,18 @@ class ExternalApiTracingTest extends BaseIntegrationTest {
         httpSpan.tag("http.method", "GET");
         httpSpan.tag("http.url", url);
         httpSpan.tag("http.timeout_ms", String.valueOf(timeoutMs));
-        
+
         long startTime = System.currentTimeMillis();
-        
+
         // Simulate timeout
         try {
             Thread.sleep(50); // Simulate partial delay before timeout
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
         }
-        
+
         long duration = System.currentTimeMillis() - startTime;
-        
+
         // Mark as error due to timeout
         httpSpan.tag("error", "true");
         httpSpan.tag("error.type", "TimeoutException");
@@ -134,27 +138,27 @@ class ExternalApiTracingTest extends BaseIntegrationTest {
         httpSpan.tag("http.timeout", "true");
         httpSpan.tag("http.duration_ms", String.valueOf(duration));
         httpSpan.event("http.timeout.exceeded");
-        
+
         httpSpan.end();
 
         // Assert
         waitForSpans(1, 1000);
         List<FinishedSpan> spans = getSpans();
-        
+
         assertThat(spans).hasSize(1);
         FinishedSpan span = spans.get(0);
-        
+
         // Verify error marking
-        assertSpanHasTags(span, 
-            "error", 
-            "error.type", 
-            "http.timeout",
-            "http.timeout_ms");
-        
+        assertSpanHasTags(span,
+                "error",
+                "error.type",
+                "http.timeout",
+                "http.timeout_ms");
+
         assertSpanTagEquals(span, "error", "true");
         assertSpanTagEquals(span, "error.type", "TimeoutException");
         assertSpanTagEquals(span, "http.timeout", "true");
-        
+
         // Verify timeout threshold captured
         String timeoutValue = span.getTags().get("http.timeout_ms");
         assertThat(Integer.parseInt(timeoutValue)).isEqualTo(timeoutMs);
@@ -204,27 +208,27 @@ class ExternalApiTracingTest extends BaseIntegrationTest {
         // Assert
         waitForSpans(3, 2000);
         List<FinishedSpan> spans = getSpans();
-        
+
         assertThat(spans).hasSizeGreaterThanOrEqualTo(3);
-        
+
         // Verify CLOSED state span
         FinishedSpan closedStateSpan = findSpan(spans,
-            s -> "closed".equals(s.getTags().get("cb.state")));
+                s -> "closed".equals(s.getTags().get("cb.state")));
         assertThat(closedStateSpan).isNotNull();
         assertSpanTagEquals(closedStateSpan, "cb.state", "closed");
         assertSpanTagEquals(closedStateSpan, "http.status_code", "200");
-        
+
         // Verify OPEN state span
         FinishedSpan openStateSpan = findSpan(spans,
-            s -> "open".equals(s.getTags().get("cb.state")));
+                s -> "open".equals(s.getTags().get("cb.state")));
         assertThat(openStateSpan).isNotNull();
         assertSpanTagEquals(openStateSpan, "cb.state", "open");
         assertSpanTagEquals(openStateSpan, "error", "true");
         assertSpanTagEquals(openStateSpan, "fallback.executed", "true");
-        
+
         // Verify HALF_OPEN state span
         FinishedSpan halfOpenStateSpan = findSpan(spans,
-            s -> "half_open".equals(s.getTags().get("cb.state")));
+                s -> "half_open".equals(s.getTags().get("cb.state")));
         assertThat(halfOpenStateSpan).isNotNull();
         assertSpanTagEquals(halfOpenStateSpan, "cb.state", "half_open");
         assertSpanTagEquals(halfOpenStateSpan, "cb.test.request", "true");
@@ -245,34 +249,34 @@ class ExternalApiTracingTest extends BaseIntegrationTest {
         primarySpan.tag("cb.state", "open");
         primarySpan.tag("error", "true");
         primarySpan.tag("error.type", "CircuitBreakerOpenException");
-        
+
         // Fallback executed
         var fallbackSpan = tracer.nextSpan(primarySpan).name("fallback.execution").start();
         fallbackSpan.tag("fallback.method", "getCachedStock");
         fallbackSpan.tag("fallback.source", "cache");
         fallbackSpan.tag("fallback.result", "success");
         fallbackSpan.end();
-        
+
         primarySpan.tag("fallback.executed", "true");
         primarySpan.end();
 
         // Assert
         waitForSpans(2, 1000);
         List<FinishedSpan> spans = getSpans();
-        
+
         assertThat(spans).hasSizeGreaterThanOrEqualTo(2);
-        
+
         FinishedSpan primary = findSpan(spans,
-            s -> s.getName().contains("http.client"));
+                s -> s.getName().contains("http.client"));
         FinishedSpan fallback = findSpan(spans,
-            s -> "fallback.execution".equals(s.getName()));
-        
+                s -> "fallback.execution".equals(s.getName()));
+
         assertThat(primary).isNotNull();
         assertThat(fallback).isNotNull();
-        
+
         // Verify fallback is child of primary
         assertSpanHierarchy(primary, fallback);
-        
+
         // Verify fallback tags
         assertSpanTagEquals(fallback, "fallback.method", "getCachedStock");
         assertSpanTagEquals(fallback, "fallback.source", "cache");
@@ -321,26 +325,26 @@ class ExternalApiTracingTest extends BaseIntegrationTest {
         // Assert
         waitForSpans(4, 2000);
         List<FinishedSpan> spans = getSpans();
-        
+
         assertThat(spans).hasSizeGreaterThanOrEqualTo(4);
-        
+
         // Find all retry attempts
         List<FinishedSpan> attempts = findSpans(spans,
-            s -> s.getTags().containsKey("retry.attempt"));
-        
+                s -> s.getTags().containsKey("retry.attempt"));
+
         assertThat(attempts).hasSize(3);
-        
+
         // Verify attempt sequence
         FinishedSpan firstAttempt = findSpan(attempts,
-            s -> "1".equals(s.getTags().get("retry.attempt")));
+                s -> "1".equals(s.getTags().get("retry.attempt")));
         assertThat(firstAttempt).isNotNull();
         assertSpanTagEquals(firstAttempt, "error", "true");
-        
+
         FinishedSpan thirdAttempt = findSpan(attempts,
-            s -> "3".equals(s.getTags().get("retry.attempt")));
+                s -> "3".equals(s.getTags().get("retry.attempt")));
         assertThat(thirdAttempt).isNotNull();
         assertSpanTagEquals(thirdAttempt, "http.status_code", "200");
-        
+
         // Verify all attempts share same parent
         String parentId = firstAttempt.getParentId();
         assertThat(attempts).allMatch(a -> parentId.equals(a.getParentId()));
@@ -356,37 +360,37 @@ class ExternalApiTracingTest extends BaseIntegrationTest {
         var httpSpan = createTestSpan("http.client.request");
         httpSpan.tag("http.method", "POST");
         httpSpan.tag("http.url", "https://api.example.com/payment");
-        
+
         // Sensitive headers should be masked
         httpSpan.tag("http.request.header.authorization", "Bearer ***");
         httpSpan.tag("http.request.header.api_key", "***");
         httpSpan.tag("http.request.header.content_type", "application/json");
-        
+
         // Request body should not contain sensitive data
         httpSpan.tag("http.request.body.size", "256");
         httpSpan.tag("http.request.body.sanitized", "true");
-        
+
         httpSpan.tag("http.status_code", "201");
         httpSpan.end();
 
         // Assert
         waitForSpans(1, 1000);
         List<FinishedSpan> spans = getSpans();
-        
+
         assertThat(spans).hasSize(1);
         FinishedSpan span = spans.get(0);
-        
+
         // Verify sensitive headers are masked
         String authHeader = span.getTags().get("http.request.header.authorization");
         assertThat(authHeader).isEqualTo("Bearer ***");
         assertThat(authHeader).doesNotContain("actual-token");
-        
+
         String apiKeyHeader = span.getTags().get("http.request.header.api_key");
         assertThat(apiKeyHeader).isEqualTo("***");
-        
+
         // Verify non-sensitive headers are preserved
         assertSpanTagEquals(span, "http.request.header.content_type", "application/json");
-        
+
         // Verify body sanitization flag
         assertSpanTagEquals(span, "http.request.body.sanitized", "true");
     }
@@ -401,7 +405,7 @@ class ExternalApiTracingTest extends BaseIntegrationTest {
         var httpSpan = createTestSpan("http.client.request");
         httpSpan.tag("http.method", "GET");
         httpSpan.tag("http.url", "https://api.example.com/users");
-        
+
         // Connection pool metrics
         httpSpan.tag("http.connection.pool.name", "default");
         httpSpan.tag("http.connection.acquired_ms", "5");
@@ -409,26 +413,26 @@ class ExternalApiTracingTest extends BaseIntegrationTest {
         httpSpan.tag("http.connection.active_count", "2");
         httpSpan.tag("http.connection.pending_count", "0");
         httpSpan.tag("http.connection.reused", "true");
-        
+
         httpSpan.tag("http.status_code", "200");
         httpSpan.end();
 
         // Assert
         waitForSpans(1, 1000);
         List<FinishedSpan> spans = getSpans();
-        
+
         assertThat(spans).hasSize(1);
         FinishedSpan span = spans.get(0);
-        
+
         // Verify connection pool metrics
         assertSpanHasTags(span,
-            "http.connection.acquired_ms",
-            "http.connection.idle_count",
-            "http.connection.active_count",
-            "http.connection.reused");
-        
+                "http.connection.acquired_ms",
+                "http.connection.idle_count",
+                "http.connection.active_count",
+                "http.connection.reused");
+
         assertSpanTagEquals(span, "http.connection.reused", "true");
-        
+
         String acquireTime = span.getTags().get("http.connection.acquired_ms");
         assertThat(Long.parseLong(acquireTime)).isGreaterThanOrEqualTo(0);
     }

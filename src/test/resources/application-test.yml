@@ -6,6 +6,10 @@ management:
     sampling:
       probability: 1.0
 
+app:
+  security:
+    enabled: false
+
 tracing:
   features:
     api: true
@@ -14,14 +18,22 @@ tracing:
     stateMachine: true
     externalApi: true
     reactive: true
-    useCase: true
+    useCase: false
 
 spring:
   main:
     allow-bean-definition-overriding: true
+    
+  cloud:
+    vault:
+      enabled: false
   
-  # TestContainers will override these dynamically
+  # TestContainers will override these dynamically via @DynamicPropertySource
+  # Placeholder values ensure DataSourceAutoConfiguration activates
   datasource:
+    url: jdbc:postgresql://localhost:5432/placeholder
+    username: placeholder
+    password: placeholder
     driver-class-name: org.postgresql.Driver
   
   jpa:
@@ -33,3 +45,4 @@ logging:
   level:
     dev.bloco.wallet: DEBUG
     org.testcontainers: INFO
+
