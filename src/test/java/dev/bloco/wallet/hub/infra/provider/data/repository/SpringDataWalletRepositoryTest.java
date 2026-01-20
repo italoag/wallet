@@ -26,13 +26,14 @@ class SpringDataWalletRepositoryTest {
     @DisplayName("Save and find by id")
     void saveAndFindById_roundTrip() {
         WalletEntity wallet = new WalletEntity();
+        wallet.setId(UUID.randomUUID());
         wallet.setUserId(UUID.randomUUID());
         wallet.setBalance(new BigDecimal("99.99"));
 
         WalletEntity persisted = repository.save(wallet);
         assertThat(persisted.getId()).isNotNull();
 
-        Optional<WalletEntity> reloaded = repository.findById(persisted.getId());
+        Optional<WalletEntity> reloaded = repository.findById(java.util.Objects.requireNonNull(persisted.getId()));
         assertThat(reloaded).isPresent();
         assertThat(reloaded.get().getUserId()).isEqualTo(wallet.getUserId());
         assertThat(reloaded.get().getBalance()).isEqualByComparingTo("99.99");

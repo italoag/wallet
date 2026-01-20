@@ -11,15 +11,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import dev.bloco.wallet.hub.infra.adapter.tracing.config.TracingFeatureFlags;
 import io.micrometer.tracing.Span;
 
+import lombok.extern.slf4j.Slf4j;
+
 /**
  * Performance tests for distributed tracing overhead (T143-T144).
  * 
  * <h2>Performance Requirements</h2>
  * <ul>
- * <li>Span creation and export: &lt;5ms per operation</li>
- * <li>Feature flag check: &lt;1μs per check</li>
+ * <li>Span creation and export: <5ms per operation</li>
+ * <li>Feature flag check: <1μs per check</li>
  * </ul>
  */
+@Slf4j
 @DisplayName("Tracing Performance Tests")
 class TracingPerformanceTest extends BaseIntegrationTest {
 
@@ -56,10 +59,10 @@ class TracingPerformanceTest extends BaseIntegrationTest {
         long avgMicros = TimeUnit.NANOSECONDS.toMicros(avgNanos);
         long avgMillis = TimeUnit.NANOSECONDS.toMillis(avgNanos);
 
-        System.out.println("Span creation performance:");
-        System.out.println("  Iterations: " + iterations);
-        System.out.println("  Average: " + avgMicros + "μs (" + avgMillis + "ms)");
-        System.out.println("  Total: " + TimeUnit.NANOSECONDS.toMillis(totalNanos) + "ms");
+        log.info("Span creation performance:");
+        log.info("  Iterations: {}", iterations);
+        log.info("  Average: {}μs ({}ms)", avgMicros, avgMillis);
+        log.info("  Total: {}ms", TimeUnit.NANOSECONDS.toMillis(totalNanos));
 
         // Verify requirement: average should be less than 5ms (5000μs)
         assertThat(avgMicros)
@@ -102,10 +105,10 @@ class TracingPerformanceTest extends BaseIntegrationTest {
         long avgNanos = totalNanos / iterations;
         long avgMicros = TimeUnit.NANOSECONDS.toMicros(avgNanos);
 
-        System.out.println("Span creation with tags performance:");
-        System.out.println("  Iterations: " + iterations);
-        System.out.println("  Tags per span: 5");
-        System.out.println("  Average: " + avgMicros + "μs");
+        log.info("Span creation with tags performance:");
+        log.info("  Iterations: {}", iterations);
+        log.info("  Tags per span: 5");
+        log.info("  Average: {}μs", avgMicros);
 
         assertThat(avgMicros)
                 .as("Average span creation with 5 tags should be less than 5000μs")
@@ -146,11 +149,11 @@ class TracingPerformanceTest extends BaseIntegrationTest {
         long avgMicros = TimeUnit.NANOSECONDS.toMicros(avgNanos);
         long avgPerSpan = avgMicros / 3; // 3 spans per iteration
 
-        System.out.println("Nested span creation performance:");
-        System.out.println("  Iterations: " + iterations);
-        System.out.println("  Spans per iteration: 3 (1 parent + 2 children)");
-        System.out.println("  Average total: " + avgMicros + "μs");
-        System.out.println("  Average per span: " + avgPerSpan + "μs");
+        log.info("Nested span creation performance:");
+        log.info("  Iterations: {}", iterations);
+        log.info("  Spans per iteration: 3 (1 parent + 2 children)");
+        log.info("  Average total: {}μs", avgMicros);
+        log.info("  Average per span: {}μs", avgPerSpan);
 
         assertThat(avgPerSpan)
                 .as("Average per span in nested hierarchy should be less than 5000μs")
@@ -189,12 +192,12 @@ class TracingPerformanceTest extends BaseIntegrationTest {
         long avgNanos = totalNanos / iterations;
         long avgPerCheck = avgNanos / 6; // 6 checks per iteration
 
-        System.out.println("Feature flag check performance:");
-        System.out.println("  Iterations: " + iterations);
-        System.out.println("  Checks per iteration: 6");
-        System.out.println("  Total time: " + TimeUnit.NANOSECONDS.toMillis(totalNanos) + "ms");
-        System.out.println("  Average per iteration: " + avgNanos + "ns");
-        System.out.println("  Average per check: " + avgPerCheck + "ns");
+        log.info("Feature flag check performance:");
+        log.info("  Iterations: {}", iterations);
+        log.info("  Checks per iteration: 6");
+        log.info("  Total time: {}ms", TimeUnit.NANOSECONDS.toMillis(totalNanos));
+        log.info("  Average per iteration: {}ns", avgNanos);
+        log.info("  Average per check: {}ns", avgPerCheck);
 
         // Verify requirement: should be less than 2000ns (2μs) to account for
         // environment jitter
@@ -234,10 +237,10 @@ class TracingPerformanceTest extends BaseIntegrationTest {
         long avgNanos = totalNanos / iterations;
         long avgMicros = TimeUnit.NANOSECONDS.toMicros(avgNanos);
 
-        System.out.println("Span event recording performance:");
-        System.out.println("  Iterations: " + iterations);
-        System.out.println("  Events per span: 3");
-        System.out.println("  Average: " + avgMicros + "μs");
+        log.info("Span event recording performance:");
+        log.info("  Iterations: {}", iterations);
+        log.info("  Events per span: 3");
+        log.info("  Average: {}μs", avgMicros);
 
         assertThat(avgMicros)
                 .as("Span with events should still be less than 5000μs")
@@ -282,11 +285,11 @@ class TracingPerformanceTest extends BaseIntegrationTest {
         long avgNanos = totalNanos / allDurations.size();
         long avgMicros = TimeUnit.NANOSECONDS.toMicros(avgNanos);
 
-        System.out.println("Concurrent span creation performance:");
-        System.out.println("  Threads: " + threads);
-        System.out.println("  Iterations per thread: " + iterationsPerThread);
-        System.out.println("  Total spans: " + allDurations.size());
-        System.out.println("  Average: " + avgMicros + "μs");
+        log.info("Concurrent span creation performance:");
+        log.info("  Threads: {}", threads);
+        log.info("  Iterations per thread: {}", iterationsPerThread);
+        log.info("  Total spans: {}", allDurations.size());
+        log.info("  Average: {}μs", avgMicros);
 
         assertThat(avgMicros)
                 .as("Concurrent span creation should maintain performance under 5000μs")

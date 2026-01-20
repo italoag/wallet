@@ -6,14 +6,17 @@ import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.stereotype.Service;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.transaction.annotation.Transactional;
 
-import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.Tracer;
 import io.micrometer.tracing.test.simple.SimpleTracer;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Integration tests for database operation tracing.
@@ -29,6 +32,7 @@ import io.micrometer.tracing.test.simple.SimpleTracer;
  * <li>Connection pool metrics</li>
  * </ul>
  */
+@Slf4j
 @SpringBootTest
 @ActiveProfiles("tracing")
 @TestPropertySource(properties = {
@@ -43,8 +47,24 @@ class DatabaseTracingIntegrationTest {
     @Autowired(required = false)
     private Tracer tracer;
 
-    @Autowired(required = false)
-    private ObservationRegistry observationRegistry;
+    @Autowired
+    private TestTransactionalService testTransactionalService;
+
+    @TestConfiguration
+    static class TestConfig {
+        @Bean
+        TestTransactionalService testTransactionalService() {
+            return new TestTransactionalService();
+        }
+    }
+
+    @Service
+    static class TestTransactionalService {
+        @Transactional
+        public void performTransactionalOperation() {
+            // Intentionally empty for testing transaction span creation
+        }
+    }
 
     @BeforeEach
     void setUp() {
@@ -58,18 +78,21 @@ class DatabaseTracingIntegrationTest {
     void shouldCreateTransactionSpan() {
         // Given: Tracing is available
         if (tracer == null) {
-            System.out.println("Tracer not available, skipping test");
+            log.warn("Tracer not available, skipping test");
             return;
         }
 
         // When: Execute transactional operation
-        Span parentSpan = tracer.nextSpan().name("test-transaction").start();
-        try (Tracer.SpanInScope scope = tracer.withSpan(parentSpan)) {
-            // In a real scenario, this would trigger @Transactional aspect
-            // For now, just verify transaction context
-            assertThat(tracer.currentSpan()).isNotNull();
-        } finally {
-            parentSpan.end();
+        testTransactionalService.performTransactionalOperation();
+
+        // Then: Verify transaction span was created
+        if (tracer instanceof SimpleTracer simpleTracer) {
+            assertThat(simpleTracer.getSpans())
+                    .anySatisfy(span -> {
+                        assertThat(span.getName()).startsWith("transaction.");
+                        assertThat(span.getTags()).containsEntry("tx.propagation", "REQUIRED");
+                        assertThat(span.getTags()).containsEntry("tx.status", "COMMITTED");
+                    });
         }
 
         // Then: Verify transaction span was created
@@ -80,7 +103,7 @@ class DatabaseTracingIntegrationTest {
     void shouldGroupQueriesInTransaction() {
         // Given: Tracing is available
         if (tracer == null) {
-            System.out.println("Tracer not available, skipping test");
+            log.warn("Tracer not available, skipping test");
             return;
         }
 
@@ -88,7 +111,7 @@ class DatabaseTracingIntegrationTest {
         Span txSpan = tracer.nextSpan().name("transaction").start();
         String txTraceId = txSpan.context().traceId();
 
-        try (Tracer.SpanInScope txScope = tracer.withSpan(txSpan)) {
+        try (Tracer.SpanInScope ignored = tracer.withSpan(txSpan)) {
             // Query 1
             Span query1 = tracer.nextSpan().name("query1").start();
             String q1TraceId = query1.context().traceId();
@@ -111,7 +134,7 @@ class DatabaseTracingIntegrationTest {
     void shouldCaptureTransactionAttributes() {
         // Given: Tracing is available
         if (tracer == null) {
-            System.out.println("Tracer not available, skipping test");
+            log.warn("Tracer not available, skipping test");
             return;
         }
 
@@ -134,7 +157,7 @@ class DatabaseTracingIntegrationTest {
     void shouldTraceReactiveQueries() {
         // Given: Tracing is available
         if (tracer == null) {
-            System.out.println("Tracer not available, skipping test");
+            log.warn("Tracer not available, skipping test");
             return;
         }
 
@@ -154,7 +177,7 @@ class DatabaseTracingIntegrationTest {
     void shouldMaintainReactiveContextPropagation() {
         // Given: Tracing is available
         if (tracer == null) {
-            System.out.println("Tracer not available, skipping test");
+            log.warn("Tracer not available, skipping test");
             return;
         }
 
@@ -179,7 +202,7 @@ class DatabaseTracingIntegrationTest {
     void shouldDetectSlowQuery() throws InterruptedException {
         // Given: Tracing is available
         if (tracer == null) {
-            System.out.println("Tracer not available, skipping test");
+            log.warn("Tracer not available, skipping test");
             return;
         }
 
@@ -201,7 +224,7 @@ class DatabaseTracingIntegrationTest {
     void shouldAddConnectionPoolMetrics() {
         // Given: Tracing is available
         if (tracer == null) {
-            System.out.println("Tracer not available, skipping test");
+            log.warn("Tracer not available, skipping test");
             return;
         }
 
@@ -223,7 +246,7 @@ class DatabaseTracingIntegrationTest {
     void shouldCaptureQueryDuration() {
         // Given: Tracing is available
         if (tracer == null) {
-            System.out.println("Tracer not available, skipping test");
+            log.warn("Tracer not available, skipping test");
             return;
         }
 
@@ -246,7 +269,7 @@ class DatabaseTracingIntegrationTest {
     void shouldHandleTransactionRollback() {
         // Given: Tracing is available
         if (tracer == null) {
-            System.out.println("Tracer not available, skipping test");
+            log.warn("Tracer not available, skipping test");
             return;
         }
 

@@ -12,20 +12,27 @@ import org.springframework.transaction.annotation.Transactional;
 
 /**
  * OutboxEventPublisher is a component responsible for publishing domain events
- * into an outbox table for eventual processing and delivery. It ensures reliable
- * event handling by persisting events into a database, allowing for later retrieval
+ * into an outbox table for eventual processing and delivery. It ensures
+ * reliable
+ * event handling by persisting events into a database, allowing for later
+ * retrieval
  * and processing by an external or downstream system.
- *<p/>
+ * <p/>
  * This class implements the DomainEventPublisher interface and provides the
- * functionality to serialize domain events and store them as OutboxEvent entities.
- *<p/>
+ * functionality to serialize domain events and store them as OutboxEvent
+ * entities.
+ * <p/>
  * Dependencies:
- * - OutboxRepository: Handles the persistence of OutboxEvent entities in the database.
- * - ObjectMapper: Used for serializing event objects into JSON format for storage.
- *<p/>
+ * - OutboxRepository: Handles the persistence of OutboxEvent entities in the
+ * database.
+ * - ObjectMapper: Used for serializing event objects into JSON format for
+ * storage.
+ * <p/>
  * The publish method is transactional, ensuring database consistency during the
- * serialization and persistence process. On a failure, such as a JSON serialization
- * error, a RuntimeException is thrown and logged, preventing the event from being
+ * serialization and persistence process. On a failure, such as a JSON
+ * serialization
+ * error, a RuntimeException is thrown and logged, preventing the event from
+ * being
  * stored with corrupted data.
  */
 @Component
@@ -35,32 +42,40 @@ public class OutboxEventPublisher implements DomainEventPublisher {
     private final OutboxRepository outboxRepository;
     private final ObjectMapper objectMapper;
 
-  /**
-   * Constructs a new instance of OutboxEventPublisher with the required dependencies.
-   *
-   * @param outboxRepository the repository used to persist OutboxEvent entities in the database.
-   * @param objectMapper the object mapper used for serializing domain events into JSON format.
-   */
-  @Autowired
+    /**
+     * Constructs a new instance of OutboxEventPublisher with the required
+     * dependencies.
+     *
+     * @param outboxRepository the repository used to persist OutboxEvent entities
+     *                         in the database.
+     * @param objectMapper     the object mapper used for serializing domain events
+     *                         into JSON format.
+     */
+    @Autowired
     public OutboxEventPublisher(OutboxRepository outboxRepository, ObjectMapper objectMapper) {
         this.outboxRepository = outboxRepository;
-        // Ensure Java Time (Instant, etc.) is supported when serializing events without relying on Spring Boot auto-config
+        // Ensure Java Time (Instant, etc.) is supported when serializing events without
+        // relying on Spring Boot auto-config
         objectMapper.findAndRegisterModules();
         this.objectMapper = objectMapper;
     }
 
-  /**
-   * Publishes a domain event by serializing it into JSON format and storing it
-   * as an entity in the outbox table for reliable processing and eventual delivery.
-   * This method ensures transactional consistency and logs any serialization errors encountered.
-   *
-   * @param event the domain event to be published. The event must be serializable as it
-   *              will be converted into JSON format and persisted in the database.
-   *              The event's class name will be used as the event type.
-   * @throws RuntimeException if the event fails to serialize into JSON format.
-   */
-  @Override
-    @Transactional
+    /**
+     * Publishes a domain event by serializing it into JSON format and storing it
+     * as an entity in the outbox table for reliable processing and eventual
+     * delivery.
+     * This method ensures transactional consistency and logs any serialization
+     * errors encountered.
+     *
+     * @param event the domain event to be published. The event must be serializable
+     *              as it
+     *              will be converted into JSON format and persisted in the
+     *              database.
+     *              The event's class name will be used as the event type.
+     * @throws RuntimeException if the event fails to serialize into JSON format.
+     */
+    @Override
+    @Transactional("transactionManager")
     public void publish(Object event) {
         try {
             OutboxEvent outboxEvent = new OutboxEvent();

@@ -7,7 +7,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
+import java.util.Objects;
 import java.util.Optional;
+
+import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase.Replace.ANY;
@@ -24,13 +27,14 @@ class SpringDataUserRepositoryTest {
     @DisplayName("Save and find by id")
     void saveAndFindById_roundTrip() {
         UserEntity user = new UserEntity();
+        user.setId(UUID.randomUUID());
         user.setName("Carol");
         user.setEmail("carol@example.com");
 
         UserEntity persisted = repository.save(user);
         assertThat(persisted.getId()).isNotNull();
 
-        Optional<UserEntity> reloaded = repository.findById(persisted.getId());
+        Optional<UserEntity> reloaded = repository.findById(Objects.requireNonNull(persisted.getId()));
         assertThat(reloaded).isPresent();
         assertThat(reloaded.get().getName()).isEqualTo("Carol");
         assertThat(reloaded.get().getEmail()).isEqualTo("carol@example.com");

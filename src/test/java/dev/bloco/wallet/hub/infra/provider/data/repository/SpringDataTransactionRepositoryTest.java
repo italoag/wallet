@@ -8,7 +8,6 @@ import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabas
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,6 +26,7 @@ class SpringDataTransactionRepositoryTest {
     @DisplayName("Save and find by id should round trip with blockchain schema fields")
     void saveAndFindById_roundTrip() {
         TransactionEntity tx = new TransactionEntity();
+        tx.setId(UUID.randomUUID());
         tx.setNetworkId(UUID.randomUUID());
         tx.setHash("0xabc");
         tx.setFromAddress("0xfrom");
@@ -38,13 +38,14 @@ class SpringDataTransactionRepositoryTest {
         TransactionEntity persisted = repository.save(tx);
         assertThat(persisted.getId()).isNotNull();
 
-        Optional<TransactionEntity> reloaded = repository.findById(persisted.getId());
+        Optional<TransactionEntity> reloaded = repository.findById(java.util.Objects.requireNonNull(persisted.getId()));
         assertThat(reloaded).isPresent();
         assertThat(reloaded.get().getNetworkId()).isEqualTo(tx.getNetworkId());
         assertThat(reloaded.get().getHash()).isEqualTo("0xabc");
         assertThat(reloaded.get().getFromAddress()).isEqualTo("0xfrom");
         assertThat(reloaded.get().getToAddress()).isEqualTo("0xto");
         assertThat(reloaded.get().getValue()).isEqualByComparingTo("42.00");
-        assertThat(reloaded.get().getStatus()).isEqualTo(dev.bloco.wallet.hub.domain.model.transaction.TransactionStatus.PENDING);
+        assertThat(reloaded.get().getStatus())
+                .isEqualTo(dev.bloco.wallet.hub.domain.model.transaction.TransactionStatus.PENDING);
     }
 }

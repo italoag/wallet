@@ -138,7 +138,7 @@ import lombok.extern.slf4j.Slf4j;
 @Configuration
 public class TracingConfiguration {
     static {
-        System.out.println("DEBUG: TracingConfiguration class loaded!");
+        log.debug("TracingConfiguration class loaded!");
     }
 
     @Value("${tracing.backends.primary:tempo}")
@@ -392,53 +392,56 @@ public class TracingConfiguration {
         List<String> configuredBackends = new ArrayList<>();
         List<String> warnings = new ArrayList<>();
 
-        // Check primary backend configuration
+        checkPrimaryBackend(configuredBackends, warnings);
+        checkFallbackBackend(configuredBackends, warnings);
+
+        if (configuredBackends.isEmpty()) {
+            return "ERROR: No trace backends properly configured! Spans will not be exported.";
+        }
+
+        return String.format("Multi-backend export configured: %s",
+                String.join(", ", configuredBackends));
+    }
+
+    private static final String TEMPO_BACKEND = "tempo";
+    private static final String ZIPKIN_BACKEND = "zipkin";
+    private static final String OTLP_PROPERTY = "management.otlp.tracing.endpoint";
+    private static final String ZIPKIN_PROPERTY = "management.zipkin.tracing.endpoint";
+
+    private void checkPrimaryBackend(List<String> configuredBackends, List<String> warnings) {
         if (isPrimaryOtlp()) {
-            if (otlpEndpoint != null && !otlpEndpoint.isEmpty()) {
-                configuredBackends.add("OTLP/Tempo (primary)");
-            } else {
-                warnings.add("Primary backend 'tempo' configured but management.otlp.tracing.endpoint is missing");
-            }
+            addBackendIfEndpointExists(configuredBackends, warnings, otlpEndpoint, "OTLP/Tempo (primary)",
+                    TEMPO_BACKEND, OTLP_PROPERTY);
         } else if (isPrimaryZipkin()) {
-            if (zipkinEndpoint != null && !zipkinEndpoint.isEmpty()) {
-                configuredBackends.add("Zipkin (primary)");
-            } else {
-                warnings.add("Primary backend 'zipkin' configured but management.zipkin.tracing.endpoint is missing");
-            }
+            addBackendIfEndpointExists(configuredBackends, warnings, zipkinEndpoint, "Zipkin (primary)", ZIPKIN_BACKEND,
+                    ZIPKIN_PROPERTY);
         } else {
             warnings.add("Unknown primary backend: " + primaryBackend);
         }
+    }
 
-        // Check fallback backend configuration
+    private void checkFallbackBackend(List<String> configuredBackends, List<String> warnings) {
         if (isFallbackOtlp()) {
-            if (otlpEndpoint != null && !otlpEndpoint.isEmpty()) {
-                configuredBackends.add("OTLP/Tempo (fallback)");
-            } else {
-                warnings.add("Fallback backend 'tempo' configured but management.otlp.tracing.endpoint is missing");
-            }
+            addBackendIfEndpointExists(configuredBackends, warnings, otlpEndpoint, "OTLP/Tempo (fallback)",
+                    TEMPO_BACKEND, OTLP_PROPERTY);
         } else if (isFallbackZipkin()) {
-            if (zipkinEndpoint != null && !zipkinEndpoint.isEmpty()) {
-                configuredBackends.add("Zipkin (fallback)");
-            } else {
-                warnings.add("Fallback backend 'zipkin' configured but management.zipkin.tracing.endpoint is missing");
-            }
+            addBackendIfEndpointExists(configuredBackends, warnings, zipkinEndpoint, "Zipkin (fallback)",
+                    ZIPKIN_BACKEND, ZIPKIN_PROPERTY);
         } else {
             warnings.add("Unknown fallback backend: " + fallbackBackend);
         }
+    }
 
-        // Report configuration status
-        if (configuredBackends.isEmpty()) {
-            String errorMsg = "No trace backends properly configured! Spans will not be exported.";
-            return "ERROR: " + errorMsg;
+    private void addBackendIfEndpointExists(List<String> backends, List<String> warnings, String endpoint,
+            String backendName, String configValue, String propertyName) {
+        if (endpoint != null && !endpoint.isEmpty()) {
+            backends.add(backendName);
+        } else {
+            warnings.add(String.format("%s backend '%s' configured but %s is missing",
+                    backendName.contains("(primary)") ? "Primary" : "Fallback",
+                    configValue,
+                    propertyName));
         }
-
-        if (!warnings.isEmpty()) {
-            // Logging removed due to Lombok issues
-        }
-
-        String summary = String.format("Multi-backend export configured: %s",
-                String.join(", ", configuredBackends));
-        return summary;
     }
 
     /**
@@ -459,31 +462,6 @@ public class TracingConfiguration {
 
     // Removed resilientCompositeSpanExporter to break circular dependency
 
-    /**
-     * Parses wait duration string (e.g., "60s", "1m") to seconds.
-     *
-     * @param duration the duration string
-     * @return duration in seconds
-     */
-    private long parseWaitDuration(String duration) {
-        if (duration == null || duration.isEmpty()) {
-            return 60; // Default 60 seconds
-        }
-
-        try {
-            // Simple parser for common formats
-            if (duration.endsWith("s")) {
-                return Long.parseLong(duration.substring(0, duration.length() - 1));
-            } else if (duration.endsWith("m")) {
-                return Long.parseLong(duration.substring(0, duration.length() - 1)) * 60;
-            } else {
-                return Long.parseLong(duration); // Assume seconds
-            }
-        } catch (NumberFormatException e) {
-            return 60;
-        }
-    }
-
     // TracingFeatureFlags logic moved to @PostConstruct in TracingFeatureFlags
     // class
 
@@ -491,27 +469,27 @@ public class TracingConfiguration {
      * Checks if primary backend is OTLP (Tempo).
      */
     private boolean isPrimaryOtlp() {
-        return "tempo".equalsIgnoreCase(primaryBackend) || "otlp".equalsIgnoreCase(primaryBackend);
+        return TEMPO_BACKEND.equalsIgnoreCase(primaryBackend) || "otlp".equalsIgnoreCase(primaryBackend);
     }
 
     /**
      * Checks if primary backend is Zipkin.
      */
     private boolean isPrimaryZipkin() {
-        return "zipkin".equalsIgnoreCase(primaryBackend);
+        return ZIPKIN_BACKEND.equalsIgnoreCase(primaryBackend);
     }
 
     /**
      * Checks if fallback backend is OTLP (Tempo).
      */
     private boolean isFallbackOtlp() {
-        return "tempo".equalsIgnoreCase(fallbackBackend) || "otlp".equalsIgnoreCase(fallbackBackend);
+        return TEMPO_BACKEND.equalsIgnoreCase(fallbackBackend) || "otlp".equalsIgnoreCase(fallbackBackend);
     }
 
     /**
      * Checks if fallback backend is Zipkin.
      */
     private boolean isFallbackZipkin() {
-        return "zipkin".equalsIgnoreCase(fallbackBackend);
+        return ZIPKIN_BACKEND.equalsIgnoreCase(fallbackBackend);
     }
 }

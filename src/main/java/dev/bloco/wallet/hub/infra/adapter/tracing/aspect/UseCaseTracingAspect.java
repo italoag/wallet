@@ -156,15 +156,17 @@ public class UseCaseTracingAspect {
      * Intercepts use case method executions and wraps them in observation spans.
      *
      * <p>
-     * Pointcut targets all public methods in classes ending with "UseCase" in the
-     * usecase package.
+     * Pointcut targets all public methods in classes annotated with {@code @Traced}
+     * or methods themselves annotated with {@code @Traced}.
      * </p>
      *
      * @param joinPoint the join point representing the method execution
      * @return the result of the use case method
      * @throws Throwable if the use case method throws an exception
      */
-    @Around("execution(public * dev.bloco.wallet.hub.usecase.*UseCase.*(..))")
+    @Around("(@within(dev.bloco.wallet.hub.infra.adapter.tracing.annotation.Traced) || " +
+            "@annotation(dev.bloco.wallet.hub.infra.adapter.tracing.annotation.Traced)) && " +
+            "execution(public * *(..))")
     public Object traceUseCaseExecution(ProceedingJoinPoint joinPoint) throws Throwable {
         // Check feature flag at runtime
         if (!featureFlags.isUseCase()) {
