@@ -1,13 +1,14 @@
 package dev.bloco.wallet.hub.usecase;
 
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
-import dev.bloco.wallet.hub.domain.gateway.AddressRepository;
 import dev.bloco.wallet.hub.domain.model.Wallet;
+import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
 
 /**
- * GetWalletDetailsUseCase is responsible for retrieving comprehensive wallet information.
+ * GetWalletDetailsUseCase is responsible for retrieving comprehensive wallet
+ * information.
  * It provides detailed wallet data including associated addresses and metadata.
  * <p/>
  * Business Rules:
@@ -16,7 +17,10 @@ import java.util.UUID;
  * <p/>
  * No domain events are published by this read-only operation.
  */
-public record GetWalletDetailsUseCase(WalletRepository walletRepository, AddressRepository addressRepository) {
+@RequiredArgsConstructor
+public class GetWalletDetailsUseCase {
+
+    private final WalletRepository walletRepository;
 
     /**
      * Retrieves detailed information about a wallet.
@@ -37,12 +41,14 @@ public record GetWalletDetailsUseCase(WalletRepository walletRepository, Address
     }
 
     /**
-     * Retrieves wallet information with validation that it exists and is accessible.
+     * Retrieves wallet information with validation that it exists and is
+     * accessible.
      *
-     * @param walletId the unique identifier of the wallet
+     * @param walletId       the unique identifier of the wallet
      * @param includeDeleted whether to include deleted wallets in the search
      * @return the wallet instance
-     * @throws IllegalArgumentException if wallet not found or is deleted when includeDeleted is false
+     * @throws IllegalArgumentException if wallet not found or is deleted when
+     *                                  includeDeleted is false
      */
     public Wallet getWallet(UUID walletId, boolean includeDeleted) {
         if (walletId == null) {

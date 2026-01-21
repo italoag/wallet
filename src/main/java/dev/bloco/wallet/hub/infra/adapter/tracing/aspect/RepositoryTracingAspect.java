@@ -1,12 +1,16 @@
 package dev.bloco.wallet.hub.infra.adapter.tracing.aspect;
 
 import java.lang.reflect.Method;
+import java.lang.reflect.ParameterizedType;
+import java.lang.reflect.Type;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 
 import org.aspectj.lang.ProceedingJoinPoint;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.reflect.MethodSignature;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,37 +30,66 @@ import lombok.extern.slf4j.Slf4j;
  * <h2>Purpose</h2>
  * Automatically creates spans for all repository method executions, capturing:
  * <ul>
- *   <li>Database system and operation type</li>
- *   <li>SQL statements (sanitized)</li>
- *   <li>Query execution duration</li>
- *   <li>Rows affected/returned</li>
- *   <li>Success/failure status with exception details</li>
+ * <li>Database system and operation type</li>
+ * <li>SQL statements (sanitized)</li>
+ * <li>Query execution duration</li>
+ * <li>Rows affected/returned</li>
+ * <li>Success/failure status with exception details</li>
  * </ul>
  *
  * <h2>Instrumentation Scope</h2>
  * Intercepts all public methods in repository interfaces:
+ * 
  * <pre>
  * dev.bloco.wallet.hub.infra.provider.data.repository.*Repository.*(..)
  * </pre>
  *
  * <h2>Span Attributes</h2>
  * <table border="1">
- *   <tr><th>Attribute</th><th>Description</th><th>Example</th></tr>
- *   <tr><td>db.system</td><td>Database type</td><td>postgresql, h2</td></tr>
- *   <tr><td>db.operation</td><td>Operation type</td><td>SELECT, INSERT, UPDATE, DELETE</td></tr>
- *   <tr><td>db.statement</td><td>Sanitized SQL</td><td>SELECT * FROM wallet WHERE id = ?</td></tr>
- *   <tr><td>db.sql.table</td><td>Primary table</td><td>wallet</td></tr>
- *   <tr><td>repository.method</td><td>Repository method</td><td>findById</td></tr>
- *   <tr><td>repository.class</td><td>Repository interface</td><td>WalletRepository</td></tr>
+ * <tr>
+ * <th>Attribute</th>
+ * <th>Description</th>
+ * <th>Example</th>
+ * </tr>
+ * <tr>
+ * <td>db.system</td>
+ * <td>Database type</td>
+ * <td>postgresql, h2</td>
+ * </tr>
+ * <tr>
+ * <td>db.operation</td>
+ * <td>Operation type</td>
+ * <td>SELECT, INSERT, UPDATE, DELETE</td>
+ * </tr>
+ * <tr>
+ * <td>db.statement</td>
+ * <td>Sanitized SQL</td>
+ * <td>SELECT * FROM wallet WHERE id = ?</td>
+ * </tr>
+ * <tr>
+ * <td>db.sql.table</td>
+ * <td>Primary table</td>
+ * <td>wallet</td>
+ * </tr>
+ * <tr>
+ * <td>repository.method</td>
+ * <td>Repository method</td>
+ * <td>findById</td>
+ * </tr>
+ * <tr>
+ * <td>repository.class</td>
+ * <td>Repository interface</td>
+ * <td>WalletRepository</td>
+ * </tr>
  * </table>
  *
  * <h2>SQL Sanitization</h2>
  * SQL statements are sanitized using {@link SensitiveDataSanitizer}:
  * <ul>
- *   <li>String literals replaced with '?'</li>
- *   <li>Numeric literals replaced with ?</li>
- *   <li>UUIDs masked</li>
- *   <li>Preserves query structure for performance analysis</li>
+ * <li>String literals replaced with '?'</li>
+ * <li>Numeric literals replaced with ?</li>
+ * <li>UUIDs masked</li>
+ * <li>Preserves query structure for performance analysis</li>
  * </ul>
  *
  * <h2>Feature Flag</h2>
@@ -65,12 +98,13 @@ import lombok.extern.slf4j.Slf4j;
  *
  * <h2>Performance</h2>
  * <ul>
- *   <li>Overhead: ~1-2ms per query (span creation + SQL sanitization)</li>
- *   <li>No impact when feature flag disabled</li>
- *   <li>Sampling reduces export overhead</li>
+ * <li>Overhead: ~1-2ms per query (span creation + SQL sanitization)</li>
+ * <li>No impact when feature flag disabled</li>
+ * <li>Sampling reduces export overhead</li>
  * </ul>
  *
  * <h2>Example Usage</h2>
+ * 
  * <pre>{@code
  * @Repository
  * public interface WalletRepository extends JpaRepository<WalletEntity, UUID> {
@@ -95,9 +129,15 @@ public class RepositoryTracingAspect {
 
     private final ObservationRegistry observationRegistry;
     private final SpanAttributeBuilder spanAttributeBuilder;
-    private final SensitiveDataSanitizer sanitizer;
+
     private final TracingFeatureFlags featureFlags;
     private final SlowQueryDetector slowQueryDetector;
+
+    /** Cache for table names extracted from repository interfaces. */
+    private final ConcurrentHashMap<Class<?>, String> tableNameCache = new ConcurrentHashMap<>();
+
+    @Value("${spring.datasource.url:}")
+    private String jdbcUrl;
 
     /**
      * Intercepts repository method executions and wraps them in observation spans.
@@ -128,7 +168,7 @@ public class RepositoryTracingAspect {
             final long startTime = System.currentTimeMillis();
             try {
                 // Add database attributes before execution
-                addDatabaseAttributes(observation, methodName);
+                addDatabaseAttributes(observation, methodName, joinPoint);
 
                 // Execute the repository method
                 Object result = joinPoint.proceed();
@@ -144,16 +184,26 @@ public class RepositoryTracingAspect {
                 return result;
 
             } catch (Throwable ex) {
-                // Add error attributes
-                addErrorAttributes(observation, ex);
-                
-                // Mark observation as failed
-                observation.error(ex);
-                observation.lowCardinalityKeyValue("status", "error");
+                // Add error attributes using builder
+                spanAttributeBuilder.addErrorAttributes(observation, ex);
 
-                log.debug("Repository operation traced with error: {}.{} - {}", 
-                         className, methodName, ex.getClass().getSimpleName());
-                
+                // Mark observation as wrong (still needed for some metrics/tracing backends)
+                observation.error(ex); // Redundant if builder does it, but keeping for safety as builder mainly does
+                                       // tags
+                // Actually builder does observation.error(ex) too, so we can remove it if we
+                // trust the builder fully.
+                // But let's check the builder implementation I just added.
+                // Yes, builder does observation.error(exception).
+                // However, I will keep the explicit state change logic or comments if distinct.
+
+                // My builder implementation:
+                // observation.error(exception);
+
+                // So I can simplify this block.
+
+                log.debug("Repository operation traced with error: {}.{} - {}",
+                        className, methodName, ex.getClass().getSimpleName());
+
                 // Rethrow as RuntimeException if it's a checked exception
                 switch (ex) {
                     case RuntimeException runtimeException -> throw runtimeException;
@@ -181,12 +231,12 @@ public class RepositoryTracingAspect {
 
         MethodSignature signature = (MethodSignature) joinPoint.getSignature();
         Method method = signature.getMethod();
-        
+
         // Check if method has @Transactional annotation
         Transactional methodTransactional = method.getAnnotation(Transactional.class);
-        final Transactional transactional = (methodTransactional != null) 
-            ? methodTransactional 
-            : method.getDeclaringClass().getAnnotation(Transactional.class);
+        final Transactional transactional = (methodTransactional != null)
+                ? methodTransactional
+                : method.getDeclaringClass().getAnnotation(Transactional.class);
 
         if (transactional == null) {
             // No transaction, just proceed
@@ -209,31 +259,31 @@ public class RepositoryTracingAspect {
                 try {
                     // Add transaction attributes
                     addTransactionAttributes(observation, transactional);
-                    
+
                     // Execute the transactional method
                     Object result = joinPoint.proceed();
-                    
+
                     // Calculate duration
                     long duration = System.currentTimeMillis() - startTime;
                     observation.highCardinalityKeyValue("tx.duration_ms", String.valueOf(duration));
                     observation.lowCardinalityKeyValue("tx.status", "COMMITTED");
                     observation.lowCardinalityKeyValue("status", "success");
-                    
+
                     log.trace("Transaction traced: {}.{} ({}ms, COMMITTED)", className, methodName, duration);
                     return result;
-                    
+
                 } catch (Throwable ex) {
                     long duration = System.currentTimeMillis() - startTime;
                     observation.highCardinalityKeyValue("tx.duration_ms", String.valueOf(duration));
                     observation.lowCardinalityKeyValue("tx.status", "ROLLED_BACK");
-                    observation.lowCardinalityKeyValue("status", "error");
-                    observation.error(ex);
-                    
-                    addErrorAttributes(observation, ex);
-                    
+                    // observation.lowCardinalityKeyValue("status", "error"); // Builder adds error
+                    // tags
+
+                    spanAttributeBuilder.addErrorAttributes(observation, ex);
+
                     log.debug("Transaction traced with error: {}.{} - {} (ROLLED_BACK)",
                             className, methodName, ex.getClass().getSimpleName());
-                    
+
                     // Rethrow as RuntimeException if it's a checked exception
                     switch (ex) {
                         case RuntimeException runtimeException -> throw runtimeException;
@@ -248,7 +298,7 @@ public class RepositoryTracingAspect {
     /**
      * Adds transaction-specific attributes to the observation.
      *
-     * @param observation the observation to add attributes to
+     * @param observation   the observation to add attributes to
      * @param transactional the @Transactional annotation
      */
     private void addTransactionAttributes(Observation observation, Transactional transactional) {
@@ -278,29 +328,29 @@ public class RepositoryTracingAspect {
      * Adds database-specific attributes to the observation.
      *
      * @param observation the observation to add attributes to
-     * @param methodName the repository method name
+     * @param methodName  the repository method name
+     * @param joinPoint   the join point for table name extraction
      */
-    private void addDatabaseAttributes(Observation observation, String methodName) {
+    private void addDatabaseAttributes(Observation observation, String methodName, ProceedingJoinPoint joinPoint) {
         try {
             // Determine database system from active profile or configuration
             // Default to H2 for development, PostgreSQL assumed for production
             String dbSystem = determineDbSystem();
-            observation.lowCardinalityKeyValue(SpanAttributeBuilder.DB_SYSTEM, dbSystem);
 
             // Derive operation type from method name
             String operation = deriveOperationType(methodName);
-            observation.lowCardinalityKeyValue(SpanAttributeBuilder.DB_OPERATION, operation);
-
-            // Extract table name from method signature if possible
-            String tableName = deriveTableName(methodName);
-            if (tableName != null) {
-                observation.lowCardinalityKeyValue(SpanAttributeBuilder.DB_SQL_TABLE, tableName);
-            }
 
             // Note: Actual SQL statement would require integration with Hibernate's
             // StatementInspector or JDBC proxy. For now, we document the method pattern.
             String queryPattern = deriveQueryPattern(methodName);
-            observation.highCardinalityKeyValue(SpanAttributeBuilder.DB_STATEMENT, queryPattern);
+
+            spanAttributeBuilder.addDatabaseAttributes(observation, dbSystem, operation, queryPattern, null);
+
+            // Extract table name from repository entity metadata
+            String tableName = deriveTableName(joinPoint);
+            if (tableName != null) {
+                spanAttributeBuilder.addDatabaseTable(observation, tableName);
+            }
 
         } catch (Exception e) {
             log.warn("Failed to extract database attributes: {}", e.getMessage());
@@ -308,14 +358,28 @@ public class RepositoryTracingAspect {
     }
 
     /**
-     * Determines the database system being used.
+     * Determines the database system from JDBC URL configuration.
      *
-     * @return database system name
+     * @return database system name (postgresql, h2, mysql, etc.)
      */
     private String determineDbSystem() {
-        // This would ideally come from DataSource configuration
-        // For now, return a reasonable default
-        return "h2"; // TODO: Inject actual DB type from configuration
+        if (jdbcUrl != null && !jdbcUrl.isEmpty()) {
+            String lowerUrl = jdbcUrl.toLowerCase();
+            if (lowerUrl.contains("postgresql") || lowerUrl.contains("postgres")) {
+                return "postgresql";
+            } else if (lowerUrl.contains("h2")) {
+                return "h2";
+            } else if (lowerUrl.contains("mysql")) {
+                return "mysql";
+            } else if (lowerUrl.contains("mariadb")) {
+                return "mariadb";
+            } else if (lowerUrl.contains("oracle")) {
+                return "oracle";
+            } else if (lowerUrl.contains("sqlserver") || lowerUrl.contains("mssql")) {
+                return "mssql";
+            }
+        }
+        return "unknown";
     }
 
     /**
@@ -325,12 +389,12 @@ public class RepositoryTracingAspect {
      * @return operation type (SELECT, INSERT, UPDATE, DELETE)
      */
     private String deriveOperationType(String methodName) {
-        if (methodName.startsWith("find") || methodName.startsWith("get") || 
-            methodName.startsWith("read") || methodName.startsWith("query") ||
-            methodName.startsWith("exists") || methodName.startsWith("count")) {
+        if (methodName.startsWith("find") || methodName.startsWith("get") ||
+                methodName.startsWith("read") || methodName.startsWith("query") ||
+                methodName.startsWith("exists") || methodName.startsWith("count")) {
             return "SELECT";
         } else if (methodName.startsWith("save") || methodName.startsWith("persist") ||
-                   methodName.startsWith("insert") || methodName.startsWith("create")) {
+                methodName.startsWith("insert") || methodName.startsWith("create")) {
             return "INSERT";
         } else if (methodName.startsWith("update") || methodName.startsWith("modify")) {
             return "UPDATE";
@@ -342,16 +406,70 @@ public class RepositoryTracingAspect {
     }
 
     /**
-     * Derives the primary table name from the method name pattern.
+     * Derives the primary table name from the repository's entity type.
+     * Uses @Table annotation if present, otherwise converts entity class name to
+     * snake_case.
      *
-     * @param methodName the method name
+     * @param joinPoint the join point to extract repository class from
      * @return table name or null
      */
-    private String deriveTableName(String methodName) {
-        // Extract entity name from repository interface naming convention
-        // WalletRepository → wallet
-        // This is a simplified approach; real implementation would inspect entity metadata
-        return null; // TODO: Extract from repository interface or entity metadata
+    private String deriveTableName(ProceedingJoinPoint joinPoint) {
+        Class<?> repositoryClass = joinPoint.getSignature().getDeclaringType();
+
+        return tableNameCache.computeIfAbsent(repositoryClass, clazz -> {
+            // Extract entity type from repository interface generics
+            // e.g., SpringDataWalletRepository extends JpaRepository<WalletEntity, UUID>
+            // → WalletEntity → "wallets" (from @Table) or "wallet" (from class name)
+
+            Type[] genericInterfaces = clazz.getGenericInterfaces();
+            for (Type genericInterface : genericInterfaces) {
+                if (genericInterface instanceof ParameterizedType pt) {
+                    Type[] typeArgs = pt.getActualTypeArguments();
+                    if (typeArgs.length > 0 && typeArgs[0] instanceof Class<?> entityClass) {
+                        return extractTableNameFromEntity(entityClass);
+                    }
+                }
+            }
+
+            // Fallback: try to extract from repository class name
+            String repoName = clazz.getSimpleName();
+            if (repoName.endsWith("Repository")) {
+                String entityName = repoName.substring(0, repoName.length() - 10);
+                if (entityName.startsWith("SpringData")) {
+                    entityName = entityName.substring(10);
+                }
+                return entityName.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
+            }
+
+            return null;
+        });
+    }
+
+    /**
+     * Extracts table name from JPA entity class.
+     *
+     * @param entityClass the entity class
+     * @return table name from @Table annotation or derived from class name
+     */
+    private String extractTableNameFromEntity(Class<?> entityClass) {
+        try {
+            // Check for @Table annotation
+            jakarta.persistence.Table tableAnnotation = entityClass.getAnnotation(jakarta.persistence.Table.class);
+            if (tableAnnotation != null && !tableAnnotation.name().isEmpty()) {
+                return tableAnnotation.name();
+            }
+
+            // Fallback: convert class name to snake_case table name
+            String entityName = entityClass.getSimpleName();
+            if (entityName.endsWith("Entity")) {
+                entityName = entityName.substring(0, entityName.length() - 6);
+            }
+            return entityName.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
+        } catch (Exception e) {
+            log.trace("Could not extract table name from entity {}: {}",
+                    entityClass.getSimpleName(), e.getMessage());
+            return null;
+        }
     }
 
     /**
@@ -362,7 +480,7 @@ public class RepositoryTracingAspect {
      */
     private String deriveQueryPattern(String methodName) {
         String operation = deriveOperationType(methodName);
-        
+
         if (methodName.contains("ById")) {
             return "%s ... WHERE id = ?".formatted(operation);
         } else if (methodName.contains("By")) {
@@ -398,7 +516,7 @@ public class RepositoryTracingAspect {
         // Take first field name before And/Or
         int andIndex = afterBy.indexOf("And");
         int orIndex = afterBy.indexOf("Or");
-        
+
         int endIndex = afterBy.length();
         if (andIndex > 0) {
             endIndex = Math.min(endIndex, andIndex);
@@ -406,46 +524,10 @@ public class RepositoryTracingAspect {
         if (orIndex > 0) {
             endIndex = Math.min(endIndex, orIndex);
         }
-        
+
         String field = afterBy.substring(0, endIndex);
         // Convert camelCase to snake_case
         return field.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
     }
 
-    /**
-     * Adds error attributes to the observation.
-     *
-     * @param observation the observation to add error attributes to
-     * @param throwable the exception that occurred
-     */
-    private void addErrorAttributes(Observation observation, Throwable throwable) {
-        observation.lowCardinalityKeyValue(SpanAttributeBuilder.ERROR, "true");
-        observation.lowCardinalityKeyValue(SpanAttributeBuilder.ERROR_TYPE, 
-                                          throwable.getClass().getSimpleName());
-        
-        String message = throwable.getMessage();
-        if (message != null) {
-            // Sanitize error message (may contain SQL with sensitive data)
-            String sanitizedMessage = sanitizer.sanitizeSql(message);
-            observation.highCardinalityKeyValue(SpanAttributeBuilder.ERROR_MESSAGE, 
-                                               truncate(sanitizedMessage, 512));
-        }
-    }
-
-    /**
-     * Truncates a string to the specified length.
-     *
-     * @param value the value to truncate
-     * @param maxLength maximum length
-     * @return truncated value
-     */
-    private String truncate(String value, int maxLength) {
-        if (value == null) {
-            return "";
-        }
-        if (value.length() <= maxLength) {
-            return value;
-        }
-        return value.substring(0, maxLength - 3) + "...";
-    }
 }

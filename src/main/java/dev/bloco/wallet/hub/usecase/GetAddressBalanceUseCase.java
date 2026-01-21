@@ -5,6 +5,7 @@ import dev.bloco.wallet.hub.domain.gateway.TokenBalanceRepository;
 import dev.bloco.wallet.hub.domain.model.address.Address;
 import dev.bloco.wallet.hub.domain.model.address.AddressBalanceResult;
 import dev.bloco.wallet.hub.domain.model.token.TokenBalance;
+import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -13,8 +14,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * GetAddressBalanceUseCase is responsible for retrieving balance information for addresses.
- * It provides comprehensive balance data including all tokens held by an address.
+ * GetAddressBalanceUseCase is responsible for retrieving balance information
+ * for addresses.
+ * It provides comprehensive balance data including all tokens held by an
+ * address.
  * <p/>
  * Business Rules:
  * - Address must exist
@@ -23,9 +26,11 @@ import java.util.stream.Collectors;
  * <p/>
  * No domain events are published by this read-only operation.
  */
-public record GetAddressBalanceUseCase(
-    AddressRepository addressRepository,
-    TokenBalanceRepository tokenBalanceRepository) {
+@RequiredArgsConstructor
+public class GetAddressBalanceUseCase {
+
+    private final AddressRepository addressRepository;
+    private final TokenBalanceRepository tokenBalanceRepository;
 
     /**
      * Retrieves all token balances for a specific address.
@@ -50,9 +55,8 @@ public record GetAddressBalanceUseCase(
 
         Map<UUID, BigDecimal> balancesByToken = tokenBalances.stream()
                 .collect(Collectors.toMap(
-                    TokenBalance::getTokenId,
-                    TokenBalance::getBalance
-                ));
+                        TokenBalance::getTokenId,
+                        TokenBalance::getBalance));
 
         return AddressBalanceResult.builder()
                 .addressId(addressId)
@@ -69,7 +73,7 @@ public record GetAddressBalanceUseCase(
      * Retrieves balance for a specific token on an address.
      *
      * @param addressId the unique identifier of the address
-     * @param tokenId the unique identifier of the token
+     * @param tokenId   the unique identifier of the token
      * @return token balance or zero if not found
      * @throws IllegalArgumentException if address not found
      */
@@ -103,8 +107,7 @@ public record GetAddressBalanceUseCase(
 
         return addressIds.stream()
                 .collect(Collectors.toMap(
-                    addressId -> addressId,
-                    this::getAddressBalance
-                ));
+                        addressId -> addressId,
+                        this::getAddressBalance));
     }
 }

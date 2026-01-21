@@ -4,6 +4,7 @@ import dev.bloco.wallet.hub.domain.gateway.UserRepository;
 import dev.bloco.wallet.hub.domain.gateway.UserSessionRepository;
 import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
 import dev.bloco.wallet.hub.domain.model.user.User;
+import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
 
@@ -20,16 +21,18 @@ import java.util.UUID;
  * Publishes:
  * - UserStatusChangedEvent when a user is successfully deactivated
  */
-public record DeactivateUserUseCase(
-    UserRepository userRepository,
-    UserSessionRepository sessionRepository,
-    DomainEventPublisher eventPublisher) {
+@RequiredArgsConstructor
+public class DeactivateUserUseCase {
+
+    private final UserRepository userRepository;
+    private final UserSessionRepository sessionRepository;
+    private final DomainEventPublisher eventPublisher;
 
     /**
      * Deactivates a user account.
      *
-     * @param userId the unique identifier of the user to deactivate
-     * @param reason the reason for deactivation (for audit purposes)
+     * @param userId        the unique identifier of the user to deactivate
+     * @param reason        the reason for deactivation (for audit purposes)
      * @param correlationId a unique identifier used to trace this operation
      * @throws IllegalArgumentException if validation fails
      */
@@ -60,7 +63,7 @@ public record DeactivateUserUseCase(
     /**
      * Activates a previously deactivated user account.
      *
-     * @param userId the unique identifier of the user to activate
+     * @param userId        the unique identifier of the user to activate
      * @param correlationId a unique identifier used to trace this operation
      * @return the activated user instance
      * @throws IllegalArgumentException if validation fails
@@ -88,8 +91,8 @@ public record DeactivateUserUseCase(
     /**
      * Suspends a user account temporarily.
      *
-     * @param userId the unique identifier of the user to suspend
-     * @param reason the reason for suspension
+     * @param userId        the unique identifier of the user to suspend
+     * @param reason        the reason for suspension
      * @param correlationId a unique identifier used to trace this operation
      * @throws IllegalArgumentException if validation fails
      */
@@ -120,7 +123,7 @@ public record DeactivateUserUseCase(
     /**
      * Unlocks a user account that was locked due to failed login attempts.
      *
-     * @param userId the unique identifier of the user to unlock
+     * @param userId        the unique identifier of the user to unlock
      * @param correlationId a unique identifier used to trace this operation
      * @return the unlocked user instance
      * @throws IllegalArgumentException if validation fails

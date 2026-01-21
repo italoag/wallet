@@ -3,6 +3,7 @@ package dev.bloco.wallet.hub.usecase;
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
 import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
 import dev.bloco.wallet.hub.domain.model.Wallet;
+import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
 
@@ -18,16 +19,20 @@ import java.util.UUID;
  * Publishes:
  * - WalletStatusChangedEvent when wallet is successfully deactivated
  */
-public record DeactivateWalletUseCase(WalletRepository walletRepository, DomainEventPublisher eventPublisher) {
+@RequiredArgsConstructor
+public class DeactivateWalletUseCase {
+
+    private final WalletRepository walletRepository;
+    private final DomainEventPublisher eventPublisher;
 
     /**
      * Deactivates a wallet, restricting operations.
      *
-     * @param walletId the unique identifier of the wallet to deactivate
+     * @param walletId      the unique identifier of the wallet to deactivate
      * @param correlationId a unique identifier used to trace this operation
      * @return the deactivated wallet instance
      * @throws IllegalArgumentException if wallet not found
-     * @throws IllegalStateException if wallet is deleted
+     * @throws IllegalStateException    if wallet is deleted
      */
     public Wallet deactivateWallet(UUID walletId, String correlationId) {
         Wallet wallet = walletRepository.findById(walletId)

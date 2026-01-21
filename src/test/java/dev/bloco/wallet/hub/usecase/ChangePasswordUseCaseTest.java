@@ -1,6 +1,5 @@
 package dev.bloco.wallet.hub.usecase;
 
-import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
 import dev.bloco.wallet.hub.domain.gateway.UserRepository;
 import dev.bloco.wallet.hub.domain.gateway.UserSessionRepository;
 import dev.bloco.wallet.hub.domain.model.user.User;
@@ -18,7 +17,8 @@ class ChangePasswordUseCaseTest {
 
   /**
    * Test class for {@link ChangePasswordUseCase}.
-   * This focuses on validating the behavior of the {@code changePassword} method for various scenarios.
+   * This focuses on validating the behavior of the {@code changePassword} method
+   * for various scenarios.
    */
 
   @Test
@@ -27,8 +27,7 @@ class ChangePasswordUseCaseTest {
     // Arrange
     UserRepository mockUserRepository = mock(UserRepository.class);
     UserSessionRepository mockSessionRepository = mock(UserSessionRepository.class);
-    DomainEventPublisher mockEventPublisher = mock(DomainEventPublisher.class);
-    ChangePasswordUseCase changePasswordUseCase = new ChangePasswordUseCase(mockUserRepository, mockSessionRepository, mockEventPublisher);
+    ChangePasswordUseCase changePasswordUseCase = new ChangePasswordUseCase(mockUserRepository, mockSessionRepository);
 
     UUID userId = UUID.randomUUID();
     String currentPassword = "Current@123";
@@ -37,7 +36,8 @@ class ChangePasswordUseCaseTest {
 
     User mockUser = mock(User.class);
     when(mockUserRepository.findById(userId)).thenReturn(Optional.of(mockUser));
-    when(mockUser.getPasswordHash()).thenReturn(changePasswordUseCase.hashPassword(currentPassword)); // Simulate stored password hash
+    when(mockUser.getPasswordHash()).thenReturn(changePasswordUseCase.hashPassword(currentPassword)); // Simulate stored
+                                                                                                      // password hash
     doNothing().when(mockUser).validateOperationAllowed();
 
     // Act
@@ -55,15 +55,14 @@ class ChangePasswordUseCaseTest {
     // Arrange
     UserRepository mockUserRepository = mock(UserRepository.class);
     UserSessionRepository mockSessionRepository = mock(UserSessionRepository.class);
-    DomainEventPublisher mockEventPublisher = mock(DomainEventPublisher.class);
-    ChangePasswordUseCase changePasswordUseCase = new ChangePasswordUseCase(mockUserRepository, mockSessionRepository, mockEventPublisher);
+    ChangePasswordUseCase changePasswordUseCase = new ChangePasswordUseCase(mockUserRepository, mockSessionRepository);
 
     String currentPassword = "Current@123";
     String newPassword = "New@Strong1";
 
     // Act & Assert
-    assertThrows(IllegalArgumentException.class, () ->
-        changePasswordUseCase.changePassword(null, currentPassword, newPassword, "correlation-id"));
+    assertThrows(IllegalArgumentException.class,
+        () -> changePasswordUseCase.changePassword(null, currentPassword, newPassword, "correlation-id"));
   }
 
   @Test
@@ -72,8 +71,7 @@ class ChangePasswordUseCaseTest {
     // Arrange
     UserRepository mockUserRepository = mock(UserRepository.class);
     UserSessionRepository mockSessionRepository = mock(UserSessionRepository.class);
-    DomainEventPublisher mockEventPublisher = mock(DomainEventPublisher.class);
-    ChangePasswordUseCase changePasswordUseCase = new ChangePasswordUseCase(mockUserRepository, mockSessionRepository, mockEventPublisher);
+    ChangePasswordUseCase changePasswordUseCase = new ChangePasswordUseCase(mockUserRepository, mockSessionRepository);
 
     UUID userId = UUID.randomUUID();
     String currentPassword = "Current@123";
@@ -82,8 +80,8 @@ class ChangePasswordUseCaseTest {
     when(mockUserRepository.findById(userId)).thenReturn(Optional.empty());
 
     // Act & Assert
-    assertThrows(IllegalArgumentException.class, () ->
-        changePasswordUseCase.changePassword(userId, currentPassword, newPassword, "correlation-id"));
+    assertThrows(IllegalArgumentException.class,
+        () -> changePasswordUseCase.changePassword(userId, currentPassword, newPassword, "correlation-id"));
   }
 
   @Test
@@ -92,8 +90,7 @@ class ChangePasswordUseCaseTest {
     // Arrange
     UserRepository mockUserRepository = mock(UserRepository.class);
     UserSessionRepository mockSessionRepository = mock(UserSessionRepository.class);
-    DomainEventPublisher mockEventPublisher = mock(DomainEventPublisher.class);
-    ChangePasswordUseCase changePasswordUseCase = new ChangePasswordUseCase(mockUserRepository, mockSessionRepository, mockEventPublisher);
+    ChangePasswordUseCase changePasswordUseCase = new ChangePasswordUseCase(mockUserRepository, mockSessionRepository);
 
     UUID userId = UUID.randomUUID();
     String currentPassword = "WrongPassword";
@@ -101,11 +98,13 @@ class ChangePasswordUseCaseTest {
 
     User mockUser = mock(User.class);
     when(mockUserRepository.findById(userId)).thenReturn(Optional.of(mockUser));
-    when(mockUser.getPasswordHash()).thenReturn(changePasswordUseCase.hashPassword("Current@123")); // Stored hash for a different password
+    when(mockUser.getPasswordHash()).thenReturn(changePasswordUseCase.hashPassword("Current@123")); // Stored hash for a
+                                                                                                    // different
+                                                                                                    // password
 
     // Act & Assert
-    assertThrows(IllegalArgumentException.class, () ->
-        changePasswordUseCase.changePassword(userId, currentPassword, newPassword, "correlation-id"));
+    assertThrows(IllegalArgumentException.class,
+        () -> changePasswordUseCase.changePassword(userId, currentPassword, newPassword, "correlation-id"));
   }
 
   @Test
@@ -114,8 +113,7 @@ class ChangePasswordUseCaseTest {
     // Arrange
     UserRepository mockUserRepository = mock(UserRepository.class);
     UserSessionRepository mockSessionRepository = mock(UserSessionRepository.class);
-    DomainEventPublisher mockEventPublisher = mock(DomainEventPublisher.class);
-    ChangePasswordUseCase changePasswordUseCase = new ChangePasswordUseCase(mockUserRepository, mockSessionRepository, mockEventPublisher);
+    ChangePasswordUseCase changePasswordUseCase = new ChangePasswordUseCase(mockUserRepository, mockSessionRepository);
 
     UUID userId = UUID.randomUUID();
     String currentPassword = "SamePassword@1";
@@ -126,8 +124,8 @@ class ChangePasswordUseCaseTest {
     when(mockUser.getPasswordHash()).thenReturn(changePasswordUseCase.hashPassword(currentPassword));
 
     // Act & Assert
-    assertThrows(IllegalArgumentException.class, () ->
-        changePasswordUseCase.changePassword(userId, currentPassword, newPassword, "correlation-id"));
+    assertThrows(IllegalArgumentException.class,
+        () -> changePasswordUseCase.changePassword(userId, currentPassword, newPassword, "correlation-id"));
   }
 
   @Test
@@ -136,8 +134,7 @@ class ChangePasswordUseCaseTest {
     // Arrange
     UserRepository mockUserRepository = mock(UserRepository.class);
     UserSessionRepository mockSessionRepository = mock(UserSessionRepository.class);
-    DomainEventPublisher mockEventPublisher = mock(DomainEventPublisher.class);
-    ChangePasswordUseCase changePasswordUseCase = new ChangePasswordUseCase(mockUserRepository, mockSessionRepository, mockEventPublisher);
+    ChangePasswordUseCase changePasswordUseCase = new ChangePasswordUseCase(mockUserRepository, mockSessionRepository);
 
     UUID userId = UUID.randomUUID();
     String currentPassword = "Current@123";
@@ -148,7 +145,7 @@ class ChangePasswordUseCaseTest {
     when(mockUser.getPasswordHash()).thenReturn(changePasswordUseCase.hashPassword(currentPassword));
 
     // Act & Assert
-    assertThrows(IllegalArgumentException.class, () ->
-        changePasswordUseCase.changePassword(userId, currentPassword, newPassword, "correlation-id"));
+    assertThrows(IllegalArgumentException.class,
+        () -> changePasswordUseCase.changePassword(userId, currentPassword, newPassword, "correlation-id"));
   }
 }

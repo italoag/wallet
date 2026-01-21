@@ -3,6 +3,7 @@ package dev.bloco.wallet.hub.usecase;
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
 import dev.bloco.wallet.hub.domain.model.Wallet;
 import dev.bloco.wallet.hub.domain.model.wallet.WalletStatus;
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.UUID;
@@ -18,7 +19,10 @@ import java.util.UUID;
  * <p/>
  * No domain events are published by this read-only operation.
  */
-public record ListWalletsUseCase(WalletRepository walletRepository) {
+@RequiredArgsConstructor
+public class ListWalletsUseCase {
+
+    private final WalletRepository walletRepository;
 
     /**
      * Retrieves all active wallets for a user.
@@ -31,7 +35,7 @@ public record ListWalletsUseCase(WalletRepository walletRepository) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID must be provided");
         }
-        
+
         return walletRepository.findActiveByUserId(userId);
     }
 
@@ -46,7 +50,7 @@ public record ListWalletsUseCase(WalletRepository walletRepository) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID must be provided");
         }
-        
+
         return walletRepository.findByUserId(userId)
                 .stream()
                 .filter(wallet -> !wallet.isDeleted())
@@ -68,7 +72,7 @@ public record ListWalletsUseCase(WalletRepository walletRepository) {
         if (status == null) {
             throw new IllegalArgumentException("Status must be provided");
         }
-        
+
         return walletRepository.findByUserIdAndStatus(userId, status);
     }
 
@@ -84,7 +88,7 @@ public record ListWalletsUseCase(WalletRepository walletRepository) {
         if (userId == null) {
             throw new IllegalArgumentException("User ID must be provided");
         }
-        
+
         return walletRepository.findByUserId(userId);
     }
 }

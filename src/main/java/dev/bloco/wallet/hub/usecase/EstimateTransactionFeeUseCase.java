@@ -8,13 +8,16 @@ import dev.bloco.wallet.hub.domain.model.transaction.FeeLevel;
 import dev.bloco.wallet.hub.domain.model.transaction.BlockchainTransactionType;
 import dev.bloco.wallet.hub.domain.model.transaction.FeeEstimate;
 import dev.bloco.wallet.hub.domain.model.transaction.FeeEstimateResult;
+import lombok.RequiredArgsConstructor;
+
 import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.util.StringUtils;
 
 /**
- * EstimateTransactionFeeUseCase is responsible for calculating transaction fees.
+ * EstimateTransactionFeeUseCase is responsible for calculating transaction
+ * fees.
  * It provides fee estimates for different speed levels and networks.
  * <p/>
  * Business Rules:
@@ -25,9 +28,11 @@ import org.springframework.util.StringUtils;
  * <p/>
  * No domain events are published by this read-only operation.
  */
-public record EstimateTransactionFeeUseCase(
-    NetworkRepository networkRepository,
-    TransactionFeeRepository feeRepository) {
+@RequiredArgsConstructor
+public class EstimateTransactionFeeUseCase {
+
+    private final NetworkRepository networkRepository;
+    private final TransactionFeeRepository feeRepository;
 
     private static final String ERROR_NETWORK_ID_REQUIRED = "Network ID must be provided";
     private static final String ERROR_GAS_LIMIT_REQUIRED = "Gas limit must be positive";
@@ -40,9 +45,10 @@ public record EstimateTransactionFeeUseCase(
     /**
      * Estimates transaction fees for all fee levels on a network.
      *
-     * @param networkId the unique identifier of the network
-     * @param gasLimit the estimated gas limit for the transaction
-     * @param correlationId the correlation identifier for tracking downstream requests
+     * @param networkId     the unique identifier of the network
+     * @param gasLimit      the estimated gas limit for the transaction
+     * @param correlationId the correlation identifier for tracking downstream
+     *                      requests
      * @return fee estimates for all levels
      * @throws IllegalArgumentException if network isn't found or invalid gas limit
      */
@@ -70,22 +76,23 @@ public record EstimateTransactionFeeUseCase(
                 .toList();
 
         return new FeeEstimateResult(
-            networkId,
-            network.getName(),
-            gasLimit,
-            estimates
-        );
+                networkId,
+                network.getName(),
+                gasLimit,
+                estimates);
     }
 
     /**
      * Estimates gas limit for common transaction types.
      *
-     * @param networkId the unique identifier of the network
+     * @param networkId                 the unique identifier of the network
      * @param blockchainTransactionType the type of transaction
-     * @param correlationId correlation identifier for repository lookups
+     * @param correlationId             correlation identifier for repository
+     *                                  lookups
      * @return estimated gas limit
      */
-    public BigDecimal estimateGasLimit(UUID networkId, BlockchainTransactionType blockchainTransactionType, String correlationId) {
+    public BigDecimal estimateGasLimit(UUID networkId, BlockchainTransactionType blockchainTransactionType,
+            String correlationId) {
         if (networkId == null) {
             throw new IllegalArgumentException(ERROR_NETWORK_ID_REQUIRED);
         }
@@ -93,11 +100,16 @@ public record EstimateTransactionFeeUseCase(
             throw new IllegalArgumentException(ERROR_TRANSACTION_TYPE_REQUIRED);
         }
 
-        // Validate network
+        // Validate network exists and is active
         Network network = networkRepository.findById(networkId, normalizeCorrelationId(correlationId))
                 .orElseThrow(() -> new IllegalArgumentException(ERROR_NETWORK_NOT_FOUND_TEMPLATE.formatted(networkId)));
 
-        // Return estimated gas limits based on transaction type
+        if (!network.isAvailable()) {
+            throw new IllegalStateException(ERROR_NETWORK_UNAVAILABLE_TEMPLATE.formatted(network.getName()));
+        }
+
+        // Return estimated gas limits based on transaction type and network
+        // configuration
         return switch (blockchainTransactionType) {
             case SIMPLE_TRANSFER -> new BigDecimal("21000");
             case ERC20_TRANSFER -> new BigDecimal("65000");
@@ -112,7 +124,7 @@ public record EstimateTransactionFeeUseCase(
      * Gets the latest fee information for a specific level.
      *
      * @param networkId the unique identifier of the network
-     * @param level the fee level
+     * @param level     the fee level
      * @return the latest fee information
      */
     public TransactionFee getLatestFee(UUID networkId, FeeLevel level) {
@@ -125,14 +137,13 @@ public record EstimateTransactionFeeUseCase(
         BigDecimal totalCost = fee.calculateTotalCost(gasLimit);
 
         return new FeeEstimate(
-            level,
-            fee.getGasPrice(),
-            fee.getBaseFee(),
-            fee.getPriorityFee(),
-            totalCost,
-            getEstimatedConfirmationTime(level),
-            fee.getLevelDescription()
-        );
+                level,
+                fee.getGasPrice(),
+                fee.getBaseFee(),
+                fee.getPriorityFee(),
+                totalCost,
+                getEstimatedConfirmationTime(level),
+                fee.getLevelDescription());
     }
 
     private TransactionFee createDefaultFee(UUID networkId, FeeLevel level) {
@@ -145,14 +156,13 @@ public record EstimateTransactionFeeUseCase(
         };
 
         return TransactionFee.create(
-            UUID.randomUUID(),
-            networkId,
-            level,
-            gasPrice,
-            null,
-            null,
-            true
-        );
+                UUID.randomUUID(),
+                networkId,
+                level,
+                gasPrice,
+                null,
+                null,
+                true);
     }
 
     private String getEstimatedConfirmationTime(FeeLevel level) {

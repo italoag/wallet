@@ -7,6 +7,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -21,14 +22,16 @@ import io.r2dbc.pool.PoolMetrics;
 /**
  * Unit tests for {@link R2dbcObservationHandler}.
  * 
- * <p>Tests verify:</p>
+ * <p>
+ * Tests verify:
+ * </p>
  * <ul>
- *   <li>Handler supports R2DBC observations</li>
- *   <li>Connection acquisition timing is captured</li>
- *   <li>Connection pool metrics are added</li>
- *   <li>Database attributes are set correctly</li>
- *   <li>Error handling adds appropriate tags</li>
- *   <li>Feature flag behavior</li>
+ * <li>Handler supports R2DBC observations</li>
+ * <li>Connection acquisition timing is captured</li>
+ * <li>Connection pool metrics are added</li>
+ * <li>Database attributes are set correctly</li>
+ * <li>Error handling adds appropriate tags</li>
+ * <li>Feature flag behavior</li>
  * </ul>
  */
 @ExtendWith(MockitoExtension.class)
@@ -109,8 +112,7 @@ class R2dbcObservationHandlerTest {
 
         // Then
         Long startTime = context.get("connection.acquisition.start");
-        assertThat(startTime).isNotNull();
-        assertThat(startTime).isGreaterThan(0);
+        assertThat(startTime).isNotNull().isGreaterThan(0);
     }
 
     @Test
@@ -133,19 +135,19 @@ class R2dbcObservationHandlerTest {
         KeyValue activeKv = context.getLowCardinalityKeyValue("db.connection_pool.active");
         assertThat(activeKv).isNotNull();
         assertThat(activeKv.getValue()).isEqualTo("3");
-        
+
         KeyValue idleKv = context.getLowCardinalityKeyValue("db.connection_pool.idle");
         assertThat(idleKv).isNotNull();
         assertThat(idleKv.getValue()).isEqualTo("7");
-        
+
         KeyValue maxKv = context.getLowCardinalityKeyValue("db.connection_pool.max");
         assertThat(maxKv).isNotNull();
         assertThat(maxKv.getValue()).isEqualTo("10");
-        
+
         KeyValue pendingKv = context.getLowCardinalityKeyValue("db.connection_pool.pending");
         assertThat(pendingKv).isNotNull();
         assertThat(pendingKv.getValue()).isEqualTo("1");
-        
+
         KeyValue statusKv = context.getLowCardinalityKeyValue("status");
         assertThat(statusKv).isNotNull();
         assertThat(statusKv.getValue()).isEqualTo("success");
@@ -214,21 +216,22 @@ class R2dbcObservationHandlerTest {
         context.setError(error);
 
         // When
+        when(sanitizer.sanitizeExceptionMessage(anyString())).thenAnswer(i -> i.getArguments()[0]);
         handler.onError(context);
 
         // Then
         KeyValue errorKv = context.getLowCardinalityKeyValue(SpanAttributeBuilder.ERROR);
         assertThat(errorKv).isNotNull();
         assertThat(errorKv.getValue()).isEqualTo("true");
-        
+
         KeyValue errorTypeKv = context.getLowCardinalityKeyValue(SpanAttributeBuilder.ERROR_TYPE);
         assertThat(errorTypeKv).isNotNull();
         assertThat(errorTypeKv.getValue()).isEqualTo("RuntimeException");
-        
+
         KeyValue errorMsgKv = context.getHighCardinalityKeyValue(SpanAttributeBuilder.ERROR_MESSAGE);
         assertThat(errorMsgKv).isNotNull();
         assertThat(errorMsgKv.getValue()).contains("Connection timeout");
-        
+
         KeyValue statusKv = context.getLowCardinalityKeyValue("status");
         assertThat(statusKv).isNotNull();
         assertThat(statusKv.getValue()).isEqualTo("error");
@@ -242,7 +245,7 @@ class R2dbcObservationHandlerTest {
 
         when(connectionPool.getMetrics()).thenReturn(Optional.of(poolMetrics));
         when(poolMetrics.acquiredSize()).thenReturn(8); // 8 active
-        when(poolMetrics.idleSize()).thenReturn(2);     // 2 idle
+        when(poolMetrics.idleSize()).thenReturn(2); // 2 idle
         when(poolMetrics.getMaxAllocatedSize()).thenReturn(10); // 10 max
         when(poolMetrics.pendingAcquireSize()).thenReturn(0);
 
@@ -265,7 +268,7 @@ class R2dbcObservationHandlerTest {
 
         // When/Then - should not throw exception
         handler.onStop(context);
-        
+
         // Pool metrics should not be present
         assertThat(context.getLowCardinalityKeyValue("db.connection_pool.active")).isNull();
     }

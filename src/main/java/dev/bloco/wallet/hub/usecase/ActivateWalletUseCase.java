@@ -3,12 +3,14 @@ package dev.bloco.wallet.hub.usecase;
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
 import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
 import dev.bloco.wallet.hub.domain.model.Wallet;
+import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
 
 /**
  * ActivateWalletUseCase is responsible for activating a wallet.
- * An activated wallet can perform all operations including transactions and balance management.
+ * An activated wallet can perform all operations including transactions and
+ * balance management.
  * <p/>
  * Business Rules:
  * - Wallet must exist
@@ -18,16 +20,21 @@ import java.util.UUID;
  * Publishes:
  * - WalletStatusChangedEvent when wallet is successfully activated
  */
-public record ActivateWalletUseCase(WalletRepository walletRepository, DomainEventPublisher eventPublisher) {
+@RequiredArgsConstructor
+public class ActivateWalletUseCase {
+
+    private final WalletRepository walletRepository;
+    private final DomainEventPublisher eventPublisher;
 
     /**
      * Activates a wallet, allowing all operations to be performed.
      *
-     * @param walletId the unique identifier of the wallet to activate
+     * @param walletId      the unique identifier of the wallet to activate
      * @param correlationId a unique identifier used to trace this operation
      * @return the activated wallet instance
      * @throws IllegalArgumentException if wallet not found
-     * @throws IllegalStateException if the wallet is deleted and cannot be activated
+     * @throws IllegalStateException    if the wallet is deleted and cannot be
+     *                                  activated
      */
     public Wallet activateWallet(UUID walletId, String correlationId) {
         Wallet wallet = walletRepository.findById(walletId)

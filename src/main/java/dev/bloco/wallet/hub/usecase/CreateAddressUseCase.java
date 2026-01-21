@@ -10,6 +10,7 @@ import dev.bloco.wallet.hub.domain.model.address.PublicKey;
 import dev.bloco.wallet.hub.domain.model.address.AccountAddress;
 import dev.bloco.wallet.hub.domain.model.Wallet;
 import dev.bloco.wallet.hub.domain.model.network.Network;
+import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
 
@@ -17,7 +18,8 @@ import org.springframework.util.StringUtils;
 
 /**
  * CreateAddressUseCase is responsible for generating new addresses for wallets.
- * It handles the creation of addresses on specific networks with proper validation.
+ * It handles the creation of addresses on specific networks with proper
+ * validation.
  * <p/>
  * Business Rules:
  * - Wallet must exist and be active
@@ -28,11 +30,13 @@ import org.springframework.util.StringUtils;
  * Publishes:
  * - AddressCreatedEvent when address is successfully created
  */
-public record CreateAddressUseCase(
-    AddressRepository addressRepository,
-    WalletRepository walletRepository,
-    NetworkRepository networkRepository,
-    DomainEventPublisher eventPublisher) {
+@RequiredArgsConstructor
+public class CreateAddressUseCase {
+
+    private final AddressRepository addressRepository;
+    private final WalletRepository walletRepository;
+    private final NetworkRepository networkRepository;
+    private final DomainEventPublisher eventPublisher;
 
     private static final String ERROR_WALLET_ID_REQUIRED = "Wallet ID must be provided";
     private static final String ERROR_NETWORK_ID_REQUIRED = "Network ID must be provided";
@@ -49,16 +53,16 @@ public record CreateAddressUseCase(
     /**
      * Creates a new address for a wallet on a specific network.
      *
-     * @param walletId the unique identifier of the wallet
-     * @param networkId the unique identifier of the network
-     * @param publicKeyValue the public key for the address
+     * @param walletId            the unique identifier of the wallet
+     * @param networkId           the unique identifier of the network
+     * @param publicKeyValue      the public key for the address
      * @param accountAddressValue the account address value
-     * @param addressType the type of address (EXTERNAL, INTERNAL, CONTRACT)
-     * @param derivationPath the BIP44 derivation path
-     * @param correlationId a unique identifier used to trace this operation
+     * @param addressType         the type of address (EXTERNAL, INTERNAL, CONTRACT)
+     * @param derivationPath      the BIP44 derivation path
+     * @param correlationId       a unique identifier used to trace this operation
      * @return the created address instance
      * @throws IllegalArgumentException if validation fails
-     * @throws IllegalStateException if wallet or network is not active
+     * @throws IllegalStateException    if wallet or network is not active
      */
     public Address createAddress(
             UUID walletId,
@@ -101,8 +105,7 @@ public record CreateAddressUseCase(
                 publicKey,
                 accountAddress,
                 addressType,
-                derivationPath
-        );
+                derivationPath);
 
         // Save address and update wallet
         addressRepository.save(address);
@@ -117,7 +120,7 @@ public record CreateAddressUseCase(
     }
 
     private void validateInputs(UUID walletId, UUID networkId, String publicKeyValue,
-                              String accountAddressValue, AddressType addressType) {
+            String accountAddressValue, AddressType addressType) {
         if (walletId == null) {
             throw new IllegalArgumentException(ERROR_WALLET_ID_REQUIRED);
         }
