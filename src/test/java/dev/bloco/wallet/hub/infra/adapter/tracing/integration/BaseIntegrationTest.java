@@ -27,6 +27,8 @@ import org.testcontainers.kafka.ConfluentKafkaContainer;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 import org.testcontainers.utility.DockerImageName;
 
+import com.redis.testcontainers.RedisContainer;
+
 /**
  * Base class for integration tests with testcontainers infrastructure.
  * 
@@ -86,6 +88,13 @@ import org.testcontainers.utility.DockerImageName;
 })
 public abstract class BaseIntegrationTest {
 
+    static {
+        // Disable Ryuk to avoid connection issues on macOS/Rancher Desktop
+        System.setProperty("TESTCONTAINERS_RYUK_DISABLED", "true");
+        // Force 127.0.0.1 to avoid IPv6 issues (localhost resolving to ::1)
+        System.setProperty("TESTCONTAINERS_HOST_OVERRIDE", "127.0.0.1");
+    }
+
     /**
      * PostgreSQL container for JPA and R2DBC integration tests.
      */
@@ -111,15 +120,22 @@ public abstract class BaseIntegrationTest {
     /**
      * Redis container for reactive caching integration tests.
      */
+    // @Container
+    // @SuppressWarnings("resource")
+    // protected static final GenericContainer<?> REDIS_CONTAINER = new
+    // GenericContainer<>(
+    // DockerImageName.parse("redis:7-alpine"))
+    // .withExposedPorts(6379)
+    // .waitingFor(Wait.forLogMessage(".*Ready to accept connections.*\\n", 1))
+    // .withReuse(true);
+
     @Container
     @SuppressWarnings("resource")
-    protected static final GenericContainer<?> REDIS_CONTAINER = new GenericContainer<>(
-            DockerImageName.parse("redis:7-alpine"))
-            .withCommand("redis-server", "--bind", "0.0.0.0")
-            .waitingFor(Wait.forListeningPort())
-            .withEnv("RESTART_TRIGGER", "2")
+    protected static final RedisContainer REDIS_CONTAINER = new RedisContainer(
+            RedisContainer.DEFAULT_IMAGE_NAME.withTag(RedisContainer.DEFAULT_TAG))
+            .withExposedPorts(6379)
+            .waitingFor(Wait.forLogMessage(".*Ready to accept connections.*\\n", 1))
             .withReuse(true);
-
     /**
      * Grafana LGTM stack container for tracing backend.
      */

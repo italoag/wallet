@@ -49,24 +49,6 @@ class ReactiveTracingIntegrationTest extends BaseIntegrationTest {
     @Autowired(required = false)
     private TracedReactiveStringRedisTemplate redisTemplate;
 
-    @BeforeEach
-    void checkRedisConnection() {
-        if (redisTemplate != null) {
-            try {
-                // Try to ping Redis with a short timeout
-                redisTemplate.getDelegate().getConnectionFactory().getReactiveConnection().ping()
-                        .block(Duration.ofSeconds(2));
-            } catch (Exception e) {
-                // If connection fails, skip the test
-                org.junit.jupiter.api.Assumptions.assumeTrue(false,
-                        "Skipping Redis test: Unable to connect to Redis container. " +
-                                "NOTE: Docker connectivity on this machine appears broken (Connection Refused). " +
-                                "Other tests (like Postgres) pass only because they fallback to H2 in-memory DB. " +
-                                "Error: " + e.getMessage());
-            }
-        }
-    }
-
     @Test
     @DisplayName("T133: Should maintain trace context across multiple reactive operators")
     void shouldMaintainTraceContextAcrossOperators() {
