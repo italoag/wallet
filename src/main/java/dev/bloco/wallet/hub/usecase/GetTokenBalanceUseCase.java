@@ -7,12 +7,14 @@ import dev.bloco.wallet.hub.domain.model.Wallet;
 import dev.bloco.wallet.hub.domain.model.token.Token;
 import dev.bloco.wallet.hub.domain.model.token.TokenBalance;
 import dev.bloco.wallet.hub.domain.model.token.TokenBalanceDetails;
+import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
- * GetTokenBalanceUseCase is responsible for retrieving token balance information.
+ * GetTokenBalanceUseCase is responsible for retrieving token balance
+ * information.
  * It provides balance data for specific tokens within wallets.
  * <p/>
  * Business Rules:
@@ -22,17 +24,19 @@ import java.util.UUID;
  * <p/>
  * No domain events are published by this read-only operation.
  */
-public record GetTokenBalanceUseCase(
-    WalletRepository walletRepository,
-    TokenRepository tokenRepository,
-    TokenBalanceRepository tokenBalanceRepository) {
+@RequiredArgsConstructor
+public class GetTokenBalanceUseCase {
+
+    private final WalletRepository walletRepository;
+    private final TokenRepository tokenRepository;
+    private final TokenBalanceRepository tokenBalanceRepository;
 
     /**
      * Retrieves the balance of a specific token for a wallet.
      * This aggregates balances across all addresses in the wallet.
      *
      * @param walletId the unique identifier of the wallet
-     * @param tokenId the unique identifier of the token
+     * @param tokenId  the unique identifier of the token
      * @return the total token balance for the wallet
      * @throws IllegalArgumentException if wallet or token not found
      */
@@ -54,7 +58,7 @@ public record GetTokenBalanceUseCase(
 
         // Aggregate balances across all addresses in the wallet
         BigDecimal totalBalance = BigDecimal.ZERO;
-        
+
         for (UUID addressId : wallet.getAddressIds()) {
             BigDecimal addressBalance = tokenBalanceRepository.findByAddressIdAndTokenId(addressId, tokenId)
                     .map(TokenBalance::getBalance)
@@ -69,7 +73,7 @@ public record GetTokenBalanceUseCase(
      * Retrieves detailed token balance information including metadata.
      *
      * @param walletId the unique identifier of the wallet
-     * @param tokenId the unique identifier of the token
+     * @param tokenId  the unique identifier of the token
      * @return detailed balance information
      * @throws IllegalArgumentException if wallet or token not found
      */
@@ -92,11 +96,11 @@ public record GetTokenBalanceUseCase(
         // Calculate total balance and collect address details
         BigDecimal totalBalance = BigDecimal.ZERO;
         int addressCount = 0;
-        
+
         for (UUID addressId : wallet.getAddressIds()) {
-            java.util.Optional<TokenBalance> balanceOpt = 
-                tokenBalanceRepository.findByAddressIdAndTokenId(addressId, tokenId);
-            
+            java.util.Optional<TokenBalance> balanceOpt = tokenBalanceRepository.findByAddressIdAndTokenId(addressId,
+                    tokenId);
+
             if (balanceOpt.isPresent()) {
                 totalBalance = totalBalance.add(balanceOpt.get().getBalance());
                 if (balanceOpt.get().getBalance().compareTo(BigDecimal.ZERO) > 0) {
@@ -117,7 +121,6 @@ public record GetTokenBalanceUseCase(
                 formattedBalance,
                 token.getDecimals(),
                 addressCount,
-                wallet.getAddressIds().size()
-        );
+                wallet.getAddressIds().size());
     }
 }

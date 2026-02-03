@@ -19,21 +19,24 @@ import lombok.extern.slf4j.Slf4j;
  * ObservationHandler for R2DBC reactive database operations.
  * 
  * <h2>Purpose</h2>
- * Instruments reactive database operations with distributed tracing spans, capturing:
+ * Instruments reactive database operations with distributed tracing spans,
+ * capturing:
  * <ul>
- *   <li>Connection acquisition timing and pool metrics</li>
- *   <li>Query execution duration</li>
- *   <li>Database system and operation type</li>
- *   <li>Connection pool health (active/idle connections)</li>
- *   <li>Success/failure status</li>
+ * <li>Connection acquisition timing and pool metrics</li>
+ * <li>Query execution duration</li>
+ * <li>Database system and operation type</li>
+ * <li>Connection pool health (active/idle connections)</li>
+ * <li>Success/failure status</li>
  * </ul>
  *
  * <h2>Integration</h2>
  * Works with Spring Data R2DBC's built-in observation support:
- * <pre>{@code
- * @Configuration
+ * 
+ * <pre>
+ * {@code
+ * &#64;Configuration
  * public class TracingConfiguration {
- *     @Bean
+ *     &#64;Bean
  *     ObservationRegistry observationRegistry() {
  *         ObservationRegistry registry = ObservationRegistry.create();
  *         registry.observationConfig()
@@ -41,17 +44,46 @@ import lombok.extern.slf4j.Slf4j;
  *         return registry;
  *     }
  * }
- * }</pre>
+ * }
+ * </pre>
  *
  * <h2>Span Attributes</h2>
  * <table border="1">
- *   <tr><th>Attribute</th><th>Description</th><th>Example</th></tr>
- *   <tr><td>db.system</td><td>Database type</td><td>postgresql, h2</td></tr>
- *   <tr><td>db.operation</td><td>Operation type</td><td>SELECT, INSERT</td></tr>
- *   <tr><td>db.connection.acquisition_time_ms</td><td>Time to acquire connection</td><td>5.2</td></tr>
- *   <tr><td>db.connection_pool.active</td><td>Active connections</td><td>3</td></tr>
- *   <tr><td>db.connection_pool.idle</td><td>Idle connections</td><td>7</td></tr>
- *   <tr><td>db.connection_pool.max</td><td>Max pool size</td><td>10</td></tr>
+ * <tr>
+ * <th>Attribute</th>
+ * <th>Description</th>
+ * <th>Example</th>
+ * </tr>
+ * <tr>
+ * <td>db.system</td>
+ * <td>Database type</td>
+ * <td>postgresql, h2</td>
+ * </tr>
+ * <tr>
+ * <td>db.operation</td>
+ * <td>Operation type</td>
+ * <td>SELECT, INSERT</td>
+ * </tr>
+ * <tr>
+ * <td>db.connection.acquisition_time_ms</td>
+ * <td>Time to acquire connection</td>
+ * <td>5.2</td>
+ * </tr>
+ * <tr>
+ * <td>db.connection_pool.active</td>
+ * <td>Active connections</td>
+ * <td>3</td>
+ * </tr>
+ * <tr>
+ * <td>db.connection_pool.idle</td>
+ * <td>Idle connections</td>
+ * <td>7</td>
+ * </tr>
+ * <tr>
+ * <td>db.connection_pool.max</td>
+ * <td>Max pool size</td>
+ * <td>10</td>
+ * </tr>
  * </table>
  *
  * <h2>Feature Flag</h2>
@@ -60,9 +92,9 @@ import lombok.extern.slf4j.Slf4j;
  *
  * <h2>Performance</h2>
  * <ul>
- *   <li>Overhead: <0.5ms per query (span creation + pool metrics)</li>
- *   <li>No blocking operations</li>
- *   <li>Metrics gathered asynchronously</li>
+ * <li>Overhead: <0.5ms per query (span creation + pool metrics)</li>
+ * <li>No blocking operations</li>
+ * <li>Metrics gathered asynchronously</li>
  * </ul>
  *
  * @see io.r2dbc.spi.Connection
@@ -80,6 +112,11 @@ public class R2dbcObservationHandler implements ObservationHandler<Observation.C
     private final SpanAttributeBuilder spanAttributeBuilder;
     private final TracingFeatureFlags featureFlags;
     private final ConnectionPool connectionPool; // Injected if available
+
+    @org.springframework.beans.factory.annotation.Value("${spring.r2dbc.url:}")
+    private String r2dbcUrl;
+
+    private static final String UNKNOWN_DB = "unknown";
 
     /**
      * Determines if this handler supports the given observation context.
@@ -114,7 +151,7 @@ public class R2dbcObservationHandler implements ObservationHandler<Observation.C
         try {
             // Record start time for connection acquisition
             context.put("connection.acquisition.start", System.nanoTime());
-            
+
             log.trace("R2DBC observation started: {}", context.getName());
         } catch (Exception e) {
             log.warn("Failed to start R2DBC observation: {}", e.getMessage());
@@ -139,11 +176,10 @@ public class R2dbcObservationHandler implements ObservationHandler<Observation.C
             if (acquisitionStart != null) {
                 long acquisitionTimeNs = System.nanoTime() - acquisitionStart;
                 double acquisitionTimeMs = acquisitionTimeNs / 1_000_000.0;
-                
+
                 context.addLowCardinalityKeyValue(
                         KeyValue.of("db.connection.acquisition_time_ms",
-                                "%.2f".formatted(acquisitionTimeMs))
-                );
+                                "%.2f".formatted(acquisitionTimeMs)));
             }
 
             // Add database system
@@ -176,22 +212,13 @@ public class R2dbcObservationHandler implements ObservationHandler<Observation.C
         try {
             Throwable error = context.getError();
             if (error != null) {
-                context.addLowCardinalityKeyValue(KeyValue.of(SpanAttributeBuilder.ERROR, "true"));
-                context.addLowCardinalityKeyValue(KeyValue.of(SpanAttributeBuilder.ERROR_TYPE, 
-                                                  error.getClass().getSimpleName()));
-                
-                String message = error.getMessage();
-                if (message != null) {
-                    context.addHighCardinalityKeyValue(KeyValue.of(SpanAttributeBuilder.ERROR_MESSAGE, 
-                                                       truncate(message, 512)));
-                }
-                
+                spanAttributeBuilder.addErrorAttributes(context, error);
                 context.addLowCardinalityKeyValue(KeyValue.of("status", "error"));
             }
 
-            log.debug("R2DBC observation error: {} - {}", 
-                     context.getName(), 
-                     error != null ? error.getClass().getSimpleName() : "unknown");
+            log.debug("R2DBC observation error: {} - {}",
+                    context.getName(),
+                    error != null ? error.getClass().getSimpleName() : UNKNOWN_DB);
         } catch (Exception e) {
             log.warn("Failed to handle R2DBC observation error: {}", e.getMessage());
         }
@@ -205,13 +232,12 @@ public class R2dbcObservationHandler implements ObservationHandler<Observation.C
     private void addDatabaseAttributes(Observation.Context context) {
         // Determine database system from context or connection pool
         String dbSystem = determineDatabaseSystem();
-        context.addLowCardinalityKeyValue(KeyValue.of(SpanAttributeBuilder.DB_SYSTEM, dbSystem));
 
         // Try to derive operation from context name
         String operation = deriveOperation(context.getName());
-        if (operation != null) {
-            context.addLowCardinalityKeyValue(KeyValue.of(SpanAttributeBuilder.DB_OPERATION, operation));
-        }
+
+        // Use builder
+        spanAttributeBuilder.addDatabaseAttributes(context, dbSystem, operation);
     }
 
     /**
@@ -230,26 +256,22 @@ public class R2dbcObservationHandler implements ObservationHandler<Observation.C
                 // Active connections
                 context.addLowCardinalityKeyValue(
                         KeyValue.of("db.connection_pool.active",
-                        String.valueOf(metrics.acquiredSize()))
-                );
+                                String.valueOf(metrics.acquiredSize())));
 
                 // Idle connections
                 context.addLowCardinalityKeyValue(
                         KeyValue.of("db.connection_pool.idle",
-                        String.valueOf(metrics.idleSize()))
-                );
+                                String.valueOf(metrics.idleSize())));
 
                 // Max pool size
                 context.addLowCardinalityKeyValue(
                         KeyValue.of("db.connection_pool.max",
-                        String.valueOf(metrics.getMaxAllocatedSize()))
-                );
+                                String.valueOf(metrics.getMaxAllocatedSize())));
 
                 // Pending acquisitions (waiting for connection)
                 context.addLowCardinalityKeyValue(
                         KeyValue.of("db.connection_pool.pending",
-                        String.valueOf(metrics.pendingAcquireSize()))
-                );
+                                String.valueOf(metrics.pendingAcquireSize())));
 
                 // Pool utilization percentage
                 int maxSize = metrics.getMaxAllocatedSize();
@@ -257,8 +279,7 @@ public class R2dbcObservationHandler implements ObservationHandler<Observation.C
                     double utilization = (metrics.acquiredSize() * 100.0) / maxSize;
                     context.addLowCardinalityKeyValue(
                             KeyValue.of("db.connection_pool.utilization_percent",
-                                    "%.1f".formatted(utilization))
-                    );
+                                    "%.1f".formatted(utilization)));
                 }
             }
         } catch (Exception e) {
@@ -267,15 +288,60 @@ public class R2dbcObservationHandler implements ObservationHandler<Observation.C
     }
 
     /**
-     * Determines the database system from connection pool configuration.
+     * Determines the database system from R2DBC URL or connection pool
+     * configuration.
      *
-     * @return database system name
+     * @return database system name (postgresql, h2, mysql, etc.)
      */
     private String determineDatabaseSystem() {
-        // Try to determine from connection pool metadata
-        // For now, return a default value
-        // In production, this would inspect the R2DBC URL or connection factory
-        return "postgresql"; // TODO: Extract from ConnectionFactory
+        // First, try to determine from R2DBC URL
+        String fromUrl = determineFromUrl(r2dbcUrl);
+        if (!UNKNOWN_DB.equals(fromUrl)) {
+            return fromUrl;
+        }
+
+        // Fallback: try to extract from connection pool metadata
+        return determineFromConnectionPool(connectionPool);
+    }
+
+    private String determineFromUrl(String url) {
+        if (url == null || url.isEmpty()) {
+            return UNKNOWN_DB;
+        }
+        String lowerUrl = url.toLowerCase();
+        if (lowerUrl.contains("postgresql") || lowerUrl.contains("postgres")) {
+            return "postgresql";
+        } else if (lowerUrl.contains("h2")) {
+            return "h2";
+        } else if (lowerUrl.contains("mysql")) {
+            return "mysql";
+        } else if (lowerUrl.contains("mariadb")) {
+            return "mariadb";
+        } else if (lowerUrl.contains("oracle")) {
+            return "oracle";
+        } else if (lowerUrl.contains("sqlserver") || lowerUrl.contains("mssql")) {
+            return "mssql";
+        }
+        return UNKNOWN_DB;
+    }
+
+    private String determineFromConnectionPool(ConnectionPool pool) {
+        if (pool == null) {
+            return UNKNOWN_DB;
+        }
+        try {
+            String factoryName = pool.getMetadata().getName().toLowerCase();
+            if (factoryName.contains("postgres")) {
+                return "postgresql";
+            } else if (factoryName.contains("h2")) {
+                return "h2";
+            } else if (factoryName.contains("mysql")) {
+                return "mysql";
+            }
+        } catch (Exception e) {
+            log.trace("Could not determine database from connection pool: {}", e.getMessage());
+        }
+        return UNKNOWN_DB;
     }
 
     /**
@@ -305,20 +371,4 @@ public class R2dbcObservationHandler implements ObservationHandler<Observation.C
         return null;
     }
 
-    /**
-     * Truncates a string to the specified length.
-     *
-     * @param value the value to truncate
-     * @param maxLength maximum length
-     * @return truncated value
-     */
-    private String truncate(String value, int maxLength) {
-        if (value == null) {
-            return "";
-        }
-        if (value.length() <= maxLength) {
-            return value;
-        }
-        return value.substring(0, maxLength - 3) + "...";
-    }
 }

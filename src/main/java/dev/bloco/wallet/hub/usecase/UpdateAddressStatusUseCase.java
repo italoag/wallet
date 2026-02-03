@@ -4,11 +4,13 @@ import dev.bloco.wallet.hub.domain.gateway.AddressRepository;
 import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
 import dev.bloco.wallet.hub.domain.model.address.Address;
 import dev.bloco.wallet.hub.domain.model.address.AddressStatus;
+import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
 
 /**
- * UpdateAddressStatusUseCase is responsible for changing the status of addresses.
+ * UpdateAddressStatusUseCase is responsible for changing the status of
+ * addresses.
  * It manages the lifecycle transitions of addresses within wallets.
  * <p/>
  * Business Rules:
@@ -19,14 +21,16 @@ import java.util.UUID;
  * Publishes:
  * - AddressStatusChangedEvent when address status is successfully changed
  */
-public record UpdateAddressStatusUseCase(
-    AddressRepository addressRepository,
-    DomainEventPublisher eventPublisher) {
+@RequiredArgsConstructor
+public class UpdateAddressStatusUseCase {
+
+    private final AddressRepository addressRepository;
+    private final DomainEventPublisher eventPublisher;
 
     /**
      * Activates an address, making it available for transactions.
      *
-     * @param addressId the unique identifier of the address
+     * @param addressId     the unique identifier of the address
      * @param correlationId a unique identifier used to trace this operation
      * @return the updated address instance
      * @throws IllegalArgumentException if address not found
@@ -52,7 +56,7 @@ public record UpdateAddressStatusUseCase(
     /**
      * Archives an address, removing it from active use but keeping it for history.
      *
-     * @param addressId the unique identifier of the address
+     * @param addressId     the unique identifier of the address
      * @param correlationId a unique identifier used to trace this operation
      * @return the updated address instance
      * @throws IllegalArgumentException if address not found
@@ -78,8 +82,8 @@ public record UpdateAddressStatusUseCase(
     /**
      * Updates the status of an address to a specific value.
      *
-     * @param addressId the unique identifier of the address
-     * @param newStatus the new status to set
+     * @param addressId     the unique identifier of the address
+     * @param newStatus     the new status to set
      * @param correlationId a unique identifier used to trace this operation
      * @return the updated address instance
      * @throws IllegalArgumentException if address not found or status is null
@@ -114,8 +118,8 @@ public record UpdateAddressStatusUseCase(
     /**
      * Batch updates the status of multiple addresses.
      *
-     * @param addressIds list of address identifiers to update
-     * @param newStatus the new status to set for all addresses
+     * @param addressIds    list of address identifiers to update
+     * @param newStatus     the new status to set for all addresses
      * @param correlationId a unique identifier used to trace this operation
      * @return count of successfully updated addresses
      */

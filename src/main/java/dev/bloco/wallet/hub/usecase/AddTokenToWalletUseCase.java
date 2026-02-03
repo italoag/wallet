@@ -8,11 +8,13 @@ import dev.bloco.wallet.hub.domain.model.Wallet;
 import dev.bloco.wallet.hub.domain.model.token.Token;
 import dev.bloco.wallet.hub.domain.model.wallet.WalletToken;
 import dev.bloco.wallet.hub.domain.event.wallet.TokenAddedToWalletEvent;
+import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
 
 /**
- * AddTokenToWalletUseCase is responsible for adding supported tokens to wallets.
+ * AddTokenToWalletUseCase is responsible for adding supported tokens to
+ * wallets.
  * This allows wallets to manage and display specific tokens.
  * <p/>
  * Business Rules:
@@ -24,22 +26,24 @@ import java.util.UUID;
  * Publishes:
  * - TokenAddedToWalletEvent when token is successfully added
  */
-public record AddTokenToWalletUseCase(
-    WalletRepository walletRepository,
-    TokenRepository tokenRepository,
-    WalletTokenRepository walletTokenRepository,
-    DomainEventPublisher eventPublisher) {
+@RequiredArgsConstructor
+public class AddTokenToWalletUseCase {
+
+    private final WalletRepository walletRepository;
+    private final TokenRepository tokenRepository;
+    private final WalletTokenRepository walletTokenRepository;
+    private final DomainEventPublisher eventPublisher;
 
     /**
      * Adds a token to a wallet for management and display.
      *
-     * @param walletId the unique identifier of the wallet
-     * @param tokenId the unique identifier of the token to add
-     * @param displayName custom display name for the token (optional)
+     * @param walletId      the unique identifier of the wallet
+     * @param tokenId       the unique identifier of the token to add
+     * @param displayName   custom display name for the token (optional)
      * @param correlationId a unique identifier used to trace this operation
      * @return the created wallet-token relationship
      * @throws IllegalArgumentException if validation fails
-     * @throws IllegalStateException if wallet is not active
+     * @throws IllegalStateException    if wallet is not active
      */
     public WalletToken addTokenToWallet(UUID walletId, UUID tokenId, String displayName, String correlationId) {
         // Validate inputs
@@ -65,9 +69,9 @@ public record AddTokenToWalletUseCase(
         }
 
         // Create a wallet-token relationship
-        WalletToken walletToken = displayName != null ? 
-            WalletToken.create(UUID.randomUUID(), walletId, tokenId, displayName) :
-            WalletToken.create(UUID.randomUUID(), walletId, tokenId);
+        WalletToken walletToken = displayName != null
+                ? WalletToken.create(UUID.randomUUID(), walletId, tokenId, displayName)
+                : WalletToken.create(UUID.randomUUID(), walletId, tokenId);
 
         // Save the relationship
         walletTokenRepository.save(walletToken);
@@ -79,7 +83,7 @@ public record AddTokenToWalletUseCase(
                 .displayName(displayName != null ? displayName : token.getName())
                 .correlationId(UUID.fromString(correlationId))
                 .build();
-        
+
         eventPublisher.publish(event);
 
         return walletToken;
@@ -88,8 +92,8 @@ public record AddTokenToWalletUseCase(
     /**
      * Adds multiple tokens to a wallet in batch.
      *
-     * @param walletId the unique identifier of the wallet
-     * @param tokenIds array of token identifiers to add
+     * @param walletId      the unique identifier of the wallet
+     * @param tokenIds      array of token identifiers to add
      * @param correlationId a unique identifier used to trace this operation
      * @return summary of the batch operation
      */
@@ -119,8 +123,34 @@ public record AddTokenToWalletUseCase(
      * Result of a batch token addition operation.
      */
     public record BatchAddResult(
-        int successCount,
-        int failureCount,
-        String[] errors
-    ) {}
+            int successCount,
+            int failureCount,
+            String[] errors) {
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o)
+                return true;
+            if (!(o instanceof BatchAddResult(int sc, int fc, String[] err)))
+                return false;
+            return successCount == sc
+                    && failureCount == fc
+                    && java.util.Arrays.equals(errors, err);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = Integer.hashCode(successCount);
+            result = 31 * result + Integer.hashCode(failureCount);
+            result = 31 * result + java.util.Arrays.hashCode(errors);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "BatchAddResult[successCount=" + successCount
+                    + ", failureCount=" + failureCount
+                    + ", errors=" + java.util.Arrays.toString(errors) + "]";
+        }
+    }
 }

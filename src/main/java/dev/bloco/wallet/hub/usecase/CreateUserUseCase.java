@@ -3,16 +3,17 @@ package dev.bloco.wallet.hub.usecase;
 import dev.bloco.wallet.hub.domain.gateway.UserRepository;
 import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
 import dev.bloco.wallet.hub.domain.model.user.User;
+import lombok.RequiredArgsConstructor;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.util.Base64;
-import java.util.UUID;
 
 /**
  * CreateUserUseCase is responsible for user registration.
- * It handles user creation with proper password hashing and email verification setup.
+ * It handles user creation with proper password hashing and email verification
+ * setup.
  * <p/>
  * Business Rules:
  * - Email must be unique in the system
@@ -23,18 +24,22 @@ import java.util.UUID;
  * Publishes:
  * - UserCreatedEvent when a user is successfully created
  */
-public record CreateUserUseCase(UserRepository userRepository, DomainEventPublisher eventPublisher) {
+@RequiredArgsConstructor
+public class CreateUserUseCase {
+
+    private final UserRepository userRepository;
+    private final DomainEventPublisher eventPublisher;
 
     /**
      * Creates a new user account.
      *
-     * @param name the user's full name
-     * @param email the user's email address
-     * @param password the plain text password
+     * @param name          the user's full name
+     * @param email         the user's email address
+     * @param password      the plain text password
      * @param correlationId a unique identifier used to trace this operation
      * @return the created user instance
      * @throws IllegalArgumentException if validation fails
-     * @throws IllegalStateException if email already exists
+     * @throws IllegalStateException    if email already exists
      */
     public User createUser(String name, String email, String password, String correlationId) {
         // Check if email already exists first (before validation)
@@ -50,7 +55,7 @@ public record CreateUserUseCase(UserRepository userRepository, DomainEventPublis
 
         // Create user
         User user = User.create(name, email, passwordHash);
-        
+
         // Generate email verification token
         String verificationToken = generateEmailVerificationToken();
         user.setEmailVerificationToken(verificationToken);
@@ -69,7 +74,7 @@ public record CreateUserUseCase(UserRepository userRepository, DomainEventPublis
      * Verifies a user's email using the verification token.
      *
      * @param verificationToken the email verification token
-     * @param correlationId a unique identifier used to trace this operation
+     * @param correlationId     a unique identifier used to trace this operation
      * @return the verified user
      * @throws IllegalArgumentException if token is invalid
      */
@@ -105,7 +110,8 @@ public record CreateUserUseCase(UserRepository userRepository, DomainEventPublis
             throw new IllegalArgumentException("Password must be at least 8 characters long");
         }
         if (!isStrongPassword(password)) {
-            throw new IllegalArgumentException("Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character");
+            throw new IllegalArgumentException(
+                    "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character");
         }
     }
 

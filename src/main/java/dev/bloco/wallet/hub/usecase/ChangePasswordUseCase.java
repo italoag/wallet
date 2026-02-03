@@ -2,8 +2,8 @@ package dev.bloco.wallet.hub.usecase;
 
 import dev.bloco.wallet.hub.domain.gateway.UserRepository;
 import dev.bloco.wallet.hub.domain.gateway.UserSessionRepository;
-import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
 import dev.bloco.wallet.hub.domain.model.user.User;
+import lombok.RequiredArgsConstructor;
 
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -14,7 +14,8 @@ import java.util.UUID;
 
 /**
  * ChangePasswordUseCase is responsible for updating user passwords.
- * It handles password validation, hashing, and session invalidation for security.
+ * It handles password validation, hashing, and session invalidation for
+ * security.
  * <p/>
  * Business Rules:
  * - User must exist and be active
@@ -24,20 +25,21 @@ import java.util.UUID;
  * <p/>
  * No domain events are published for security reasons.
  */
-public record ChangePasswordUseCase(
-    UserRepository userRepository,
-    UserSessionRepository sessionRepository,
-    DomainEventPublisher eventPublisher) {
+@RequiredArgsConstructor
+public class ChangePasswordUseCase {
+
+    private final UserRepository userRepository;
+    private final UserSessionRepository sessionRepository;
 
     /**
      * Changes a user's password.
      *
-     * @param userId the unique identifier of the user
+     * @param userId          the unique identifier of the user
      * @param currentPassword the user's current password
-     * @param newPassword the new password
-     * @param correlationId a unique identifier used to trace this operation
+     * @param newPassword     the new password
+     * @param correlationId   a unique identifier used to trace this operation
      * @throws IllegalArgumentException if validation fails
-     * @throws IllegalStateException if user is not active
+     * @throws IllegalStateException    if user is not active
      */
     public void changePassword(UUID userId, String currentPassword, String newPassword, String correlationId) {
         if (userId == null) {
@@ -73,8 +75,8 @@ public record ChangePasswordUseCase(
     /**
      * Resets a user's password (admin operation).
      *
-     * @param userId the unique identifier of the user
-     * @param newPassword the new password
+     * @param userId        the unique identifier of the user
+     * @param newPassword   the new password
      * @param correlationId a unique identifier used to trace this operation
      * @throws IllegalArgumentException if validation fails
      */
@@ -86,7 +88,8 @@ public record ChangePasswordUseCase(
             throw new IllegalArgumentException("Password must be at least 8 characters long");
         }
         if (!isStrongPassword(newPassword)) {
-            throw new IllegalArgumentException("Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character");
+            throw new IllegalArgumentException(
+                    "Password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character");
         }
 
         // Find user
@@ -112,7 +115,8 @@ public record ChangePasswordUseCase(
             throw new IllegalArgumentException("New password must be at least 8 characters long");
         }
         if (!isStrongPassword(newPassword)) {
-            throw new IllegalArgumentException("New password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character");
+            throw new IllegalArgumentException(
+                    "New password must contain at least one uppercase letter, one lowercase letter, one digit, and one special character");
         }
         if (currentPassword.equals(newPassword)) {
             throw new IllegalArgumentException("New password must be different from current password");
@@ -126,18 +130,18 @@ public record ChangePasswordUseCase(
     private boolean verifyPassword(String password, String hashedPassword) {
         try {
             byte[] combined = Base64.getDecoder().decode(hashedPassword);
-            
+
             // Extract salt (first 16 bytes)
             byte[] salt = Arrays.copyOfRange(combined, 0, 16);
-            
+
             // Extract hash (remaining bytes)
             byte[] storedHash = Arrays.copyOfRange(combined, 16, combined.length);
-            
+
             // Hash the provided password with the extracted salt
             MessageDigest md = MessageDigest.getInstance("SHA-256");
             md.update(salt);
             byte[] computedHash = md.digest(password.getBytes());
-            
+
             // Compare hashes
             return Arrays.equals(storedHash, computedHash);
         } catch (Exception e) {

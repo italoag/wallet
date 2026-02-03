@@ -3,15 +3,17 @@ package dev.bloco.wallet.hub.usecase;
 import dev.bloco.wallet.hub.domain.gateway.NetworkRepository;
 import dev.bloco.wallet.hub.domain.model.address.AccountAddress;
 import dev.bloco.wallet.hub.domain.model.network.Network;
+import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
-import java.util.regex.Pattern;
 
 import org.springframework.util.StringUtils;
 
 /**
- * ValidateAddressUseCase is responsible for validating address formats and network compatibility.
- * It provides comprehensive address validation for different blockchain networks.
+ * ValidateAddressUseCase is responsible for validating address formats and
+ * network compatibility.
+ * It provides comprehensive address validation for different blockchain
+ * networks.
  * <p/>
  * Business Rules:
  * - Address format must be valid for the specific network
@@ -20,7 +22,10 @@ import org.springframework.util.StringUtils;
  * <p/>
  * No domain events are published by this validation operation.
  */
-public record ValidateAddressUseCase(NetworkRepository networkRepository) {
+@RequiredArgsConstructor
+public class ValidateAddressUseCase {
+
+    private final NetworkRepository networkRepository;
 
     private static final String ERROR_ADDRESS_REQUIRED = "Address value must be provided";
     private static final String ERROR_CORRELATION_REQUIRED = "Correlation ID must be provided";
@@ -30,7 +35,7 @@ public record ValidateAddressUseCase(NetworkRepository networkRepository) {
      * Validates an address format for a specific network.
      *
      * @param addressValue the address value to validate
-     * @param networkId the network to validate against (optional)
+     * @param networkId    the network to validate against (optional)
      * @return validation result with details
      * @throws IllegalArgumentException if address is null or empty
      */
@@ -40,11 +45,11 @@ public record ValidateAddressUseCase(NetworkRepository networkRepository) {
         }
 
         try {
-            // Basic format validation
+            // Basic format validation using Domain Model
             AccountAddress accountAddress = new AccountAddress(addressValue);
 
-            String format = determineAddressFormat(addressValue);
-            boolean isFormatValid = !"Unknown".equals(format);
+            String format = accountAddress.getFormat().getDescription();
+            boolean isFormatValid = accountAddress.getFormat() != AccountAddress.AddressFormat.UNKNOWN;
             String networkName = "Unknown";
             boolean isNetworkCompatible = false; // Default to incompatible
 
@@ -55,7 +60,7 @@ public record ValidateAddressUseCase(NetworkRepository networkRepository) {
                 if (network != null) {
                     networkName = network.getName();
                     // Only check compatibility if format is valid
-                    isNetworkCompatible = isFormatValid && isAddressCompatibleWithNetwork(addressValue, network);
+                    isNetworkCompatible = isFormatValid && accountAddress.isCompatibleWith(network);
                 } else {
                     isNetworkCompatible = false;
                 }
@@ -101,43 +106,6 @@ public record ValidateAddressUseCase(NetworkRepository networkRepository) {
                 .toArray(AddressValidationResult[]::new);
     }
 
-    private String determineAddressFormat(String address) {
-        // Ethereum-style addresses (0x followed by 40 hex characters)
-        if (Pattern.matches("^0x[a-fA-F0-9]{40}$", address)) {
-            return "Ethereum";
-        }
-        
-        // Bitcoin-style addresses
-        if (Pattern.matches("^[13][a-km-zA-HJ-NP-Z1-9]{25,34}$", address)) {
-            return "Bitcoin Legacy";
-        }
-        
-        if (Pattern.matches("^bc1[a-z0-9]{39,59}$", address)) {
-            return "Bitcoin Bech32";
-        }
-        
-        // Generic hexadecimal format
-        if (Pattern.matches("^[a-fA-F0-9]+$", address)) {
-            return "Hexadecimal";
-        }
-        
-        return "Unknown";
-    }
-
-    private boolean isAddressCompatibleWithNetwork(String address, Network network) {
-        String format = determineAddressFormat(address);
-        String networkName = network.getName().toLowerCase();
-        
-        // Basic compatibility rules - this would be expanded for real networks
-        return switch (format) {
-            case "Ethereum" -> networkName.contains("ethereum") || 
-                              networkName.contains("bsc") || 
-                              networkName.contains("polygon");
-            case "Bitcoin Legacy", "Bitcoin Bech32" -> networkName.contains("bitcoin");
-            default -> true; // Allow unknown formats for flexibility
-        };
-    }
-
     /**
      * Result of address validation operation.
      */
@@ -163,12 +131,29 @@ public record ValidateAddressUseCase(NetworkRepository networkRepository) {
         }
 
         // Getters
-        public boolean isValid() { return valid; }
-        public String getAddress() { return address; }
-        public String getFormat() { return format; }
-        public String getNetwork() { return network; }
-        public boolean isNetworkCompatible() { return networkCompatible; }
-        public String getError() { return error; }
+        public boolean isValid() {
+            return valid;
+        }
+
+        public String getAddress() {
+            return address;
+        }
+
+        public String getFormat() {
+            return format;
+        }
+
+        public String getNetwork() {
+            return network;
+        }
+
+        public boolean isNetworkCompatible() {
+            return networkCompatible;
+        }
+
+        public String getError() {
+            return error;
+        }
 
         public static class Builder {
             private boolean valid;
@@ -178,12 +163,35 @@ public record ValidateAddressUseCase(NetworkRepository networkRepository) {
             private boolean networkCompatible;
             private String error;
 
-            public Builder valid(boolean valid) { this.valid = valid; return this; }
-            public Builder address(String address) { this.address = address; return this; }
-            public Builder format(String format) { this.format = format; return this; }
-            public Builder network(String network) { this.network = network; return this; }
-            public Builder networkCompatible(boolean compatible) { this.networkCompatible = compatible; return this; }
-            public Builder error(String error) { this.error = error; return this; }
+            public Builder valid(boolean valid) {
+                this.valid = valid;
+                return this;
+            }
+
+            public Builder address(String address) {
+                this.address = address;
+                return this;
+            }
+
+            public Builder format(String format) {
+                this.format = format;
+                return this;
+            }
+
+            public Builder network(String network) {
+                this.network = network;
+                return this;
+            }
+
+            public Builder networkCompatible(boolean compatible) {
+                this.networkCompatible = compatible;
+                return this;
+            }
+
+            public Builder error(String error) {
+                this.error = error;
+                return this;
+            }
 
             public AddressValidationResult build() {
                 return new AddressValidationResult(this);

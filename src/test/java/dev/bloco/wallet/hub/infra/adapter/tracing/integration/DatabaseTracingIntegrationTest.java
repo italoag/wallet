@@ -13,13 +13,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 /**
  * Integration tests for database operation tracing.
  * 
- * <p>Tests verify:</p>
+ * <p>
+ * Tests verify:
+ * </p>
  * <ul>
- *   <li>JPA transaction span creation and grouping</li>
- *   <li>R2DBC reactive query tracing with context propagation</li>
- *   <li>Slow query detection and tagging</li>
- *   <li>Transaction attributes (isolation level, status)</li>
- *   <li>Connection pool metrics</li>
+ * <li>JPA transaction span creation and grouping</li>
+ * <li>R2DBC reactive query tracing with context propagation</li>
+ * <li>Slow query detection and tagging</li>
+ * <li>Transaction attributes (isolation level, status)</li>
+ * <li>Connection pool metrics</li>
  * </ul>
  */
 @Testcontainers
@@ -51,23 +53,23 @@ class DatabaseTracingIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName( "Should group queries in transaction")
+    @DisplayName("Should group queries in transaction")
     void shouldGroupQueriesInTransaction() {
         // When: Execute multiple queries in transaction
         Span txSpan = createTestSpan("transaction");
         String txTraceId = txSpan.context().traceId();
-        
+
         try (Tracer.SpanInScope txScope = tracer.withSpan(txSpan)) {
             // Query 1
             Span query1 = tracer.nextSpan().name("query1").start();
             String q1TraceId = query1.context().traceId();
             query1.end();
-            
+
             // Query 2
             Span query2 = tracer.nextSpan().name("query2").start();
             String q2TraceId = query2.context().traceId();
             query2.end();
-            
+
             // Then: All should have the same trace ID
             assertThat(q1TraceId).isEqualTo(txTraceId);
             assertThat(q2TraceId).isEqualTo(txTraceId);
@@ -112,13 +114,13 @@ class DatabaseTracingIntegrationTest extends BaseIntegrationTest {
         // When: Create parent span and reactive child span
         Span parent = createTestSpan("parent");
         String parentTraceId = parent.context().traceId();
-        
+
         try (Tracer.SpanInScope scope = tracer.withSpan(parent)) {
             // Simulate reactive query
             Span reactiveSpan = tracer.nextSpan().name("r2dbc.reactive").start();
             String reactiveTraceId = reactiveSpan.context().traceId();
             reactiveSpan.end();
-            
+
             // Then: Reactive span should have the same trace ID
             assertThat(reactiveTraceId).isEqualTo(parentTraceId);
         } finally {
@@ -127,7 +129,7 @@ class DatabaseTracingIntegrationTest extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName( "Should detect slow query")
+    @DisplayName("Should detect slow query")
     void shouldDetectSlowQuery() throws InterruptedException {
         // When: Execute slow query (>50ms)
         Span span = createTestSpan("slow-query");
@@ -161,15 +163,15 @@ class DatabaseTracingIntegrationTest extends BaseIntegrationTest {
     @DisplayName("Should capture query duration")
     void shouldCaptureQueryDuration() {
         // When: Execute query and measure duration
-        long start = System.currentTimeMillis();
+        long start = System.nanoTime();
         Span span = createTestSpan("timed-query");
         try {
             Thread.sleep(10); // Simulate query execution
-        } catch (InterruptedException e) {
+        } catch (InterruptedException _) {
             Thread.currentThread().interrupt();
         }
         span.end();
-        long duration = System.currentTimeMillis() - start;
+        long duration = System.nanoTime() - start;
 
         // Then: Duration should be captured
         assertThat(duration).isGreaterThanOrEqualTo(10);

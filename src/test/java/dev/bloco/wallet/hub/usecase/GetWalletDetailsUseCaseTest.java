@@ -24,7 +24,7 @@ class GetWalletDetailsUseCaseTest {
     WalletRepository walletRepository = mock(WalletRepository.class);
     when(walletRepository.findById(walletId)).thenReturn(Optional.of(wallet));
 
-    GetWalletDetailsUseCase useCase = new GetWalletDetailsUseCase(walletRepository, null);
+    GetWalletDetailsUseCase useCase = new GetWalletDetailsUseCase(walletRepository);
 
     // Act
     Wallet result = useCase.getWalletDetails(walletId);
@@ -41,7 +41,7 @@ class GetWalletDetailsUseCaseTest {
   void getWalletDetails_throwsExceptionWhenWalletIdIsNull() {
     // Arrange
     WalletRepository walletRepository = mock(WalletRepository.class);
-    GetWalletDetailsUseCase useCase = new GetWalletDetailsUseCase(walletRepository, null);
+    GetWalletDetailsUseCase useCase = new GetWalletDetailsUseCase(walletRepository);
 
     // Act & Assert
     IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
@@ -60,7 +60,7 @@ class GetWalletDetailsUseCaseTest {
     WalletRepository walletRepository = mock(WalletRepository.class);
     when(walletRepository.findById(walletId)).thenReturn(Optional.empty());
 
-    GetWalletDetailsUseCase useCase = new GetWalletDetailsUseCase(walletRepository, null);
+    GetWalletDetailsUseCase useCase = new GetWalletDetailsUseCase(walletRepository);
 
     // Act & Assert
     IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
@@ -81,7 +81,7 @@ class GetWalletDetailsUseCaseTest {
     WalletRepository walletRepository = mock(WalletRepository.class);
     when(walletRepository.findById(walletId)).thenReturn(Optional.of(wallet));
 
-    GetWalletDetailsUseCase useCase = new GetWalletDetailsUseCase(walletRepository, null);
+    GetWalletDetailsUseCase useCase = new GetWalletDetailsUseCase(walletRepository);
 
     // Act
     Wallet result = useCase.getWallet(walletId, true);
@@ -102,7 +102,7 @@ class GetWalletDetailsUseCaseTest {
     WalletRepository walletRepository = mock(WalletRepository.class);
     when(walletRepository.findById(walletId)).thenReturn(Optional.of(wallet));
 
-    GetWalletDetailsUseCase useCase = new GetWalletDetailsUseCase(walletRepository, null);
+    GetWalletDetailsUseCase useCase = new GetWalletDetailsUseCase(walletRepository);
 
     // Act & Assert
     IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
@@ -123,7 +123,7 @@ class GetWalletDetailsUseCaseTest {
     WalletRepository walletRepository = mock(WalletRepository.class);
     when(walletRepository.findById(walletId)).thenReturn(Optional.of(wallet));
 
-    GetWalletDetailsUseCase useCase = new GetWalletDetailsUseCase(walletRepository, null);
+    GetWalletDetailsUseCase useCase = new GetWalletDetailsUseCase(walletRepository);
 
     // Act
     boolean result = useCase.isWalletAccessible(walletId);
@@ -142,7 +142,7 @@ class GetWalletDetailsUseCaseTest {
     WalletRepository walletRepository = mock(WalletRepository.class);
     when(walletRepository.findById(walletId)).thenReturn(Optional.empty());
 
-    GetWalletDetailsUseCase useCase = new GetWalletDetailsUseCase(walletRepository, null);
+    GetWalletDetailsUseCase useCase = new GetWalletDetailsUseCase(walletRepository);
 
     // Act
     boolean result = useCase.isWalletAccessible(walletId);
@@ -157,7 +157,7 @@ class GetWalletDetailsUseCaseTest {
   void isWalletAccessible_returnsFalseWhenWalletIdIsNull() {
     // Arrange
     WalletRepository walletRepository = mock(WalletRepository.class);
-    GetWalletDetailsUseCase useCase = new GetWalletDetailsUseCase(walletRepository, null);
+    GetWalletDetailsUseCase useCase = new GetWalletDetailsUseCase(walletRepository);
 
     // Act
     boolean result = useCase.isWalletAccessible(null);

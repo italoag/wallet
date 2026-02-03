@@ -5,12 +5,14 @@ import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
 import dev.bloco.wallet.hub.domain.model.address.Address;
 import dev.bloco.wallet.hub.domain.model.address.AddressStatus;
 import dev.bloco.wallet.hub.domain.model.Wallet;
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.UUID;
 
 /**
- * ListAddressesByWalletUseCase is responsible for retrieving addresses associated with a wallet.
+ * ListAddressesByWalletUseCase is responsible for retrieving addresses
+ * associated with a wallet.
  * It provides filtering and management capabilities for wallet addresses.
  * <p/>
  * Business Rules:
@@ -20,9 +22,11 @@ import java.util.UUID;
  * <p/>
  * No domain events are published by this read-only operation.
  */
-public record ListAddressesByWalletUseCase(
-    AddressRepository addressRepository,
-    WalletRepository walletRepository) {
+@RequiredArgsConstructor
+public class ListAddressesByWalletUseCase {
+
+    private final AddressRepository addressRepository;
+    private final WalletRepository walletRepository;
 
     /**
      * Retrieves all addresses for a wallet.
@@ -66,7 +70,7 @@ public record ListAddressesByWalletUseCase(
      * Retrieves addresses for a wallet with a specific status.
      *
      * @param walletId the unique identifier of the wallet
-     * @param status the address status to filter by
+     * @param status   the address status to filter by
      * @return list of addresses with the specified status
      * @throws IllegalArgumentException if wallet not found or status is null
      */
@@ -102,32 +106,31 @@ public record ListAddressesByWalletUseCase(
                 .orElseThrow(() -> new IllegalArgumentException("Wallet not found with id: " + walletId));
 
         List<Address> allAddresses = addressRepository.findByWalletId(walletId);
-        
+
         long activeCount = allAddresses.stream()
                 .filter(addr -> addr.getStatus() == AddressStatus.ACTIVE)
                 .count();
-        
+
         long archivedCount = allAddresses.stream()
                 .filter(addr -> addr.getStatus() == AddressStatus.ARCHIVED)
                 .count();
 
         return new AddressCountSummary(
-            walletId,
-            wallet.getName(),
-            allAddresses.size(),
-            activeCount,
-            archivedCount
-        );
+                walletId,
+                wallet.getName(),
+                allAddresses.size(),
+                activeCount,
+                archivedCount);
     }
 
     /**
      * Summary of address counts for a wallet.
      */
     public record AddressCountSummary(
-        UUID walletId,
-        String walletName,
-        int totalAddresses,
-        long activeAddresses,
-        long archivedAddresses
-    ) {}
+            UUID walletId,
+            String walletName,
+            int totalAddresses,
+            long activeAddresses,
+            long archivedAddresses) {
+    }
 }

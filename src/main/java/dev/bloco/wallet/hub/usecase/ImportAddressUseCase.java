@@ -10,14 +10,19 @@ import dev.bloco.wallet.hub.domain.model.address.PublicKey;
 import dev.bloco.wallet.hub.domain.model.address.AccountAddress;
 import dev.bloco.wallet.hub.domain.model.Wallet;
 import dev.bloco.wallet.hub.domain.model.network.Network;
+import lombok.RequiredArgsConstructor;
 
+import java.util.Arrays;
+import java.util.Objects;
 import java.util.UUID;
 
 import org.springframework.util.StringUtils;
 
 /**
- * ImportAddressUseCase is responsible for importing existing addresses into wallets.
- * This allows users to add pre-existing addresses to their wallet management system.
+ * ImportAddressUseCase is responsible for importing existing addresses into
+ * wallets.
+ * This allows users to add pre-existing addresses to their wallet management
+ * system.
  * <p/>
  * Business Rules:
  * - Wallet must exist and be active
@@ -29,12 +34,14 @@ import org.springframework.util.StringUtils;
  * Publishes:
  * - AddressCreatedEvent when address is successfully imported
  */
-public record ImportAddressUseCase(
-    AddressRepository addressRepository,
-    WalletRepository walletRepository,
-    NetworkRepository networkRepository,
-    DomainEventPublisher eventPublisher,
-    ValidateAddressUseCase validateAddressUseCase) {
+@RequiredArgsConstructor
+public class ImportAddressUseCase {
+
+    private final AddressRepository addressRepository;
+    private final WalletRepository walletRepository;
+    private final NetworkRepository networkRepository;
+    private final DomainEventPublisher eventPublisher;
+    private final ValidateAddressUseCase validateAddressUseCase;
 
     private static final String ERROR_WALLET_ID_REQUIRED = "Wallet ID must be provided";
     private static final String ERROR_NETWORK_ID_REQUIRED = "Network ID must be provided";
@@ -51,16 +58,17 @@ public record ImportAddressUseCase(
     /**
      * Imports an existing address into a wallet.
      *
-     * @param walletId the unique identifier of the wallet
-     * @param networkId the unique identifier of the network
+     * @param walletId            the unique identifier of the wallet
+     * @param networkId           the unique identifier of the network
      * @param accountAddressValue the address value to import
-     * @param publicKeyValue the public key (optional for watch-only)
-     * @param label a user-friendly label for the address
-     * @param isWatchOnly whether this is a watch-only address (no private key)
-     * @param correlationId a unique identifier used to trace this operation
+     * @param publicKeyValue      the public key (optional for watch-only)
+     * @param label               a user-friendly label for the address
+     * @param isWatchOnly         whether this is a watch-only address (no private
+     *                            key)
+     * @param correlationId       a unique identifier used to trace this operation
      * @return the imported address instance
      * @throws IllegalArgumentException if validation fails
-     * @throws IllegalStateException if wallet or network is not active
+     * @throws IllegalStateException    if wallet or network is not active
      */
     public Address importAddress(
             UUID walletId,
@@ -87,8 +95,8 @@ public record ImportAddressUseCase(
         }
 
         // Validate address format for the network
-        ValidateAddressUseCase.AddressValidationResult validationResult =
-            validateAddressUseCase.validateAddress(accountAddressValue, networkId, normalizedCorrelation);
+        ValidateAddressUseCase.AddressValidationResult validationResult = validateAddressUseCase
+                .validateAddress(accountAddressValue, networkId, normalizedCorrelation);
         if (!validationResult.isValid() || !validationResult.isNetworkCompatible()) {
             throw new IllegalArgumentException(ERROR_INVALID_ADDRESS_TEMPLATE.formatted(validationResult.getError()));
         }
@@ -112,10 +120,10 @@ public record ImportAddressUseCase(
 
         // Create value objects
         AccountAddress accountAddress = new AccountAddress(accountAddressValue);
-        
+
         // Determine an address type based on import context
         AddressType addressType = isWatchOnly ? AddressType.EXTERNAL : AddressType.EXTERNAL;
-        
+
         // Create a derivation path for imported address
         String derivationPath = "imported/" + (label != null ? label : "unlabeled");
 
@@ -127,8 +135,7 @@ public record ImportAddressUseCase(
                 publicKey,
                 accountAddress,
                 addressType,
-                derivationPath
-        );
+                derivationPath);
 
         // Save address and update wallet
         addressRepository.save(address);
@@ -145,10 +152,10 @@ public record ImportAddressUseCase(
     /**
      * Imports multiple addresses in a batch.
      *
-     * @param walletId the unique identifier of the wallet
-     * @param networkId the unique identifier of the network
+     * @param walletId       the unique identifier of the wallet
+     * @param networkId      the unique identifier of the network
      * @param addressImports array of addresses to import
-     * @param correlationId a unique identifier used to trace this operation
+     * @param correlationId  a unique identifier used to trace this operation
      * @return result summary of the batch import
      */
     public BatchImportResult importAddresses(
@@ -168,14 +175,13 @@ public record ImportAddressUseCase(
         for (AddressImport importRequest : addressImports) {
             try {
                 importAddress(
-                    walletId,
-                    networkId,
-                    importRequest.accountAddress(),
-                    importRequest.publicKey(),
-                    importRequest.label(),
-                    importRequest.isWatchOnly(),
-                    correlationId
-                );
+                        walletId,
+                        networkId,
+                        importRequest.accountAddress(),
+                        importRequest.publicKey(),
+                        importRequest.label(),
+                        importRequest.isWatchOnly(),
+                        correlationId);
                 successCount++;
             } catch (Exception e) {
                 failureCount++;
@@ -215,18 +221,46 @@ public record ImportAddressUseCase(
      * Represents an address import request.
      */
     public record AddressImport(
-        String accountAddress,
-        String publicKey,
-        String label,
-        boolean isWatchOnly
-    ) {}
+            String accountAddress,
+            String publicKey,
+            String label,
+            boolean isWatchOnly) {
+    }
 
     /**
      * Result of a batch import operation.
      */
     public record BatchImportResult(
-        int successCount,
-        int failureCount,
-        String[] errors
-    ) {}
+            int successCount,
+            int failureCount,
+            String[] errors) {
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o)
+                return true;
+            if (o == null || getClass() != o.getClass())
+                return false;
+            BatchImportResult that = (BatchImportResult) o;
+            return successCount == that.successCount &&
+                    failureCount == that.failureCount &&
+                    Arrays.equals(errors, that.errors);
+        }
+
+        @Override
+        public int hashCode() {
+            int result = Objects.hash(successCount, failureCount);
+            result = 31 * result + Arrays.hashCode(errors);
+            return result;
+        }
+
+        @Override
+        public String toString() {
+            return "BatchImportResult[" +
+                    "successCount=" + successCount +
+                    ", failureCount=" + failureCount +
+                    ", errors=" + Arrays.toString(errors) +
+                    ']';
+        }
+    }
 }

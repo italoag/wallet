@@ -2,7 +2,6 @@ package dev.bloco.wallet.hub.usecase;
 
 import dev.bloco.wallet.hub.domain.event.wallet.FundsTransferredEvent;
 import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
-import dev.bloco.wallet.hub.domain.gateway.TransactionRepository;
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
 import dev.bloco.wallet.hub.domain.model.Wallet;
 import org.junit.jupiter.api.DisplayName;
@@ -21,127 +20,119 @@ import static org.mockito.Mockito.*;
 @DisplayName("Transfer Funds Use Case Tests")
 class TransferFundsUseCaseTest {
 
-    @Test
-    @DisplayName("transferFunds updates both wallets and publishes event")
-    void transferFunds_success() {
-        WalletRepository walletRepository = mock(WalletRepository.class);
-        TransactionRepository transactionRepository = mock(TransactionRepository.class);
-        DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-        TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+  @Test
+  @DisplayName("transferFunds updates both wallets and publishes event")
+  void transferFunds_success() {
+    WalletRepository walletRepository = mock(WalletRepository.class);
+    DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
+    TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, eventPublisher);
 
-        UUID fromId = UUID.randomUUID();
-        UUID toId = UUID.randomUUID();
-        Wallet from = new Wallet(UUID.randomUUID(), "From", "");
-        Wallet to = new Wallet(UUID.randomUUID(), "To", "");
-        from.addFunds(new BigDecimal("50.00"));
-        to.addFunds(new BigDecimal("5.00"));
+    UUID fromId = UUID.randomUUID();
+    UUID toId = UUID.randomUUID();
+    Wallet from = new Wallet(UUID.randomUUID(), "From", "");
+    Wallet to = new Wallet(UUID.randomUUID(), "To", "");
+    from.addFunds(new BigDecimal("50.00"));
+    to.addFunds(new BigDecimal("5.00"));
 
-        when(walletRepository.findById(fromId)).thenReturn(Optional.of(from));
-        when(walletRepository.findById(toId)).thenReturn(Optional.of(to));
+    when(walletRepository.findById(fromId)).thenReturn(Optional.of(from));
+    when(walletRepository.findById(toId)).thenReturn(Optional.of(to));
 
-        BigDecimal amount = new BigDecimal("20.00");
-        String corr = "corr-xfer";
+    BigDecimal amount = new BigDecimal("20.00");
+    String corr = "corr-xfer";
 
-        useCase.transferFunds(fromId, toId, amount, corr);
+    useCase.transferFunds(fromId, toId, amount, corr);
 
-        assertThat(from.getBalance()).isEqualByComparingTo(new BigDecimal("30.00"));
-        assertThat(to.getBalance()).isEqualByComparingTo(new BigDecimal("25.00"));
+    assertThat(from.getBalance()).isEqualByComparingTo(new BigDecimal("30.00"));
+    assertThat(to.getBalance()).isEqualByComparingTo(new BigDecimal("25.00"));
 
-        verify(walletRepository).findById(fromId);
-        verify(walletRepository).findById(toId);
-        verify(walletRepository).update(from);
-        verify(walletRepository).update(to);
+    verify(walletRepository).findById(fromId);
+    verify(walletRepository).findById(toId);
+    verify(walletRepository).update(from);
+    verify(walletRepository).update(to);
 
-        ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
-        verify(eventPublisher).publish(eventCaptor.capture());
-        assertThat(eventCaptor.getValue()).isInstanceOf(FundsTransferredEvent.class);
-        FundsTransferredEvent evt = (FundsTransferredEvent) eventCaptor.getValue();
-        assertThat(evt.fromWalletId()).isEqualTo(from.getId());
-        assertThat(evt.toWalletId()).isEqualTo(to.getId());
-        assertThat(evt.amount()).isEqualByComparingTo(amount);
-        assertThat(evt.correlationId()).isEqualTo(corr);
+    ArgumentCaptor<Object> eventCaptor = ArgumentCaptor.forClass(Object.class);
+    verify(eventPublisher).publish(eventCaptor.capture());
+    assertThat(eventCaptor.getValue()).isInstanceOf(FundsTransferredEvent.class);
+    FundsTransferredEvent evt = (FundsTransferredEvent) eventCaptor.getValue();
+    assertThat(evt.fromWalletId()).isEqualTo(from.getId());
+    assertThat(evt.toWalletId()).isEqualTo(to.getId());
+    assertThat(evt.amount()).isEqualByComparingTo(amount);
+    assertThat(evt.correlationId()).isEqualTo(corr);
 
-        verifyNoMoreInteractions(walletRepository, transactionRepository, eventPublisher);
-    }
+    verifyNoMoreInteractions(walletRepository, eventPublisher);
+  }
 
-    @Test
-    @DisplayName("transferFunds throws when from wallet not found")
-    void transferFunds_fromWalletNotFound() {
-        WalletRepository walletRepository = mock(WalletRepository.class);
-        TransactionRepository transactionRepository = mock(TransactionRepository.class);
-        DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-        TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+  @Test
+  @DisplayName("transferFunds throws when from wallet not found")
+  void transferFunds_fromWalletNotFound() {
+    WalletRepository walletRepository = mock(WalletRepository.class);
+    DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
+    TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, eventPublisher);
 
-        UUID fromId = UUID.randomUUID();
-        UUID toId = UUID.randomUUID();
-        when(walletRepository.findById(fromId)).thenReturn(Optional.empty());
+    UUID fromId = UUID.randomUUID();
+    UUID toId = UUID.randomUUID();
+    when(walletRepository.findById(fromId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.transferFunds(fromId, toId, new BigDecimal("1.00"), "c"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("From Wallet not found");
+    assertThatThrownBy(() -> useCase.transferFunds(fromId, toId, new BigDecimal("1.00"), "c"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("From Wallet not found");
 
-        verify(walletRepository, never()).update(any());
-        verify(transactionRepository, never()).save(any());
-        verify(eventPublisher, never()).publish(any());
-    }
+    verify(walletRepository, never()).update(any());
+    verify(eventPublisher, never()).publish(any());
+  }
 
-    @Test
-    @DisplayName("transferFunds throws when to wallet not found")
-    void transferFunds_toWalletNotFound() {
-        WalletRepository walletRepository = mock(WalletRepository.class);
-        TransactionRepository transactionRepository = mock(TransactionRepository.class);
-        DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-        TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+  @Test
+  @DisplayName("transferFunds throws when to wallet not found")
+  void transferFunds_toWalletNotFound() {
+    WalletRepository walletRepository = mock(WalletRepository.class);
+    DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
+    TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, eventPublisher);
 
-        UUID fromId = UUID.randomUUID();
-        UUID toId = UUID.randomUUID();
-        when(walletRepository.findById(fromId)).thenReturn(Optional.of(new Wallet(UUID.randomUUID(), "From", "")));
-        when(walletRepository.findById(toId)).thenReturn(Optional.empty());
+    UUID fromId = UUID.randomUUID();
+    UUID toId = UUID.randomUUID();
+    when(walletRepository.findById(fromId)).thenReturn(Optional.of(new Wallet(UUID.randomUUID(), "From", "")));
+    when(walletRepository.findById(toId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.transferFunds(fromId, toId, new BigDecimal("1.00"), "c"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("To Wallet not found");
+    assertThatThrownBy(() -> useCase.transferFunds(fromId, toId, new BigDecimal("1.00"), "c"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("To Wallet not found");
 
-        verify(walletRepository, never()).update(any());
-        verify(transactionRepository, never()).save(any());
-        verify(eventPublisher, never()).publish(any());
-    }
+    verify(walletRepository, never()).update(any());
+    verify(eventPublisher, never()).publish(any());
+  }
 
-    @Test
-    @DisplayName("transferFunds with insufficient funds propagates exception and avoids side effects")
-    void transferFunds_insufficientFunds() {
-        WalletRepository walletRepository = mock(WalletRepository.class);
-        TransactionRepository transactionRepository = mock(TransactionRepository.class);
-        DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-        TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+  @Test
+  @DisplayName("transferFunds with insufficient funds propagates exception and avoids side effects")
+  void transferFunds_insufficientFunds() {
+    WalletRepository walletRepository = mock(WalletRepository.class);
+    DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
+    TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, eventPublisher);
 
-        UUID fromId = UUID.randomUUID();
-        UUID toId = UUID.randomUUID();
-        Wallet from = new Wallet(UUID.randomUUID(), "From", "");
-        Wallet to = new Wallet(UUID.randomUUID(), "To", "");
-        from.addFunds(new BigDecimal("5.00"));
-        when(walletRepository.findById(fromId)).thenReturn(Optional.of(from));
-        when(walletRepository.findById(toId)).thenReturn(Optional.of(to));
+    UUID fromId = UUID.randomUUID();
+    UUID toId = UUID.randomUUID();
+    Wallet from = new Wallet(UUID.randomUUID(), "From", "");
+    Wallet to = new Wallet(UUID.randomUUID(), "To", "");
+    from.addFunds(new BigDecimal("5.00"));
+    when(walletRepository.findById(fromId)).thenReturn(Optional.of(from));
+    when(walletRepository.findById(toId)).thenReturn(Optional.of(to));
 
-        assertThatThrownBy(() -> useCase.transferFunds(fromId, toId, new BigDecimal("10.00"), "c"))
-                .isInstanceOf(IllegalArgumentException.class)
-                .hasMessageContaining("Insufficient");
+    assertThatThrownBy(() -> useCase.transferFunds(fromId, toId, new BigDecimal("10.00"), "c"))
+        .isInstanceOf(IllegalArgumentException.class)
+        .hasMessageContaining("Insufficient");
 
-        verify(walletRepository, never()).update(any());
-        verify(transactionRepository, never()).save(any());
-        verify(eventPublisher, never()).publish(any());
+    verify(walletRepository, never()).update(any());
+    verify(eventPublisher, never()).publish(any());
 
-        // ensure destination wallet balance not modified
-        assertThat(to.getBalance()).isEqualByComparingTo(new BigDecimal("0.00"));
-    }
+    // ensure destination wallet balance not modified
+    assertThat(to.getBalance()).isEqualByComparingTo(new BigDecimal("0.00"));
+  }
 
   @Test
   @DisplayName("transferFunds passes correct correlation ID to FundsTransferredEvent")
   void transferFunds_correctCorrelationId() {
     WalletRepository walletRepository = mock(WalletRepository.class);
-    TransactionRepository transactionRepository = mock(TransactionRepository.class);
     DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-    TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+    TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, eventPublisher);
 
     UUID fromId = UUID.randomUUID();
     UUID toId = UUID.randomUUID();
@@ -166,9 +157,8 @@ class TransferFundsUseCaseTest {
   @DisplayName("transferFunds throws on zero or negative amount")
   void transferFunds_zeroOrNegativeAmount() {
     WalletRepository walletRepository = mock(WalletRepository.class);
-    TransactionRepository transactionRepository = mock(TransactionRepository.class);
     DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-    TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+    TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, eventPublisher);
 
     UUID fromId = UUID.randomUUID();
     UUID toId = UUID.randomUUID();
@@ -192,9 +182,8 @@ class TransferFundsUseCaseTest {
   @DisplayName("transferFunds ensures no changes to wallets on failed operation")
   void transferFunds_noSideEffectsOnFailure() {
     WalletRepository walletRepository = mock(WalletRepository.class);
-    TransactionRepository transactionRepository = mock(TransactionRepository.class);
     DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-    TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+    TransferFundsUseCase useCase = new TransferFundsUseCase(walletRepository, eventPublisher);
 
     UUID fromId = UUID.randomUUID();
     UUID toId = UUID.randomUUID();

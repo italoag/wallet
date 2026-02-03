@@ -4,13 +4,15 @@ import dev.bloco.wallet.hub.domain.gateway.NetworkRepository;
 import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
 import dev.bloco.wallet.hub.domain.model.network.Network;
 import dev.bloco.wallet.hub.domain.event.network.NetworkCreatedEvent;
+import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
 
 import org.springframework.util.StringUtils;
 
 /**
- * AddNetworkUseCase is responsible for adding new blockchain networks to the system.
+ * AddNetworkUseCase is responsible for adding new blockchain networks to the
+ * system.
  * This enables support for additional blockchain networks and their tokens.
  * <p/>
  * Business Rules:
@@ -22,9 +24,11 @@ import org.springframework.util.StringUtils;
  * Publishes:
  * - NetworkCreatedEvent when network is successfully added
  */
-public record AddNetworkUseCase(
-    NetworkRepository networkRepository,
-    DomainEventPublisher eventPublisher) {
+@RequiredArgsConstructor
+public class AddNetworkUseCase {
+
+    private final NetworkRepository networkRepository;
+    private final DomainEventPublisher eventPublisher;
 
     private static final String ERROR_NAME_REQUIRED = "Network name must be provided";
     private static final String ERROR_CHAIN_ID_REQUIRED = "Chain ID must be provided";
@@ -39,10 +43,10 @@ public record AddNetworkUseCase(
     /**
      * Adds a new blockchain network to the system.
      *
-     * @param name the display name of the network
-     * @param chainId the unique chain identifier
-     * @param rpcUrl the RPC endpoint URL for the network
-     * @param explorerUrl the block explorer URL for the network
+     * @param name          the display name of the network
+     * @param chainId       the unique chain identifier
+     * @param rpcUrl        the RPC endpoint URL for the network
+     * @param explorerUrl   the block explorer URL for the network
      * @param correlationId a unique identifier used to trace this operation
      * @return the created network instance
      * @throws IllegalArgumentException if validation fails
@@ -60,8 +64,7 @@ public record AddNetworkUseCase(
                 name,
                 chainId,
                 rpcUrl,
-                explorerUrl
-        );
+                explorerUrl);
 
         networkRepository.save(network, normalizedCorrelation);
 

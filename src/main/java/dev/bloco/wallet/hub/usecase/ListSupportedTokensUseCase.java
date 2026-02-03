@@ -5,6 +5,7 @@ import dev.bloco.wallet.hub.domain.gateway.NetworkRepository;
 import dev.bloco.wallet.hub.domain.model.token.Token;
 import dev.bloco.wallet.hub.domain.model.token.TokenType;
 import dev.bloco.wallet.hub.domain.model.network.Network;
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.UUID;
@@ -22,9 +23,11 @@ import org.springframework.util.StringUtils;
  * <p/>
  * No domain events are published by this read-only operation.
  */
-public record ListSupportedTokensUseCase(
-    TokenRepository tokenRepository,
-    NetworkRepository networkRepository) {
+@RequiredArgsConstructor
+public class ListSupportedTokensUseCase {
+
+    private final TokenRepository tokenRepository;
+    private final NetworkRepository networkRepository;
 
     private static final String ERROR_NETWORK_ID_REQUIRED = "Network ID must be provided";
     private static final String ERROR_TOKEN_TYPE_REQUIRED = "Token type must be provided";
@@ -103,10 +106,10 @@ public record ListSupportedTokensUseCase(
     public List<Token> listNFTTokens() {
         List<Token> erc721Tokens = tokenRepository.findByType(TokenType.ERC721);
         List<Token> erc1155Tokens = tokenRepository.findByType(TokenType.ERC1155);
-        
+
         java.util.List<Token> nftTokens = new java.util.ArrayList<>(erc721Tokens);
         nftTokens.addAll(erc1155Tokens);
-        
+
         return nftTokens;
     }
 
@@ -175,26 +178,25 @@ public record ListSupportedTokensUseCase(
         long customCount = tokens.stream().filter(token -> token.getType() == TokenType.CUSTOM).count();
 
         return new TokenListingResult(
-            tokens,
-            tokens.size(),
-            nativeCount,
-            erc20Count,
-            nftCount,
-            customCount
-        );
+                tokens,
+                tokens.size(),
+                nativeCount,
+                erc20Count,
+                nftCount,
+                customCount);
     }
 
     /**
      * Result containing token listing with summary information.
      */
     public record TokenListingResult(
-        List<Token> tokens,
-        int totalCount,
-        long nativeTokens,
-        long erc20Tokens,
-        long nftTokens,
-        long customTokens
-    ) {}
+            List<Token> tokens,
+            int totalCount,
+            long nativeTokens,
+            long erc20Tokens,
+            long nftTokens,
+            long customTokens) {
+    }
 
     private String normalizeCorrelationId(String correlationId) {
         if (!StringUtils.hasText(correlationId)) {
