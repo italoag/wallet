@@ -1,0 +1,279 @@
+{
+    "application": {
+        "path": "src/main/java/dev/bloco/wallet/hub",
+        "components": [
+            "src.main.java.dev.bloco.wallet.hub.WalletHubApplication.WalletHubApplication",
+            "src.main.java.dev.bloco.wallet.hub.config.DinamoLibraryLoader.DinamoLibraryLoader",
+            "src.main.java.dev.bloco.wallet.hub.config.ReactiveContextConfig.ReactiveContextConfig",
+            "src.main.java.dev.bloco.wallet.hub.config.UseCaseConfig.UseCaseConfig"
+        ],
+        "children": {}
+    },
+    "domain_models": {
+        "path": "src/main/java/dev/bloco/wallet/hub/domain/model",
+        "components": [
+            "src.main.java.dev.bloco.wallet.hub.domain.model.Wallet.Wallet",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.address.AccountAddress.AccountAddress",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.address.Address.Address",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.address.AddressBalanceResult.Builder",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.address.AddressBalanceResult.AddressBalanceResult",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.address.PublicKey.PublicKey",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.common.AggregateRoot.AggregateRoot",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.common.Entity.Entity",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.contract.Contract.Contract",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.contract.ContractABI.ContractABI",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.network.Network.Network",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.store.Store.Store",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.token.Token.Token",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.token.TokenBalance.TokenBalance",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.transaction.Transaction.Transaction",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.transaction.TransactionFee.TransactionFee",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.transaction.TransactionHash.TransactionHash",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.user.TwoFactorAuth.TwoFactorAuth",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.user.User.User",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.user.UserSession.UserSession",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.vault.Vault.Vault",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.vault.VaultConfiguration.VaultConfiguration",
+            "src.main.java.dev.bloco.wallet.hub.domain.model.wallet.WalletToken.WalletToken"
+        ],
+        "children": {}
+    },
+    "domain_events": {
+        "path": "src/main/java/dev/bloco/wallet/hub/domain/event",
+        "components": [
+            "src.main.java.dev.bloco.wallet.hub.domain.event.address.AddressCreatedEvent.AddressCreatedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.address.AddressStatusChangedEvent.AddressStatusChangedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.common.DomainEvent.DomainEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.common.DomainEventPublisher.DomainEventPublisher",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.contract.ContractDeployedEvent.ContractDeployedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.contract.ContractInteractionEvent.ContractInteractionEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.contract.ContractOwnerAddedEvent.ContractOwnerAddedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.contract.ContractOwnerRemovedEvent.ContractOwnerRemovedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.network.NetworkAddedEvent.NetworkAddedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.network.NetworkCreatedEvent.NetworkCreatedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.network.NetworkStatusChangedEvent.NetworkStatusChangedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.store.AddressAddedToStoreEvent.AddressAddedToStoreEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.store.StoreCreatedEvent.StoreCreatedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.store.StoreStatusChangedEvent.StoreStatusChangedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.token.TokenBalanceChangedEvent.TokenBalanceChangedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.token.TokenCreatedEvent.TokenCreatedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.transaction.TransactionConfirmedEvent.TransactionConfirmedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.transaction.TransactionCreatedEvent.TransactionCreatedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.transaction.TransactionStatusChangedEvent.TransactionStatusChangedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.user.UserAuthenticatedEvent.UserAuthenticatedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.user.UserCreatedEvent.UserCreatedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.user.UserProfileUpdatedEvent.UserProfileUpdatedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.user.UserStatusChangedEvent.UserStatusChangedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.vault.KeyPairGeneratedEvent.KeyPairGeneratedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.vault.VaultCreatedEvent.VaultCreatedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.vault.VaultStatusChangedEvent.VaultStatusChangedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.wallet.AddressAddedToWalletEvent.AddressAddedToWalletEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.wallet.AddressRemovedFromWalletEvent.AddressRemovedFromWalletEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.wallet.TokenAddedToWalletEvent.TokenAddedToWalletEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.wallet.TokenRemovedFromWalletEvent.TokenRemovedFromWalletEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.wallet.WalletCreatedEvent.WalletCreatedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.wallet.WalletDeletedEvent.WalletDeletedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.wallet.WalletRecoveryInitiatedEvent.WalletRecoveryInitiatedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.wallet.WalletStatusChangedEvent.WalletStatusChangedEvent",
+            "src.main.java.dev.bloco.wallet.hub.domain.event.wallet.WalletUpdatedEvent.WalletUpdatedEvent"
+        ],
+        "children": {}
+    },
+    "domain_repositories": {
+        "path": "src/main/java/dev/bloco/wallet/hub/domain/gateway",
+        "components": [
+            "src.main.java.dev.bloco.wallet.hub.domain.gateway.AddressRepository.AddressRepository",
+            "src.main.java.dev.bloco.wallet.hub.domain.gateway.ContractRepository.ContractRepository",
+            "src.main.java.dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher.DomainEventPublisher",
+            "src.main.java.dev.bloco.wallet.hub.domain.gateway.NetworkRepository.NetworkRepository",
+            "src.main.java.dev.bloco.wallet.hub.domain.gateway.StoreRepository.StoreRepository",
+            "src.main.java.dev.bloco.wallet.hub.domain.gateway.TokenBalanceRepository.TokenBalanceRepository",
+            "src.main.java.dev.bloco.wallet.hub.domain.gateway.TokenRepository.TokenRepository",
+            "src.main.java.dev.bloco.wallet.hub.domain.gateway.TransactionFeeRepository.TransactionFeeRepository",
+            "src.main.java.dev.bloco.wallet.hub.domain.gateway.TransactionRepository.TransactionRepository",
+            "src.main.java.dev.bloco.wallet.hub.domain.gateway.UserRepository.UserRepository",
+            "src.main.java.dev.bloco.wallet.hub.domain.gateway.UserSessionRepository.UserSessionRepository",
+            "src.main.java.dev.bloco.wallet.hub.domain.gateway.VaultRepository.VaultRepository",
+            "src.main.java.dev.bloco.wallet.hub.domain.gateway.WalletRepository.WalletRepository",
+            "src.main.java.dev.bloco.wallet.hub.domain.gateway.WalletTokenRepository.WalletTokenRepository"
+        ],
+        "children": {}
+    },
+    "infrastructure_data": {
+        "path": "src/main/java/dev/bloco/wallet/hub/infra/provider/data",
+        "components": [
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.OutboxEvent.OutboxEvent",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.OutboxService.OutboxService",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.OutboxWorker.OutboxWorker",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.config.SagaStateMachineConfig.SagaStateMachineConfig",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.config.StandardSagaStateMachineConfig.StandardSagaStateMachineConfig",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.entity.AddressEntity.AddressEntity",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.entity.TransactionEntity.TransactionEntity",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.entity.UserEntity.UserEntity",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.entity.WalletEntity.WalletEntity",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.repository.ChainlistNetworkRepository.ChainlistNetworkRepository",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.repository.JpaAddressRepository.JpaAddressRepository",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.repository.JpaTransactionRepository.JpaTransactionRepository",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.repository.JpaUserRepository.JpaUserRepository",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.repository.JpaWalletRepository.JpaWalletRepository",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.repository.OutboxRepository.OutboxRepository",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.repository.SpringDataAddressRepository.SpringDataAddressRepository",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.repository.SpringDataTransactionRepository.SpringDataTransactionRepository",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.repository.SpringDataUserRepository.SpringDataUserRepository",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.repository.SpringDataWalletRepository.SpringDataWalletRepository",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.data.repository.StateMachineRepository.StateMachineRepository",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.mapper.AddressMapper.AddressMapper",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.mapper.TransactionMapper.TransactionMapper",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.mapper.UserMapper.UserMapper",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.mapper.WalletMapper.WalletMapper"
+        ],
+        "children": {}
+    },
+    "infrastructure_events": {
+        "path": "src/main/java/dev/bloco/wallet/hub/infra/adapter/event",
+        "components": [
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.event.OutboxEventPublisher.OutboxEventPublisher",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.event.consumer.FundsAddedEventConsumer.FundsAddedEventConsumer",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.event.consumer.FundsTransferredEventConsumer.FundsTransferredEventConsumer",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.event.consumer.FundsWithdrawnEventConsumer.FundsWithdrawnEventConsumer",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.event.consumer.WalletCreatedEventConsumer.WalletCreatedEventConsumer",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.event.producer.EventBindings.EventBindings",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.event.producer.EventProducer.EventProducer",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.event.producer.KafkaEventProducer.KafkaEventProducer"
+        ],
+        "children": {}
+    },
+    "infrastructure_tracing": {
+        "path": "src/main/java/dev/bloco/wallet/hub/infra/adapter/tracing",
+        "components": [
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.aspect.RepositoryTracingAspect.RepositoryTracingAspect",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.aspect.UseCaseTracingAspect.UseCaseTracingAspect",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.ResilientCompositeSpanExporter.ResilientCompositeSpanExporter",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.SamplingConfiguration.SamplingDecisionEvaluator",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.SamplingConfiguration.SamplingProperties",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.SamplingConfiguration.SamplingConfiguration",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.SamplingConfiguration.TailSamplingProperties",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.SpanAttributeBuilder.SpanAttributeBuilder",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.TailSamplingSpanExporter.BufferedSpan",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.TailSamplingSpanExporter.TailSamplingSpanExporter",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.TracingConfiguration.TracingConfiguration",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.TracingFeatureFlags.TracingFeatureFlags",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.decorator.TracedReactiveStringRedisTemplate.TracedReactiveStringRedisTemplate",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.filter.CircuitBreakerTracingDecorator.CircuitBreakerTracingDecorator",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.filter.SensitiveDataSanitizer.SensitiveDataSanitizer",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.filter.SlowQueryDetector.SlowQueryDetector",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.filter.WebClientTracingCustomizer.WebClientTracingCustomizer",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.filter.WebFluxTracingFilter.WebFluxTracingFilter",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.handler.KafkaConsumerObservationHandler.KafkaConsumerObservationHandler",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.handler.KafkaProducerObservationHandler.KafkaProducerObservationHandler",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.handler.R2dbcObservationHandler.R2dbcObservationHandler",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.handler.StateMachineObservationHandler.StateMachineObservationHandler",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.health.TracingHealthIndicator.TracingHealthIndicator",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.metrics.TracingMetricsCollector.TracingMetricsCollector",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.propagation.CloudEventTracePropagator.CloudEventTracePropagator",
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.propagation.ReactiveContextPropagator.ReactiveContextPropagator"
+        ],
+        "children": {
+            "core_configuration": {
+                "components": [
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.TracingConfiguration.TracingConfiguration",
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.TracingFeatureFlags.TracingFeatureFlags",
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.SpanAttributeBuilder.SpanAttributeBuilder"
+                ],
+                "children": {}
+            },
+            "sampling_system": {
+                "components": [
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.SamplingConfiguration.SamplingDecisionEvaluator",
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.SamplingConfiguration.SamplingProperties",
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.SamplingConfiguration.SamplingConfiguration",
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.SamplingConfiguration.TailSamplingProperties",
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.TailSamplingSpanExporter.BufferedSpan",
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.TailSamplingSpanExporter.TailSamplingSpanExporter",
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.config.ResilientCompositeSpanExporter.ResilientCompositeSpanExporter"
+                ],
+                "children": {}
+            },
+            "instrumentation_aspects": {
+                "components": [
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.aspect.RepositoryTracingAspect.RepositoryTracingAspect",
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.aspect.UseCaseTracingAspect.UseCaseTracingAspect"
+                ],
+                "children": {}
+            },
+            "web_http_tracing": {
+                "components": [
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.filter.WebFluxTracingFilter.WebFluxTracingFilter",
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.filter.WebClientTracingCustomizer.WebClientTracingCustomizer"
+                ],
+                "children": {}
+            },
+            "client_external_tracing": {
+                "components": [
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.decorator.TracedReactiveStringRedisTemplate.TracedReactiveStringRedisTemplate",
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.filter.CircuitBreakerTracingDecorator.CircuitBreakerTracingDecorator"
+                ],
+                "children": {}
+            },
+            "messaging_tracing": {
+                "components": [
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.handler.KafkaConsumerObservationHandler.KafkaConsumerObservationHandler",
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.handler.KafkaProducerObservationHandler.KafkaProducerObservationHandler"
+                ],
+                "children": {}
+            },
+            "database_tracing": {
+                "components": [
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.handler.R2dbcObservationHandler.R2dbcObservationHandler",
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.handler.StateMachineObservationHandler.StateMachineObservationHandler"
+                ],
+                "children": {}
+            },
+            "propagation": {
+                "components": [
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.propagation.CloudEventTracePropagator.CloudEventTracePropagator",
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.propagation.ReactiveContextPropagator.ReactiveContextPropagator"
+                ],
+                "children": {}
+            },
+            "monitoring_health": {
+                "components": [
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.health.TracingHealthIndicator.TracingHealthIndicator",
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.metrics.TracingMetricsCollector.TracingMetricsCollector"
+                ],
+                "children": {}
+            },
+            "filters_decorators": {
+                "components": [
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.filter.SensitiveDataSanitizer.SensitiveDataSanitizer",
+                    "src.main.java.dev.bloco.wallet.hub.infra.adapter.tracing.filter.SlowQueryDetector.SlowQueryDetector"
+                ],
+                "children": {}
+            }
+        }
+    },
+    "infrastructure_security": {
+        "path": "src/main/java/dev/bloco/wallet/hub/infra/adapter/security",
+        "components": [
+            "src.main.java.dev.bloco.wallet.hub.infra.adapter.security.config.SecurityConfig.SecurityConfig",
+            "src.main.java.dev.bloco.wallet.hub.infra.provider.config.RedisAuthConfig.RedisAuthConfig"
+        ],
+        "children": {}
+    },
+    "use_cases": {
+        "path": "src/main/java/dev/bloco/wallet/hub/usecase",
+        "components": [
+            "src.main.java.dev.bloco.wallet.hub.usecase.ValidateAddressUseCase.AddressValidationResult",
+            "src.main.java.dev.bloco.wallet.hub.usecase.ValidateAddressUseCase.Builder",
+            "src.main.java.dev.bloco.wallet.hub.usecase.ValidateAddressUseCase.ValidateAddressUseCase"
+        ],
+        "children": {}
+    },
+    "infrastructure_utils": {
+        "path": "src/main/java/dev/bloco/wallet/hub/infra/util",
+        "components": [
+            "src.main.java.dev.bloco.wallet.hub.infra.util.CloudEventUtils.CloudEventUtils"
+        ],
+        "children": {}
+    }
+}

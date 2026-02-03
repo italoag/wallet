@@ -1,0 +1,108 @@
+{
+    "modules": {
+        "application": {
+            "status": "completed",
+            "hash": "a72d375b33331d0dfcf430df9e1fd49a9e6e104a4ef7552f654b0bfeaf802579",
+            "timestamp": "2026-01-31T00:54:48.306441"
+        },
+        "domain_models": {
+            "status": "completed",
+            "hash": "527357b4375c3579c261a6457e9d369e307b46a5fe23abf443e12a6796bb3d99",
+            "timestamp": "2026-01-31T00:54:48.309964"
+        },
+        "domain_events": {
+            "status": "completed",
+            "hash": "dcb0dc4282f9639cba1ec76ac08c460ebdd9f9254460af209351ba99cc20d840",
+            "timestamp": "2026-01-31T00:54:48.315370"
+        },
+        "domain_repositories": {
+            "status": "completed",
+            "hash": "901f7876aefbf4f291a6dbc13477463c1696df40481f404e33cdae8ca9b1b77f",
+            "timestamp": "2026-01-31T00:54:48.317755"
+        },
+        "infrastructure_data": {
+            "status": "completed",
+            "hash": "ea34719fcda315f376dadf5a3f01084417ba7e44573ae376ff11e270f1187b39",
+            "timestamp": "2026-01-31T00:54:48.320714"
+        },
+        "infrastructure_events": {
+            "status": "completed",
+            "hash": "6bb3c364eaf0f1b7029d4fe74924d23cf0447a9597fb2855f862717ccce7c648",
+            "timestamp": "2026-01-31T00:54:48.321914"
+        },
+        "infrastructure_tracing/core_configuration": {
+            "status": "completed",
+            "hash": "1272d9003d829d75420825113fd78f11a2fa6214ef81b1fd68410ed492d7053b",
+            "timestamp": "2026-01-31T00:54:48.322739"
+        },
+        "infrastructure_tracing/sampling_system": {
+            "status": "completed",
+            "hash": "4d38dee3cc0f55ab228a8b7070c8b3e556eadf53b0c1d049f74cc75ec6030302",
+            "timestamp": "2026-01-31T00:54:48.323346"
+        },
+        "infrastructure_tracing/instrumentation_aspects": {
+            "status": "completed",
+            "hash": "129fcd10beba14644e4fef6e03a2a306f4c477d4ac103799bdc8203f22050c25",
+            "timestamp": "2026-01-31T00:54:48.323886"
+        },
+        "infrastructure_tracing/web_http_tracing": {
+            "status": "completed",
+            "hash": "5cbb8746729cf89e9f1fe3f7560901d400c726360e7e795f307a05d69b5ad150",
+            "timestamp": "2026-01-31T00:54:48.324631"
+        },
+        "infrastructure_tracing/client_external_tracing": {
+            "status": "completed",
+            "hash": "75f30f37031e6a61150a8ca611a5cf2c9f91cb5eb6d3327689f8b979ed080351",
+            "timestamp": "2026-01-31T00:54:48.325352"
+        },
+        "infrastructure_tracing/messaging_tracing": {
+            "status": "completed",
+            "hash": "70485fda2c206ebb9ea35dc6ac46ccbb2788449dc57bfa4334459b7c8dab5f99",
+            "timestamp": "2026-01-31T00:54:48.326424"
+        },
+        "infrastructure_tracing/database_tracing": {
+            "status": "completed",
+            "hash": "bd78edeb2febcee5b0ebabe8ef1969a4e79c3f8e5c1ef3918ed95e3f78d6ab30",
+            "timestamp": "2026-01-31T00:54:48.328310"
+        },
+        "infrastructure_tracing/propagation": {
+            "status": "completed",
+            "hash": "7f372b99f80876ad5d5d68e81129a49242d3e8418eaf900c157b289eac63001b",
+            "timestamp": "2026-01-31T00:54:48.330660"
+        },
+        "infrastructure_tracing/monitoring_health": {
+            "status": "completed",
+            "hash": "a86354d3b0afcc456bc7f8bf609fc925be7f1f3a3f1e2e5f890737b8a79100bd",
+            "timestamp": "2026-01-31T00:54:48.332658"
+        },
+        "infrastructure_tracing/filters_decorators": {
+            "status": "completed",
+            "hash": "28348d4fd6e58a1ddf9a5e6663cb4f2b150de2c97e0ad955ca5e0ef59aa8cc92",
+            "timestamp": "2026-01-31T00:54:48.334441"
+        },
+        "infrastructure_tracing": {
+            "status": "completed",
+            "hash": "1a9f12553106edde5a387d954c21553d76c26c08dd8624391b3744184ab4e3a7",
+            "timestamp": "2026-01-31T00:54:48.340671"
+        },
+        "infrastructure_security": {
+            "status": "completed",
+            "hash": "7e06205844760f69106b997c9852e57a40d12ecfdef7eeca8ee783ef059a3f53",
+            "timestamp": "2026-01-31T00:54:48.342766"
+        },
+        "use_cases": {
+            "status": "completed",
+            "hash": "9608010aa5bb66ea8fef228bdfbcd43c1280e84469c77b71e823218a64249d50",
+            "timestamp": "2026-01-31T00:54:48.343760"
+        },
+        "infrastructure_utils": {
+            "status": "completed",
+            "hash": "5fbf90a0563d1093dccae710e4aafc3a27b76aef4f8461b9372bb5362a1b5c80",
+            "timestamp": "2026-01-31T00:54:48.345314"
+        }
+    },
+    "metadata": {
+        "created_at": "2026-01-31T00:54:48.305487",
+        "last_run": "2026-01-31T00:54:48.345327"
+    }
+}
