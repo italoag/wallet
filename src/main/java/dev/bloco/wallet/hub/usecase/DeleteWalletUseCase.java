@@ -3,13 +3,15 @@ package dev.bloco.wallet.hub.usecase;
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
 import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
 import dev.bloco.wallet.hub.domain.model.Wallet;
+import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.UUID;
 
 /**
  * DeleteWalletUseCase is responsible for soft-deleting a wallet.
- * Deleted wallets are hidden from normal operations but retained for audit purposes.
+ * Deleted wallets are hidden from normal operations but retained for audit
+ * purposes.
  * <p/>
  * Business Rules:
  * - Wallet must exist
@@ -21,17 +23,22 @@ import java.util.UUID;
  * - WalletStatusChangedEvent when wallet status changes to deleted
  * - WalletDeletedEvent when wallet is successfully deleted
  */
-public record DeleteWalletUseCase(WalletRepository walletRepository, DomainEventPublisher eventPublisher) {
+@RequiredArgsConstructor
+public class DeleteWalletUseCase {
+
+    private final WalletRepository walletRepository;
+    private final DomainEventPublisher eventPublisher;
 
     /**
      * Soft deletes a wallet, making it unavailable for operations.
      *
-     * @param walletId the unique identifier of the wallet to delete
-     * @param reason the reason for deleting the wallet
+     * @param walletId      the unique identifier of the wallet to delete
+     * @param reason        the reason for deleting the wallet
      * @param correlationId a unique identifier used to trace this operation
      * @return the deleted wallet instance
      * @throws IllegalArgumentException if wallet not found or the reason is blank
-     * @throws IllegalStateException if wallet already deleted or has non-zero balance
+     * @throws IllegalStateException    if wallet already deleted or has non-zero
+     *                                  balance
      */
     public Wallet deleteWallet(UUID walletId, String reason, String correlationId) {
         if (reason == null || reason.trim().isEmpty()) {

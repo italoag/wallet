@@ -1,7 +1,6 @@
 package dev.bloco.wallet.hub.usecase;
 
 import dev.bloco.wallet.hub.domain.event.wallet.FundsAddedEvent;
-import dev.bloco.wallet.hub.domain.gateway.TransactionRepository;
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
 import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
 import dev.bloco.wallet.hub.domain.model.Wallet;
@@ -24,9 +23,8 @@ class AddFundsUseCaseTest {
     @DisplayName("addFunds updates wallet and publishes event")
     void addFunds_success() {
         WalletRepository walletRepository = mock(WalletRepository.class);
-        TransactionRepository transactionRepository = mock(TransactionRepository.class);
         DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-        AddFundsUseCase useCase = new AddFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+        AddFundsUseCase useCase = new AddFundsUseCase(walletRepository, eventPublisher);
 
         UUID walletId = UUID.randomUUID();
         Wallet wallet = new Wallet(UUID.randomUUID(), "Test", "");
@@ -56,16 +54,15 @@ class AddFundsUseCaseTest {
         assertThat(evt.amount()).isEqualByComparingTo(amount);
         assertThat(evt.correlationId()).isEqualTo(corr);
 
-        verifyNoMoreInteractions(walletRepository, transactionRepository, eventPublisher);
+        verifyNoMoreInteractions(walletRepository, eventPublisher);
     }
 
     @Test
     @DisplayName("addFunds throws when wallet not found and does nothing else")
     void addFunds_walletNotFound() {
         WalletRepository walletRepository = mock(WalletRepository.class);
-        TransactionRepository transactionRepository = mock(TransactionRepository.class);
         DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-        AddFundsUseCase useCase = new AddFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+        AddFundsUseCase useCase = new AddFundsUseCase(walletRepository, eventPublisher);
 
         UUID walletId = UUID.randomUUID();
         when(walletRepository.findById(walletId)).thenReturn(Optional.empty());
@@ -75,7 +72,6 @@ class AddFundsUseCaseTest {
                 .hasMessageContaining("Wallet not found");
 
         verify(walletRepository, never()).update(any());
-        verify(transactionRepository, never()).save(any());
         verify(eventPublisher, never()).publish(any());
     }
 
@@ -83,9 +79,8 @@ class AddFundsUseCaseTest {
     @DisplayName("addFunds with invalid amount propagates exception and avoids side effects")
     void addFunds_invalidAmount() {
         WalletRepository walletRepository = mock(WalletRepository.class);
-        TransactionRepository transactionRepository = mock(TransactionRepository.class);
         DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-        AddFundsUseCase useCase = new AddFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+        AddFundsUseCase useCase = new AddFundsUseCase(walletRepository, eventPublisher);
 
         UUID walletId = UUID.randomUUID();
         Wallet wallet = new Wallet(UUID.randomUUID(), "Test", "");
@@ -96,7 +91,6 @@ class AddFundsUseCaseTest {
                 .hasMessageContaining("greater than zero");
 
         verify(walletRepository, never()).update(any());
-        verify(transactionRepository, never()).save(any());
         verify(eventPublisher, never()).publish(any());
     }
 }

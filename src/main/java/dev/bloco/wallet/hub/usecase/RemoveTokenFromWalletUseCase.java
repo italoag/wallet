@@ -6,12 +6,14 @@ import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
 import dev.bloco.wallet.hub.domain.model.Wallet;
 import dev.bloco.wallet.hub.domain.model.wallet.WalletToken;
 import dev.bloco.wallet.hub.domain.event.wallet.TokenRemovedFromWalletEvent;
+import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
 
 /**
  * RemoveTokenFromWalletUseCase is responsible for removing tokens from wallets.
- * This removes the token from wallet management but doesn't affect existing balances.
+ * This removes the token from wallet management but doesn't affect existing
+ * balances.
  * <p/>
  * Business Rules:
  * - Wallet must exist and be active
@@ -21,20 +23,22 @@ import java.util.UUID;
  * Publishes:
  * - TokenRemovedFromWalletEvent when token is successfully removed
  */
-public record RemoveTokenFromWalletUseCase(
-    WalletRepository walletRepository,
-    WalletTokenRepository walletTokenRepository,
-    DomainEventPublisher eventPublisher) {
+@RequiredArgsConstructor
+public class RemoveTokenFromWalletUseCase {
+
+    private final WalletRepository walletRepository;
+    private final WalletTokenRepository walletTokenRepository;
+    private final DomainEventPublisher eventPublisher;
 
     /**
      * Removes a token from a wallet's managed tokens.
      *
-     * @param walletId the unique identifier of the wallet
-     * @param tokenId the unique identifier of the token to remove
-     * @param reason the reason for removal (for audit purposes)
+     * @param walletId      the unique identifier of the wallet
+     * @param tokenId       the unique identifier of the token to remove
+     * @param reason        the reason for removal (for audit purposes)
      * @param correlationId a unique identifier used to trace this operation
      * @throws IllegalArgumentException if validation fails
-     * @throws IllegalStateException if the wallet is not active
+     * @throws IllegalStateException    if the wallet is not active
      */
     public void removeTokenFromWallet(UUID walletId, UUID tokenId, String reason, String correlationId) {
         // Validate inputs
@@ -67,7 +71,7 @@ public record RemoveTokenFromWalletUseCase(
                 .reason(reason)
                 .correlationId(UUID.fromString(correlationId))
                 .build();
-        
+
         eventPublisher.publish(event);
     }
 
@@ -75,8 +79,8 @@ public record RemoveTokenFromWalletUseCase(
      * Hides a token from wallet display without completely removing it.
      * The token remains in the wallet but is not visible in the UI.
      *
-     * @param walletId the unique identifier of the wallet
-     * @param tokenId the unique identifier of the token to hide
+     * @param walletId      the unique identifier of the wallet
+     * @param tokenId       the unique identifier of the token to hide
      * @param correlationId a unique identifier used to trace this operation
      * @return the updated wallet-token relationship
      * @throws IllegalArgumentException if validation fails
@@ -109,8 +113,8 @@ public record RemoveTokenFromWalletUseCase(
     /**
      * Shows a previously hidden token in the wallet.
      *
-     * @param walletId the unique identifier of the wallet
-     * @param tokenId the unique identifier of the token to show
+     * @param walletId      the unique identifier of the wallet
+     * @param tokenId       the unique identifier of the token to show
      * @param correlationId a unique identifier used to trace this operation
      * @return the updated wallet-token relationship
      * @throws IllegalArgumentException if validation fails

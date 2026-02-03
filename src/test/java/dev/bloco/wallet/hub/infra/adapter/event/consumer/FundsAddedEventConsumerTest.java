@@ -18,7 +18,6 @@ import java.util.UUID;
 import java.util.function.Consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @DisplayName("Funds Added Event Consumer Tests")
@@ -28,10 +27,12 @@ class FundsAddedEventConsumerTest {
     private FundsAddedEventConsumer consumerConfig;
 
     @BeforeEach
+    @SuppressWarnings("unchecked")
     void setUp() {
         stateMachine = mock(StateMachine.class);
         doReturn(Flux.empty()).when(stateMachine)
-                .sendEvent(org.mockito.ArgumentMatchers.<reactor.core.publisher.Mono<org.springframework.messaging.Message<SagaEvents>>>any());
+                .sendEvent(
+                        org.mockito.ArgumentMatchers.<reactor.core.publisher.Mono<org.springframework.messaging.Message<SagaEvents>>>any());
         consumerConfig = new FundsAddedEventConsumer();
     }
 

@@ -3,12 +3,15 @@ package dev.bloco.wallet.hub.usecase;
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
 import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
 import dev.bloco.wallet.hub.domain.model.Wallet;
+import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
 
 /**
- * RecoverWalletUseCase is responsible for recovering a wallet from backup or seed phrase.
- * This use case handles the wallet recovery process and manages the recovery state.
+ * RecoverWalletUseCase is responsible for recovering a wallet from backup or
+ * seed phrase.
+ * This use case handles the wallet recovery process and manages the recovery
+ * state.
  * <p/>
  * Business Rules:
  * - User ID must be provided
@@ -21,15 +24,20 @@ import java.util.UUID;
  * - WalletRecoveryInitiatedEvent when a recovery process starts
  * - WalletStatusChangedEvent when wallet enters recovery state
  */
-public record RecoverWalletUseCase(WalletRepository walletRepository, DomainEventPublisher eventPublisher) {
+@RequiredArgsConstructor
+public class RecoverWalletUseCase {
+
+    private final WalletRepository walletRepository;
+    private final DomainEventPublisher eventPublisher;
 
     /**
      * Initiates a wallet recovery process by creating a wallet in recovery state.
      *
-     * @param userId the unique identifier of the user recovering the wallet
-     * @param walletName the name for the recovered wallet
-     * @param recoveryMethod the method used for recovery (e.g., \"seed_phrase\", \"backup\")
-     * @param correlationId a unique identifier used to trace this operation
+     * @param userId         the unique identifier of the user recovering the wallet
+     * @param walletName     the name for the recovered wallet
+     * @param recoveryMethod the method used for recovery (e.g., "seed_phrase",
+     *                       "backup")
+     * @param correlationId  a unique identifier used to trace this operation
      * @return the wallet in recovery state
      * @throws IllegalArgumentException if required parameters are missing
      */
@@ -48,7 +56,7 @@ public record RecoverWalletUseCase(WalletRepository walletRepository, DomainEven
         Wallet wallet = Wallet.create(UUID.randomUUID(), walletName, recoveryMethod);
         wallet.setUserId(userId);
         wallet.setCorrelationId(UUID.fromString(correlationId));
-        
+
         // Set wallet to recovery state
         wallet.initiateRecovery(recoveryMethod);
 
@@ -63,11 +71,11 @@ public record RecoverWalletUseCase(WalletRepository walletRepository, DomainEven
     /**
      * Completes wallet recovery by activating the wallet.
      *
-     * @param walletId the unique identifier of the wallet being recovered
+     * @param walletId      the unique identifier of the wallet being recovered
      * @param correlationId a unique identifier used to trace this operation
      * @return the activated wallet
      * @throws IllegalArgumentException if wallet not found
-     * @throws IllegalStateException if the wallet is not in recovery state
+     * @throws IllegalStateException    if the wallet is not in recovery state
      */
     public Wallet completeRecovery(UUID walletId, String correlationId) {
         Wallet wallet = walletRepository.findById(walletId)

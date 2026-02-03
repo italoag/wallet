@@ -26,6 +26,15 @@ spring:
       import-check:
         enabled: false
   
+  # Disable R2DBC and Redis repository scanning (JPA repositories only)
+  data:
+    r2dbc:
+      repositories:
+        enabled: false
+    redis:
+      repositories:
+        enabled: false
+  
   # TestContainers will override these dynamically
   datasource:
     driver-class-name: org.postgresql.Driver

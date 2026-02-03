@@ -3,11 +3,13 @@ package dev.bloco.wallet.hub.usecase;
 import dev.bloco.wallet.hub.domain.gateway.UserRepository;
 import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
 import dev.bloco.wallet.hub.domain.model.user.User;
+import lombok.RequiredArgsConstructor;
 
 import java.util.UUID;
 
 /**
- * UpdateUserProfileUseCase is responsible for updating user profile information.
+ * UpdateUserProfileUseCase is responsible for updating user profile
+ * information.
  * It allows modification of user details such as name and email.
  * <p/>
  * Business Rules:
@@ -18,18 +20,23 @@ import java.util.UUID;
  * Publishes:
  * - UserProfileUpdatedEvent when the profile is successfully updated
  */
-public record UpdateUserProfileUseCase(UserRepository userRepository, DomainEventPublisher eventPublisher) {
+@RequiredArgsConstructor
+public class UpdateUserProfileUseCase {
+
+    private final UserRepository userRepository;
+    private final DomainEventPublisher eventPublisher;
 
     /**
      * Updates user profile information.
      *
-     * @param userId the unique identifier of the user
-     * @param name the new name (optional can be null to keep current)
-     * @param email the new email (optional, can be null to keep current)
+     * @param userId        the unique identifier of the user
+     * @param name          the new name (optional can be null to keep current)
+     * @param email         the new email (optional, can be null to keep current)
      * @param correlationId a unique identifier used to trace this operation
      * @return the updated user instance
      * @throws IllegalArgumentException if validation fails
-     * @throws IllegalStateException if a user is not active or email already exists
+     * @throws IllegalStateException    if a user is not active or email already
+     *                                  exists
      */
     public User updateProfile(UUID userId, String name, String email, String correlationId) {
         if (userId == null) {
@@ -72,8 +79,8 @@ public record UpdateUserProfileUseCase(UserRepository userRepository, DomainEven
     /**
      * Updates only the user's name.
      *
-     * @param userId the unique identifier of the user
-     * @param name the new name
+     * @param userId        the unique identifier of the user
+     * @param name          the new name
      * @param correlationId a unique identifier used to trace this operation
      * @return the updated user instance
      */
@@ -84,8 +91,8 @@ public record UpdateUserProfileUseCase(UserRepository userRepository, DomainEven
     /**
      * Updates only the user's email.
      *
-     * @param userId the unique identifier of the user
-     * @param email the new email address
+     * @param userId        the unique identifier of the user
+     * @param email         the new email address
      * @param correlationId a unique identifier used to trace this operation
      * @return the updated user instance
      */

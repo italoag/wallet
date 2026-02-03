@@ -2,6 +2,7 @@ package dev.bloco.wallet.hub.usecase;
 
 import dev.bloco.wallet.hub.domain.gateway.NetworkRepository;
 import dev.bloco.wallet.hub.domain.model.network.Network;
+import lombok.RequiredArgsConstructor;
 
 import java.util.List;
 import java.util.UUID;
@@ -19,7 +20,10 @@ import org.springframework.util.StringUtils;
  * <p/>
  * No domain events are published by this read-only operation.
  */
-public record ListNetworksUseCase(NetworkRepository networkRepository) {
+@RequiredArgsConstructor
+public class ListNetworksUseCase {
+
+    private final NetworkRepository networkRepository;
 
     private static final String ERROR_NETWORK_ID_REQUIRED = "Network ID must be provided";
     private static final String ERROR_NETWORK_NOT_FOUND_TEMPLATE = "Network not found with id: %s";
@@ -100,28 +104,27 @@ public record ListNetworksUseCase(NetworkRepository networkRepository) {
         String healthStatus = isHealthy ? HEALTH_STATUS_HEALTHY : HEALTH_STATUS_UNAVAILABLE;
 
         return new NetworkHealthInfo(
-            network.getId(),
-            network.getName(),
-            network.getChainId(),
-            network.getStatus(),
-            isHealthy,
-            healthStatus,
-            network.getRpcUrl()
-        );
+                network.getId(),
+                network.getName(),
+                network.getChainId(),
+                network.getStatus(),
+                isHealthy,
+                healthStatus,
+                network.getRpcUrl());
     }
 
     /**
      * Network health information for monitoring and display.
      */
     public record NetworkHealthInfo(
-        UUID networkId,
-        String name,
-        String chainId,
-        dev.bloco.wallet.hub.domain.model.network.NetworkStatus status,
-        boolean isHealthy,
-        String healthStatus,
-        String rpcUrl
-    ) {}
+            UUID networkId,
+            String name,
+            String chainId,
+            dev.bloco.wallet.hub.domain.model.network.NetworkStatus status,
+            boolean isHealthy,
+            String healthStatus,
+            String rpcUrl) {
+    }
 
     private void validateNetworkId(UUID networkId) {
         if (networkId == null) {

@@ -12,6 +12,7 @@ import dev.bloco.wallet.hub.domain.model.portfolio.AssetAllocation;
 import dev.bloco.wallet.hub.domain.model.portfolio.PortfolioOverview;
 import dev.bloco.wallet.hub.domain.model.portfolio.PortfolioSummary;
 import dev.bloco.wallet.hub.domain.model.portfolio.TokenHolding;
+import lombok.RequiredArgsConstructor;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -20,8 +21,10 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 /**
- * GetPortfolioSummaryUseCase is responsible for providing comprehensive portfolio analytics.
- * It aggregates wallet data to provide insights into asset allocation and portfolio value.
+ * GetPortfolioSummaryUseCase is responsible for providing comprehensive
+ * portfolio analytics.
+ * It aggregates wallet data to provide insights into asset allocation and
+ * portfolio value.
  * <p/>
  * Business Rules:
  * - Wallet must exist and be accessible
@@ -31,11 +34,13 @@ import java.util.stream.Collectors;
  * <p/>
  * No domain events are published by this read-only operation.
  */
-public record GetPortfolioSummaryUseCase(
-    WalletRepository walletRepository,
-    AddressRepository addressRepository,
-    TokenBalanceRepository tokenBalanceRepository,
-    TokenRepository tokenRepository) {
+@RequiredArgsConstructor
+public class GetPortfolioSummaryUseCase {
+
+    private final WalletRepository walletRepository;
+    private final AddressRepository addressRepository;
+    private final TokenBalanceRepository tokenBalanceRepository;
+    private final TokenRepository tokenRepository;
 
     /**
      * Retrieves comprehensive portfolio summary for a wallet.
@@ -65,9 +70,8 @@ public record GetPortfolioSummaryUseCase(
         // Group balances by token
         Map<UUID, BigDecimal> aggregatedBalances = allBalances.stream()
                 .collect(Collectors.groupingBy(
-                    TokenBalance::getTokenId,
-                    Collectors.reducing(BigDecimal.ZERO, TokenBalance::getBalance, BigDecimal::add)
-                ));
+                        TokenBalance::getTokenId,
+                        Collectors.reducing(BigDecimal.ZERO, TokenBalance::getBalance, BigDecimal::add)));
 
         // Get token details and create holdings
         List<TokenHolding> holdings = aggregatedBalances.entrySet().stream()
@@ -83,15 +87,14 @@ public record GetPortfolioSummaryUseCase(
         List<AssetAllocation> allocation = calculateAssetAllocation(holdings, totalValue);
 
         return new PortfolioSummary(
-            walletId,
-            wallet.getName(),
-            totalTokens,
-            totalAddresses,
-            totalValue,
-            holdings,
-            allocation,
-            java.time.Instant.now()
-        );
+                walletId,
+                wallet.getName(),
+                totalTokens,
+                totalAddresses,
+                totalValue,
+                holdings,
+                allocation,
+                java.time.Instant.now());
     }
 
     /**
@@ -102,15 +105,14 @@ public record GetPortfolioSummaryUseCase(
      */
     public PortfolioOverview getPortfolioOverview(UUID walletId) {
         PortfolioSummary summary = getPortfolioSummary(walletId);
-        
+
         return new PortfolioOverview(
-            summary.walletId(),
-            summary.walletName(),
-            summary.totalTokens(),
-            summary.totalAddresses(),
-            summary.totalValue(),
-            summary.lastUpdated()
-        );
+                summary.walletId(),
+                summary.walletName(),
+                summary.totalTokens(),
+                summary.totalAddresses(),
+                summary.totalValue(),
+                summary.lastUpdated());
     }
 
     /**
@@ -129,20 +131,19 @@ public record GetPortfolioSummaryUseCase(
                 .orElseThrow(() -> new IllegalStateException("Token not found: " + tokenId));
 
         String formattedBalance = token.formatAmount(balance);
-        
+
         // In a real implementation, this would fetch current market price
         BigDecimal estimatedValue = calculateEstimatedValue(token, balance);
 
         return new TokenHolding(
-            tokenId,
-            token.getName(),
-            token.getSymbol(),
-            balance,
-            formattedBalance,
-            token.getDecimals(),
-            estimatedValue,
-            token.getType()
-        );
+                tokenId,
+                token.getName(),
+                token.getSymbol(),
+                balance,
+                formattedBalance,
+                token.getDecimals(),
+                estimatedValue,
+                token.getType());
     }
 
     private BigDecimal calculateEstimatedValue(Token token, BigDecimal balance) {
@@ -151,7 +152,7 @@ public record GetPortfolioSummaryUseCase(
         if (token.isNFT()) {
             return BigDecimal.ZERO; // NFTs need special valuation
         }
-        
+
         // Mock price data for demonstration
         BigDecimal mockPrice = switch (token.getSymbol().toUpperCase()) {
             case "ETH" -> new BigDecimal("2000");
@@ -159,7 +160,7 @@ public record GetPortfolioSummaryUseCase(
             case "USDC", "USDT" -> BigDecimal.ONE;
             default -> BigDecimal.ZERO;
         };
-        
+
         return balance.multiply(mockPrice);
     }
 
@@ -179,13 +180,12 @@ public record GetPortfolioSummaryUseCase(
                     BigDecimal percentage = holding.estimatedValue()
                             .divide(totalValue, 4, java.math.RoundingMode.HALF_UP)
                             .multiply(new BigDecimal("100"));
-                    
+
                     return new AssetAllocation(
-                        holding.tokenId(),
-                        holding.symbol(),
-                        holding.estimatedValue(),
-                        percentage
-                    );
+                            holding.tokenId(),
+                            holding.symbol(),
+                            holding.estimatedValue(),
+                            percentage);
                 })
                 .sorted((a, b) -> b.percentage().compareTo(a.percentage()))
                 .toList();

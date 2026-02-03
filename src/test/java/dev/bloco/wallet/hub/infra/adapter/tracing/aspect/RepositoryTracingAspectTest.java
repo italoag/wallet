@@ -21,14 +21,16 @@ import io.micrometer.observation.ObservationRegistry;
 /**
  * Unit tests for {@link RepositoryTracingAspect}.
  * 
- * <p>Tests verify:</p>
+ * <p>
+ * Tests verify:
+ * </p>
  * <ul>
- *   <li>Span creation for repository operations</li>
- *   <li>SQL statement sanitization</li>
- *   <li>Database operation type detection</li>
- *   <li>Error handling with SQL in messages</li>
- *   <li>Feature flag behavior</li>
- *   <li>Table name extraction</li>
+ * <li>Span creation for repository operations</li>
+ * <li>SQL statement sanitization</li>
+ * <li>Database operation type detection</li>
+ * <li>Error handling with SQL in messages</li>
+ * <li>Feature flag behavior</li>
+ * <li>Table name extraction</li>
  * </ul>
  */
 @ExtendWith(MockitoExtension.class)
@@ -57,14 +59,12 @@ class RepositoryTracingAspectTest {
     void setUp() {
         observationRegistry = ObservationRegistry.create();
         spanAttributeBuilder = new SpanAttributeBuilder(sanitizer);
-        
+
         aspect = new RepositoryTracingAspect(
                 observationRegistry,
                 spanAttributeBuilder,
-                sanitizer,
                 featureFlags,
-                slowQueryDetector
-        );
+                slowQueryDetector);
 
         // Default: feature flag enabled
         when(featureFlags.isDatabase()).thenReturn(true);
@@ -73,7 +73,7 @@ class RepositoryTracingAspectTest {
     @Test
     void shouldCreateSpanForRepositoryOperation() throws Throwable {
         // Given
-        when(signature.getDeclaringType()).thenReturn((Class) WalletRepository.class);
+        when(signature.getDeclaringType()).thenReturn((Class<?>) WalletRepository.class);
         when(signature.getName()).thenReturn("findById");
         when(joinPoint.getSignature()).thenReturn(signature);
         when(joinPoint.proceed()).thenReturn("result");
@@ -103,7 +103,7 @@ class RepositoryTracingAspectTest {
     @Test
     void shouldDeriveSelectOperationFromMethodName() throws Throwable {
         // Given
-        when(signature.getDeclaringType()).thenReturn((Class) WalletRepository.class);
+        when(signature.getDeclaringType()).thenReturn((Class<?>) WalletRepository.class);
         when(signature.getName()).thenReturn("findByUserId");
         when(joinPoint.getSignature()).thenReturn(signature);
         when(joinPoint.proceed()).thenReturn("result");
@@ -119,7 +119,7 @@ class RepositoryTracingAspectTest {
     @Test
     void shouldDeriveInsertOperationFromMethodName() throws Throwable {
         // Given
-        when(signature.getDeclaringType()).thenReturn((Class) WalletRepository.class);
+        when(signature.getDeclaringType()).thenReturn((Class<?>) WalletRepository.class);
         when(signature.getName()).thenReturn("save");
         when(joinPoint.getSignature()).thenReturn(signature);
         when(joinPoint.proceed()).thenReturn("result");
@@ -135,7 +135,7 @@ class RepositoryTracingAspectTest {
     @Test
     void shouldDeriveUpdateOperationFromMethodName() throws Throwable {
         // Given
-        when(signature.getDeclaringType()).thenReturn((Class) WalletRepository.class);
+        when(signature.getDeclaringType()).thenReturn((Class<?>) WalletRepository.class);
         when(signature.getName()).thenReturn("updateBalance");
         when(joinPoint.getSignature()).thenReturn(signature);
         when(joinPoint.proceed()).thenReturn("result");
@@ -151,7 +151,7 @@ class RepositoryTracingAspectTest {
     @Test
     void shouldDeriveDeleteOperationFromMethodName() throws Throwable {
         // Given
-        when(signature.getDeclaringType()).thenReturn((Class) WalletRepository.class);
+        when(signature.getDeclaringType()).thenReturn((Class<?>) WalletRepository.class);
         when(signature.getName()).thenReturn("deleteById");
         when(joinPoint.getSignature()).thenReturn(signature);
         when(joinPoint.proceed()).thenReturn("result");
@@ -169,18 +169,19 @@ class RepositoryTracingAspectTest {
         // Given
         String sqlError = "SQLException: duplicate key value violates unique constraint";
         RuntimeException exception = new RuntimeException(sqlError);
-        when(signature.getDeclaringType()).thenReturn((Class) WalletRepository.class);
+        when(signature.getDeclaringType()).thenReturn((Class<?>) WalletRepository.class);
         when(signature.getName()).thenReturn("save");
         when(joinPoint.getSignature()).thenReturn(signature);
         when(joinPoint.proceed()).thenThrow(exception);
-        when(sanitizer.sanitizeSql(sqlError)).thenReturn("SQLException: duplicate key");
+        // SpanAttributeBuilder uses sanitizeExceptionMessage for errors
+        when(sanitizer.sanitizeExceptionMessage(sqlError)).thenReturn("SQLException: duplicate key");
 
         // When/Then
         assertThatThrownBy(() -> aspect.traceRepositoryOperation(joinPoint))
                 .isInstanceOf(RuntimeException.class);
 
         verify(joinPoint).proceed();
-        verify(sanitizer).sanitizeSql(sqlError);
+        verify(sanitizer).sanitizeExceptionMessage(sqlError);
     }
 
     @Test
@@ -188,23 +189,25 @@ class RepositoryTracingAspectTest {
         // Given
         String sqlWithCredentials = "SELECT * FROM wallet WHERE password='secret123'";
         RuntimeException exception = new RuntimeException(sqlWithCredentials);
-        when(signature.getDeclaringType()).thenReturn((Class) WalletRepository.class);
+        when(signature.getDeclaringType()).thenReturn((Class<?>) WalletRepository.class);
         when(signature.getName()).thenReturn("findById");
         when(joinPoint.getSignature()).thenReturn(signature);
         when(joinPoint.proceed()).thenThrow(exception);
-        when(sanitizer.sanitizeSql(sqlWithCredentials)).thenReturn("SELECT * FROM wallet WHERE password=?");
+        // SpanAttributeBuilder uses sanitizeExceptionMessage for errors
+        when(sanitizer.sanitizeExceptionMessage(sqlWithCredentials))
+                .thenReturn("SELECT * FROM wallet WHERE password=?");
 
         // When/Then
         assertThatThrownBy(() -> aspect.traceRepositoryOperation(joinPoint))
                 .isInstanceOf(RuntimeException.class);
 
-        verify(sanitizer).sanitizeSql(sqlWithCredentials);
+        verify(sanitizer).sanitizeExceptionMessage(sqlWithCredentials);
     }
 
     @Test
     void shouldExtractFieldNameFromFindByMethod() throws Throwable {
         // Given
-        when(signature.getDeclaringType()).thenReturn((Class) WalletRepository.class);
+        when(signature.getDeclaringType()).thenReturn((Class<?>) WalletRepository.class);
         when(signature.getName()).thenReturn("findByUserIdAndStatus");
         when(joinPoint.getSignature()).thenReturn(signature);
         when(joinPoint.proceed()).thenReturn("result");
@@ -220,7 +223,7 @@ class RepositoryTracingAspectTest {
     @Test
     void shouldHandleExistsMethod() throws Throwable {
         // Given
-        when(signature.getDeclaringType()).thenReturn((Class) WalletRepository.class);
+        when(signature.getDeclaringType()).thenReturn((Class<?>) WalletRepository.class);
         when(signature.getName()).thenReturn("existsById");
         when(joinPoint.getSignature()).thenReturn(signature);
         when(joinPoint.proceed()).thenReturn(true);
@@ -236,7 +239,7 @@ class RepositoryTracingAspectTest {
     @Test
     void shouldHandleCountMethod() throws Throwable {
         // Given
-        when(signature.getDeclaringType()).thenReturn((Class) WalletRepository.class);
+        when(signature.getDeclaringType()).thenReturn((Class<?>) WalletRepository.class);
         when(signature.getName()).thenReturn("countByStatus");
         when(joinPoint.getSignature()).thenReturn(signature);
         when(joinPoint.proceed()).thenReturn(42L);
@@ -252,12 +255,19 @@ class RepositoryTracingAspectTest {
     // Test repository interface
     interface WalletRepository {
         Object findById(Object id);
+
         Object findByUserId(Object userId);
+
         Object save(Object entity);
+
         void updateBalance(Object id, Object balance);
+
         void deleteById(Object id);
+
         boolean existsById(Object id);
+
         long countByStatus(String status);
+
         Object findByUserIdAndStatus(Object userId, String status);
     }
 }

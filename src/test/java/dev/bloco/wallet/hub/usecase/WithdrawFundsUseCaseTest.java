@@ -1,7 +1,6 @@
 package dev.bloco.wallet.hub.usecase;
 
 import dev.bloco.wallet.hub.domain.event.wallet.FundsWithdrawnEvent;
-import dev.bloco.wallet.hub.domain.gateway.TransactionRepository;
 import dev.bloco.wallet.hub.domain.gateway.WalletRepository;
 import dev.bloco.wallet.hub.domain.gateway.DomainEventPublisher;
 import dev.bloco.wallet.hub.domain.model.Wallet;
@@ -24,9 +23,8 @@ class WithdrawFundsUseCaseTest {
     @DisplayName("withdrawFunds updates wallet and publishes event")
     void withdrawFunds_success() {
         WalletRepository walletRepository = mock(WalletRepository.class);
-        TransactionRepository transactionRepository = mock(TransactionRepository.class);
         DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-        WithdrawFundsUseCase useCase = new WithdrawFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+        WithdrawFundsUseCase useCase = new WithdrawFundsUseCase(walletRepository, eventPublisher);
 
         UUID walletId = UUID.randomUUID();
         Wallet wallet = new Wallet(UUID.randomUUID(), "Test", "");
@@ -50,26 +48,25 @@ class WithdrawFundsUseCaseTest {
         assertThat(evt.amount()).isEqualByComparingTo(amount);
         assertThat(evt.correlationId()).isEqualTo(corr);
 
-        verifyNoMoreInteractions(walletRepository, transactionRepository, eventPublisher);
+        verifyNoMoreInteractions(walletRepository, eventPublisher);
     }
 
     @Test
     @DisplayName("withdrawFunds throws when wallet not found and avoids side effects")
     void withdrawFunds_walletNotFound() {
         WalletRepository walletRepository = mock(WalletRepository.class);
-        TransactionRepository transactionRepository = mock(TransactionRepository.class);
         DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-        WithdrawFundsUseCase useCase = new WithdrawFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+        WithdrawFundsUseCase useCase = new WithdrawFundsUseCase(walletRepository, eventPublisher);
 
         UUID walletId = UUID.randomUUID();
         when(walletRepository.findById(walletId)).thenReturn(Optional.empty());
 
-        assertThatThrownBy(() -> useCase.withdrawFunds(walletId, new BigDecimal("1.00"), "c"))
+        BigDecimal amount = new BigDecimal("1.00");
+        assertThatThrownBy(() -> useCase.withdrawFunds(walletId, amount, "c"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Wallet not found");
 
         verify(walletRepository, never()).update(any());
-        verify(transactionRepository, never()).save(any());
         verify(eventPublisher, never()).publish(any());
     }
 
@@ -77,21 +74,20 @@ class WithdrawFundsUseCaseTest {
     @DisplayName("withdrawFunds with insufficient balance propagates exception and avoids side effects")
     void withdrawFunds_insufficientBalance() {
         WalletRepository walletRepository = mock(WalletRepository.class);
-        TransactionRepository transactionRepository = mock(TransactionRepository.class);
         DomainEventPublisher eventPublisher = mock(DomainEventPublisher.class);
-        WithdrawFundsUseCase useCase = new WithdrawFundsUseCase(walletRepository, transactionRepository, eventPublisher);
+        WithdrawFundsUseCase useCase = new WithdrawFundsUseCase(walletRepository, eventPublisher);
 
         UUID walletId = UUID.randomUUID();
         Wallet wallet = new Wallet(UUID.randomUUID(), "Test", "");
         wallet.addFunds(new BigDecimal("10.00"));
         when(walletRepository.findById(walletId)).thenReturn(Optional.of(wallet));
 
-        assertThatThrownBy(() -> useCase.withdrawFunds(walletId, new BigDecimal("20.00"), "c"))
+        BigDecimal amount = new BigDecimal("20.00");
+        assertThatThrownBy(() -> useCase.withdrawFunds(walletId, amount, "c"))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessageContaining("Insufficient");
 
         verify(walletRepository, never()).update(any());
-        verify(transactionRepository, never()).save(any());
         verify(eventPublisher, never()).publish(any());
     }
 }
