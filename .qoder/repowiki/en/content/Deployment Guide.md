@@ -130,18 +130,21 @@ Note that native image generation requires substantial memory (at least 8GB reco
 ```mermaid
 classDiagram
 class DinamoLibraryLoader {
-+static Map<String, Consumer<String>> OS_LIBRARY_LOADER
-+loadLibrariesBasedOnOS() void
-+loadWindowsLibraries(osName) void
-+loadLinuxLibraries(osName) void
-+loadLibrary(path) void
+    +static Map<String, Consumer<String>> OS_LIBRARY_LOADER
+    +loadLibrariesBasedOnOS() void
+    +loadWindowsLibraries(osName) void
+    +loadLinuxLibraries(osName) void
+    +loadLibrary(path) void
 }
 class WalletHubApplication {
-+main(args) void
+    +main(args) void
 }
-<<aspect>> DinamoLibraryLoader
-<<before>> "execution(* WalletHubApplication.main(..))"
+DinamoLibraryLoader <|-- "aspect" : DinamoLibraryLoader
 DinamoLibraryLoader --> WalletHubApplication : "loads libraries before"
+note right of DinamoLibraryLoader
+  <<before>>
+  "execution(* WalletHubApplication.main(..))"
+end note
 ```
 
 **Diagram sources**
