@@ -139,7 +139,7 @@ class DinamoLibraryLoader {
 class WalletHubApplication {
     +main(args) void
 }
-DinamoLibraryLoader <|-- "aspect" : DinamoLibraryLoader
+DinamoLibraryLoader <|-- WalletHubApplication : "aspect"
 DinamoLibraryLoader --> WalletHubApplication : "loads libraries before"
 note right of DinamoLibraryLoader
   <<before>>
