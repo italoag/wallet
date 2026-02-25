@@ -43,6 +43,7 @@
         <hibernate.version>7.2.0.Final</hibernate.version>
         <lombok.version>1.18.42</lombok.version>
         <cloudevents.version>4.0.1</cloudevents.version>
+        <bytebuddy.version>1.18.4</bytebuddy.version>
         <org.mapstruct.extensions.spring.version>2.0.0</org.mapstruct.extensions.spring.version>
     </properties>
     <dependencies>
@@ -391,6 +392,14 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-r2dbc</artifactId>
         </dependency>
+        <!-- macOS Arm64 DNS resolver -->
+        <dependency>
+            <groupId>io.netty</groupId>
+            <artifactId>netty-resolver-dns-native-macos</artifactId>
+            <version>4.2.10.Final</version>
+            <classifier>osx-aarch_64</classifier>
+            <scope>runtime</scope>
+        </dependency>
     </dependencies>
     <dependencyManagement>
         <dependencies>
@@ -411,12 +420,12 @@
             <dependency>
                 <groupId>net.bytebuddy</groupId>
                 <artifactId>byte-buddy</artifactId>
-                <version>1.17.7</version>
+                <version>${bytebuddy.version}</version>
             </dependency>
             <dependency>
                 <groupId>net.bytebuddy</groupId>
                 <artifactId>byte-buddy-agent</artifactId>
-                <version>1.17.7</version>
+                <version>${bytebuddy.version}</version>
             </dependency>
         </dependencies>
     </dependencyManagement>

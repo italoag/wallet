@@ -5,7 +5,6 @@ import dev.bloco.wallet.hub.infra.adapter.tracing.propagation.ReactiveContextPro
 import io.micrometer.tracing.Span;
 import io.micrometer.tracing.exporter.FinishedSpan;
 import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

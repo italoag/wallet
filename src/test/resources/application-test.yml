@@ -5,7 +5,10 @@ management:
     export.enabled: true
     sampling:
       probability: 1.0
-
+  otlp:
+    metrics:
+      export:
+        enabled: false
 tracing:
   features:
     api: true

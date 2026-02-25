@@ -60,6 +60,12 @@ wallet:
     lock-duration: PT30M
     # Clock skew tolerance for token validation (seconds)
     clock-skew-seconds: 60
+management:
+  otlp:
+    metrics:
+      export:
+        enabled: false
+
 tracing:
   features:
     database: on

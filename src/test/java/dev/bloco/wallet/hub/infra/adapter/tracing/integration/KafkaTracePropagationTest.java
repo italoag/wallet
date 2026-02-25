@@ -30,7 +30,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 class KafkaTracePropagationTest extends BaseIntegrationTest {
 
     @Test
-    @DisplayName("T086: Should propagate trace context in CloudEvent extensions (traceparent format)")
+    @DisplayName("Should propagate trace context in CloudEvent extensions (traceparent format)")
     void shouldPropagateTraceContextInCloudEventExtensions() {
         // Arrange
         UUID walletId = UUID.randomUUID();
@@ -77,7 +77,7 @@ class KafkaTracePropagationTest extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("T087: Should create consumer span as child of producer span")
+    @DisplayName("Should create consumer span as child of producer span")
     void shouldCreateConsumerSpanAsChildOfProducerSpan() {
         // Arrange
         String traceId = generateTraceId();
@@ -121,7 +121,7 @@ class KafkaTracePropagationTest extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("T088: Should calculate consumer lag from event timestamps")
+    @DisplayName("Should calculate consumer lag from event timestamps")
     void shouldCalculateConsumerLagFromTimestamps() {
         // Arrange
         clearSpans();
@@ -164,7 +164,7 @@ class KafkaTracePropagationTest extends BaseIntegrationTest {
     }
 
     @Test
-    @DisplayName("T089: Should maintain trace continuity across event cascade (FundsAdded → FundsTransferred)")
+    @DisplayName("Should maintain trace continuity across event cascade (FundsAdded → FundsTransferred)")
     void shouldMaintainTraceContinuityAcrossEventCascade() {
         // Arrange
         String traceId = generateTraceId();

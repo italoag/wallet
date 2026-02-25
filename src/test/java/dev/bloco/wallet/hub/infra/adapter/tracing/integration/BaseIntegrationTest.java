@@ -1,5 +1,6 @@
 package dev.bloco.wallet.hub.infra.adapter.tracing.integration;
 
+import java.time.Duration;
 import java.util.List;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
@@ -117,6 +118,31 @@ public abstract class BaseIntegrationTest {
             DockerImageName.parse("confluentinc/cp-kafka:latest"))
             .withReuse(true);
 
+    @Container
+    @SuppressWarnings("resource")
+    protected static final GenericContainer<?> ANVIL_CONTAINER = new GenericContainer<>(
+        DockerImageName.parse("ghcr.io/foundry-rs/foundry:latest"))
+        .withEnv("FOUNDRY_DISABLE_NIGHTLY_WARNING", "true")
+        .withFileSystemBind(System.getProperty("user.home") + "/.certificates/santander-bundle.pem", "/etc/ssl/certs/ca-certificates.crt", org.testcontainers.containers.BindMode.READ_ONLY)
+        .withLogConsumer(new org.testcontainers.containers.output.Slf4jLogConsumer(org.slf4j.LoggerFactory.getLogger("AnvilContainer")).withSeparateOutputStreams())
+        .withCommand(
+            "anvil",
+            "--host",
+            "0.0.0.0",
+            "--port",
+            "8545",
+            "--fork-url",
+            "https://rpc-amoy.polygon.technology",
+            "--chain-id",
+            "80002",
+            "--accounts",
+            "10",
+            "--balance",
+            "1000")
+        .withExposedPorts(8545)
+        .waitingFor(Wait.forLogMessage(".*Chain ID: 80002.*", 1)
+            .withStartupTimeout(Duration.ofSeconds(120)));
+
     /**
      * Redis container for reactive caching integration tests.
      */
@@ -183,7 +209,6 @@ public abstract class BaseIntegrationTest {
         registry.add("spring.cloud.stream.kafka.binder.brokers", KAFKA_CONTAINER::getBootstrapServers);
 
         // Redis configuration
-        // Redis configuration
         registry.add("spring.data.redis.host", () -> "127.0.0.1");
         registry.add("spring.data.redis.port", REDIS_CONTAINER::getFirstMappedPort);
 
@@ -207,12 +232,25 @@ public abstract class BaseIntegrationTest {
         registry.add("management.opentelemetry.tracing.export.otlp.endpoint",
                 () -> String.format("http://%s:%d/v1/traces",
                         LGTM_CONTAINER.getHost(), LGTM_CONTAINER.getMappedPort(4317)));
+
+        // Web3j configuration
+        registry.add("blockchain.rpc.url", BaseIntegrationTest::resolveRPCUrl);
     }
 
     @BeforeEach
     void setUp() {
         clearSpans();
     }
+
+    /**
+     * Resolves and constructs the RPC URL for the Anvil test container.
+     *
+     * @return the resolved RPC URL in the format "http://<host>:<mappedPort>"
+     */
+    protected static String resolveRPCUrl() {
+        return "http://" + ANVIL_CONTAINER.getHost() + ":" + ANVIL_CONTAINER.getMappedPort(8545);
+    }
+
 
     /**
      * Get all collected spans.
